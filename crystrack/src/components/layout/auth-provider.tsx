@@ -22,11 +22,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
+   const getUser = async () => {
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error) {
+      console.error('Auth initialization failed:', error);
+    }
+
+    setUser(user ?? null);
+  } catch (error) {
+    console.error('Auth initialization failed:', error);
+    setUser(null);
+  } finally {
+    setLoading(false);
+  }
+};
     getUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
