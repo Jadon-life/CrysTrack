@@ -9,6 +9,7 @@ interface GlassCardProps {
   hover?: boolean;
   glow?: boolean;
   padding?: 'sm' | 'md' | 'lg';
+  style?: React.CSSProperties;
 }
 
 export function GlassCard({ 
@@ -16,10 +17,12 @@ export function GlassCard({
   className, 
   hover = false, 
   glow = false,
-  padding = 'md' 
+  padding = 'md',
+  style
 }: GlassCardProps) {
   return (
     <div 
+      style={style}
       className={cn(
         'rounded-xl border border-white/10 backdrop-blur-xl transition-all duration-300',
         padding === 'sm' && 'p-3',
