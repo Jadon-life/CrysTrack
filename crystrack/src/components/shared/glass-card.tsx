@@ -8,25 +8,34 @@ interface GlassCardProps {
   className?: string;
   hover?: boolean;
   glow?: boolean;
-  padding?: 'sm' | 'md' | 'lg';
+  padding?: 'none' | 'sm' | 'md' | 'lg';
   style?: React.CSSProperties;
+  as?: 'div' | 'section' | 'article';
 }
 
-export function GlassCard({ children, className, hover = false, glow = false, padding = 'md', style }: GlassCardProps) {
+export function GlassCard({
+  children,
+  className,
+  hover = false,
+  glow = false,
+  padding = 'md',
+  style,
+  as: Component = 'div',
+}: GlassCardProps) {
   return (
-    <div
+    <Component
       style={style}
       className={cn(
-        'rounded-xl border border-white/10 bg-[#0e1425]/78 backdrop-blur-sm transition-colors duration-200',
-        padding === 'sm' && 'p-3',
-        padding === 'md' && 'p-5',
-        padding === 'lg' && 'p-6',
-        hover && 'hover:border-white/15 hover:bg-[#11182b]/90',
-        glow && 'border-blue-500/15',
+        'crys-glass-card',
+        padding === 'sm' && 'p-3 sm:p-3.5',
+        padding === 'md' && 'p-4 sm:p-5',
+        padding === 'lg' && 'p-5 sm:p-6',
+        hover && 'crys-glass-card--hover',
+        glow && 'crys-glass-card--glow',
         className,
       )}
     >
       {children}
-    </div>
+    </Component>
   );
 }

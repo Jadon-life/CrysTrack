@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CreateModal } from '@/components/shared/create-modal';
 import { fetcher, post } from '@/lib/api';
 import { cn, getLocalDateKey } from '@/lib/utils';
-import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2 } from 'lucide-react';
+import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward } from 'lucide-react';
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -20,19 +20,30 @@ export default function TasksPage() {
   const [error, setError] = useState('');
   const [filterDay, setFilterDay] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', description: '', preferredTime: '', category: '', schedules: [] as number[] });
+  const [newTask, setNewTask] = useState({
+    title: '', description: '', preferredTime: '', category: '', schedules: [] as number[],
+    remindersEnabled: true, reminderChannel: 'push', beforeMinutes: 15, atPreferredTime: true, followUp: true, endOfDayReminder: true,
+  });
   const today = new Date().getDay();
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      setTasks(await fetcher('/api/tasks'));
+      setTasks(await fetcher(`/api/tasks?date=${getLocalDateKey()}&weekday=${new Date().getDay()}`));
     } catch (e: any) {
       setError(e.message || 'Failed to load tasks');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetcher('/api/preferences').then((prefs: any) => {
+      const channels = prefs?.default_reminder_channels || ['push'];
+      const reminderChannel = channels.includes('push') && channels.includes('telegram') ? 'both' : channels.includes('telegram') ? 'telegram' : 'push';
+      setNewTask((current: any) => ({ ...current, reminderChannel }));
+    }).catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -46,9 +57,17 @@ export default function TasksPage() {
   const handleCreate = async () => {
     if (!newTask.title.trim()) throw new Error('Title is required');
     if (newTask.schedules.length === 0) throw new Error('Select at least one day');
-    await post('/api/tasks', newTask);
+    await post('/api/tasks', {
+      title: newTask.title, description: newTask.description, preferredTime: newTask.preferredTime, category: newTask.category, schedules: newTask.schedules,
+      reminderConfig: {
+        enabled: newTask.remindersEnabled,
+        channels: newTask.reminderChannel === 'both' ? ['push', 'telegram'] : [newTask.reminderChannel],
+        beforeMinutes: newTask.beforeMinutes, atPreferredTime: newTask.atPreferredTime,
+        followUpMinutes: newTask.followUp ? [120] : [], endOfDayReminder: newTask.endOfDayReminder,
+      },
+    });
     await loadTasks();
-    setNewTask({ title: '', description: '', preferredTime: '', category: '', schedules: [] });
+    setNewTask((current) => ({ title: '', description: '', preferredTime: '', category: '', schedules: [], remindersEnabled: true, reminderChannel: current.reminderChannel, beforeMinutes: 15, atPreferredTime: true, followUp: true, endOfDayReminder: true }));
   };
 
   const toggleDay = (day: number) => {
@@ -65,6 +84,16 @@ export default function TasksPage() {
       await loadTasks();
     } catch (e: any) {
       setError(e.message || 'Failed to update task');
+    }
+  };
+
+  const toggleTaskSkip = async (taskId: string) => {
+    setError('');
+    try {
+      await post(`/api/tasks/${taskId}/occurrences/${getLocalDateKey()}/skip`, {});
+      await loadTasks();
+    } catch (e: any) {
+      setError(e.message || 'Failed to skip task');
     }
   };
 
@@ -120,12 +149,19 @@ export default function TasksPage() {
               <div className="flex items-center gap-3">
                 <Checkbox
                   checked={task.today_status === 'completed'}
+                  disabled={task.today_status === 'skipped' || task.today_status === 'missed'}
                   onCheckedChange={() => toggleTaskCompletion(task.id)}
                   className="border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={cn('text-sm font-medium truncate', task.today_status === 'completed' ? 'text-slate-500 line-through' : 'text-white')}>{task.title}</span>
+                    <span className={cn(
+                      'text-sm font-medium truncate',
+                      task.today_status === 'completed' && 'text-slate-500 line-through',
+                      task.today_status === 'skipped' && 'text-slate-400',
+                      task.today_status !== 'completed' && task.today_status !== 'skipped' && 'text-white',
+                    )}>{task.title}</span>
+                    {task.today_status === 'skipped' && <span className="text-[10px] uppercase tracking-wide text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Skipped</span>}
                     {task.category && <span className="hidden sm:inline text-[11px] text-slate-500">{task.category}</span>}
                   </div>
                   {task.description && <p className="text-xs text-slate-500 truncate mt-0.5">{task.description}</p>}
@@ -135,6 +171,11 @@ export default function TasksPage() {
                   <div className="flex items-center gap-1 text-xs text-amber-400" title="Current streak">
                     <Flame className="w-3.5 h-3.5" /> {task.streak || 0}
                   </div>
+                  {task.today_status !== 'completed' && (
+                    <button type="button" onClick={() => toggleTaskSkip(task.id)} className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-amber-300 transition-colors">
+                      <SkipForward className="w-3.5 h-3.5" /> {task.today_status === 'skipped' ? 'Undo skip' : 'Skip today'}
+                    </button>
+                  )}
                 </div>
               </div>
             </GlassCard>
@@ -198,6 +239,24 @@ export default function TasksPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-slate-300 mb-1.5">Preferred time</label><input type="time" value={newTask.preferredTime} onChange={(e) => setNewTask({ ...newTask, preferredTime: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50" /></div>
             <div><label className="block text-sm font-medium text-slate-300 mb-1.5">Category</label><input value={newTask.category} onChange={(e) => setNewTask({ ...newTask, category: e.target.value })} placeholder="e.g. Health" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50" /></div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/10 p-4 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-2"><Bell className="w-4 h-4 text-[var(--theme-primary)] mt-0.5" /><div><p className="text-sm font-medium text-white">Reminders</p><p className="text-xs text-slate-400 mt-0.5">Time helps CrysTrack prompt you; completion still counts any time that day.</p></div></div>
+              <button type="button" onClick={() => setNewTask({ ...newTask, remindersEnabled: !newTask.remindersEnabled })} className={cn('w-11 h-6 rounded-full relative transition-colors shrink-0', newTask.remindersEnabled ? 'bg-[var(--theme-primary)]' : 'bg-white/10')}><span className={cn('absolute top-1 w-4 h-4 rounded-full bg-white transition-all', newTask.remindersEnabled ? 'left-6' : 'left-1')} /></button>
+            </div>
+            {newTask.remindersEnabled && (
+              <>
+                <div><label className="block text-xs text-slate-400 mb-1.5">Delivery channel</label><select value={newTask.reminderChannel} onChange={(e) => setNewTask({ ...newTask, reminderChannel: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"><option value="push" className="bg-slate-950">Web Push</option><option value="telegram" className="bg-slate-950">Telegram</option><option value="both" className="bg-slate-950">Web Push + Telegram</option></select></div>
+                {newTask.preferredTime && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label className="block text-xs text-slate-400 mb-1.5">Before preferred time</label><select value={newTask.beforeMinutes} onChange={(e) => setNewTask({ ...newTask, beforeMinutes: Number(e.target.value) })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"><option value={0} className="bg-slate-950">No early reminder</option><option value={10} className="bg-slate-950">10 minutes before</option><option value={15} className="bg-slate-950">15 minutes before</option><option value={30} className="bg-slate-950">30 minutes before</option><option value={60} className="bg-slate-950">1 hour before</option></select></div>
+                    <label className="flex items-center gap-2 text-xs text-slate-300 mt-6"><input type="checkbox" checked={newTask.atPreferredTime} onChange={(e) => setNewTask({ ...newTask, atPreferredTime: e.target.checked })} /> Remind me at the preferred time</label>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300"><label className="flex items-center gap-2"><input type="checkbox" checked={newTask.followUp} onChange={(e) => setNewTask({ ...newTask, followUp: e.target.checked })} /> Follow up later if still incomplete</label><label className="flex items-center gap-2"><input type="checkbox" checked={newTask.endOfDayReminder} onChange={(e) => setNewTask({ ...newTask, endOfDayReminder: e.target.checked })} /> End-of-day reminder if still incomplete</label></div>
+              </>
+            )}
           </div>
         </div>
       </CreateModal>

@@ -1,205 +1,119 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { TodayView, type TodayViewItem } from '@/components/dashboard/today-view';
-import { QuickStats } from '@/components/dashboard/quick-stats';
-import { RightRail } from '@/components/dashboard/right-rail';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import {
+  AlertTriangle, ArrowRight, Bell, CalendarClock, Check, CheckCircle2, CircleDollarSign, Loader2, MessageSquareText, Plus, Target,
+} from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
-import { Button } from '@/components/ui/button';
-import { fetcher, post } from '@/lib/api';
-import { getLocalDateKey } from '@/lib/utils';
-import { Plus, CheckSquare, Target, ClipboardList, Wallet } from 'lucide-react';
+import { useAuth } from '@/components/layout/auth-provider';
+import { useTheme } from '@/components/layout/theme-provider';
+import { fetcher } from '@/lib/api';
+import { formatCurrency, getLocalDateKey } from '@/lib/utils';
 
-const emptyStats = {
-  tasksDue: 0,
-  tasksCompleted: 0,
-  activeGoals: 0,
-  assignmentsDue: 0,
-  assignmentsOverdue: 0,
-  savingsProgress: 0,
-};
+function greetingForPhase(phase: string) {
+  if (phase === 'morning') return 'Good morning';
+  if (phase === 'day') return 'Good afternoon';
+  if (phase === 'golden' || phase === 'evening') return 'Good evening';
+  return 'Good night';
+}
+
+function checkInDue(goal: any) {
+  const config = goal.checkin_config || {};
+  const frequency = config.frequency || 'weekly';
+  const weekday = new Date().getDay();
+  const scheduled = frequency === 'daily' || (Array.isArray(config.days) && config.days.map(Number).includes(weekday));
+  if (!scheduled) return false;
+  return !(goal.goal_checkins || []).some((item: any) => new Date(item.created_at).toDateString() === new Date().toDateString());
+}
+
+function goalPercent(goal: any) {
+  if (goal.progress_mode !== 'percentage' && !goal.measurable) return null;
+  const start = goal.starting_value == null ? 0 : Number(goal.starting_value);
+  const current = Number(goal.progress_value ?? start);
+  const target = Number(goal.target_value);
+  if (!Number.isFinite(target) || target === start) return null;
+  return Math.max(0, Math.min(100, Math.round((((current - start) / (target - start)) * 100))));
+}
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [showTypeChooser, setShowTypeChooser] = useState(false);
-  const [stats, setStats] = useState(emptyStats);
-  const [activities, setActivities] = useState<any[]>([]);
-  const [todayItems, setTodayItems] = useState<TodayViewItem[]>([]);
-  const [railData, setRailData] = useState<{ goals: any[]; targets: any[]; insight?: any }>({ goals: [], targets: [] });
+  const { user } = useAuth();
+  const { environment } = useTheme();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const [tasksData, goalsData, assignmentsData, financeData, historyData, insightsData] = await Promise.all([
-        fetcher('/api/tasks'),
-        fetcher('/api/goals'),
-        fetcher('/api/assignments'),
-        fetcher('/api/finance'),
-        fetcher('/api/history'),
-        fetcher('/api/insights'),
-      ]);
-
-      const scheduledTasks = tasksData.filter((task: any) => task.scheduled_today);
-      const completedToday = scheduledTasks.filter((task: any) => task.today_status === 'completed').length;
-      const overdueAssignments = assignmentsData.filter((assignment: any) => assignment.computed_status === 'overdue');
-      const dueSoonAssignments = assignmentsData.filter((assignment: any) => ['due_today', 'due_soon'].includes(assignment.computed_status));
-      const totalSaved = financeData.targets?.reduce((sum: number, target: any) => sum + Number(target.current_amount || 0), 0) || 0;
-      const totalTarget = financeData.targets?.reduce((sum: number, target: any) => sum + Number(target.target_amount || 0), 0) || 0;
-
-      setStats({
-        tasksDue: scheduledTasks.length,
-        tasksCompleted: completedToday,
-        activeGoals: goalsData.length,
-        assignmentsDue: dueSoonAssignments.length,
-        assignmentsOverdue: overdueAssignments.length,
-        savingsProgress: totalTarget > 0 ? Math.min(100, Math.round((totalSaved / totalTarget) * 100)) : 0,
-      });
-
-      const taskItems: TodayViewItem[] = scheduledTasks.map((task: any) => ({
-        id: `task-${task.id}`,
-        entityId: task.id,
-        type: 'task',
-        title: task.title,
-        subtitle: task.description || task.category || 'Recurring task',
-        status: task.today_status,
-        time: task.preferred_time || undefined,
-        completed: task.today_status === 'completed',
-      }));
-
-      const goalItems: TodayViewItem[] = goalsData
-        .filter((goal: any) => !(goal.goal_checkins || []).some((checkin: any) => new Date(checkin.created_at).toDateString() === new Date().toDateString()))
-        .slice(0, 3)
-        .map((goal: any) => ({
-          id: `goal-${goal.id}`,
-          entityId: goal.id,
-          type: 'goal',
-          title: goal.title,
-          subtitle: 'Goal check-in due',
-          status: 'active',
-          href: '/goals',
-        }));
-
-      const assignmentItems: TodayViewItem[] = assignmentsData
-        .filter((assignment: any) => ['overdue', 'due_today', 'due_soon'].includes(assignment.computed_status))
-        .slice(0, 4)
-        .map((assignment: any) => ({
-          id: `assignment-${assignment.id}`,
-          entityId: assignment.id,
-          type: 'assignment',
-          title: assignment.title,
-          subtitle: assignment.description || 'Deadline-driven assignment',
-          status: assignment.computed_status,
-          href: '/assignments',
-        }));
-
-      const statusWeight: Record<string, number> = { overdue: 0, due_today: 1, pending: 2, due_soon: 3, active: 4, completed: 5 };
-      setTodayItems([...assignmentItems, ...taskItems, ...goalItems].sort((a, b) => (statusWeight[a.status] ?? 9) - (statusWeight[b.status] ?? 9)));
-      setActivities((historyData || []).slice(0, 5));
-      setRailData({ goals: goalsData || [], targets: financeData.targets || [], insight: insightsData?.[0] });
-    } catch (e: any) {
-      setError(e.message || 'Could not load your dashboard');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [finance, setFinance] = useState<any>({ targets: [], entries: [] });
+  const [history, setHistory] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<any[]>([]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const load = async () => {
+      setLoading(true);
+      const weekday = new Date().getDay();
+      const date = getLocalDateKey();
+      const [taskData, goalData, assignmentData, financeData, historyData, reminderData] = await Promise.all([
+        fetcher(`/api/tasks?date=${date}&weekday=${weekday}`).catch(() => []),
+        fetcher('/api/goals').catch(() => []),
+        fetcher('/api/assignments').catch(() => []),
+        fetcher('/api/finance').catch(() => ({ targets: [], entries: [] })),
+        fetcher('/api/history').catch(() => []),
+        fetcher('/api/reminders?limit=6').catch(() => []),
+      ]);
+      setTasks(taskData); setGoals(goalData); setAssignments(assignmentData); setFinance(financeData); setHistory(historyData); setReminders(reminderData);
+      setLoading(false);
+    };
+    void load();
+  }, []);
 
-  const toggleTask = async (taskId: string) => {
-    setError('');
-    try {
-      await post(`/api/tasks/${taskId}/occurrences/${getLocalDateKey()}/toggle`, {});
-      await loadData();
-    } catch (e: any) {
-      setError(e.message || 'Could not update the task');
-    }
-  };
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'there';
+  const todayTasks = useMemo(() => tasks.filter((task) => task.scheduled_today).sort((a, b) => (a.preferred_time || '99:99').localeCompare(b.preferred_time || '99:99')), [tasks]);
+  const completedTasks = todayTasks.filter((task) => task.today_status === 'completed').length;
+  const dueGoals = goals.filter(checkInDue);
+  const urgentAssignments = assignments.filter((item) => item.computed_status === 'overdue' || item.computed_status === 'due_today').length;
+  const totalIncome = (finance.entries || []).filter((item: any) => item.type === 'income').reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  const totalExpenses = (finance.entries || []).filter((item: any) => item.type === 'expense').reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+  const totalSavings = (finance.entries || []).filter((item: any) => item.type === 'saving').reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 
-  const typeOptions = [
-    { label: 'Regular Task', icon: <CheckSquare className="w-5 h-5" />, href: '/tasks' },
-    { label: 'Goal', icon: <Target className="w-5 h-5" />, href: '/goals' },
-    { label: 'Assignment', icon: <ClipboardList className="w-5 h-5" />, href: '/assignments' },
-    { label: 'Financial Target', icon: <Wallet className="w-5 h-5" />, href: '/finance' },
+  const summary = [
+    { label: 'Tasks today', value: `${completedTasks}/${todayTasks.length}`, note: todayTasks.length ? `${Math.round((completedTasks / todayTasks.length) * 100)}% complete` : 'Nothing scheduled', icon: CheckCircle2, tone: 'text-emerald-300' },
+    { label: 'Goal check-ins', value: String(dueGoals.length), note: dueGoals.length ? 'need attention today' : 'all caught up', icon: Target, tone: 'text-violet-300' },
+    { label: 'Assignments', value: String(assignments.length), note: urgentAssignments ? `${urgentAssignments} urgent today` : 'no immediate deadline', icon: CalendarClock, tone: 'text-amber-300' },
+    { label: 'Savings logged', value: formatCurrency(totalSavings), note: 'from recorded saving entries', icon: CircleDollarSign, tone: 'text-sky-300' },
   ];
 
+  if (loading) return <div className="min-h-[55vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[var(--theme-primary)]" /></div>;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400">Today</p>
-          <h1 className="text-2xl font-bold text-white mt-1">Your command centre</h1>
-          <p className="text-sm text-slate-400 mt-1">See what needs attention, act on it, and keep moving.</p>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => setShowTypeChooser(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          New
-        </Button>
-      </div>
+    <div className="space-y-5 pb-6">
+      <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-1">
+        <div><p className="text-sm text-white/75">{greetingForPhase(environment.phase)},</p><h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-1">{displayName} <span aria-hidden="true">👋</span></h1><p className="text-sm text-[var(--theme-text-muted)] mt-2">See what needs attention, act on it, and keep moving.</p></div>
+        <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-[var(--theme-border)] bg-black/20 px-3 py-1.5 text-xs text-[var(--theme-text-muted)]">{environment.city || 'Local'} · {environment.temperatureC == null ? '--' : `${Math.round(environment.temperatureC)}°C`}</span><Link href="/plan" className="glass-button-primary inline-flex items-center gap-2"><Plus className="w-4 h-4" />Quick add</Link></div>
+      </section>
 
-      {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+      <section className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {summary.map(({ label, value, note, icon: Icon, tone }) => <GlassCard key={label} padding="md"><div className="flex items-center justify-between"><div className={tone}><Icon className="w-5 h-5" /></div></div><p className="text-xs text-[var(--theme-text-muted)] mt-4">{label}</p><p className="text-2xl font-semibold text-white mt-1 truncate">{value}</p><p className="text-[11px] text-[var(--theme-text-muted)] mt-1">{note}</p></GlassCard>)}
+      </section>
 
-      <QuickStats stats={stats} />
+      <section className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <GlassCard padding="md" className="xl:col-span-5">
+          <div className="flex items-center justify-between mb-4"><div><p className="text-sm font-semibold text-white">Today&apos;s plan</p><p className="text-[11px] text-[var(--theme-text-muted)]">Execution matters more than the exact time.</p></div><Link href="/tasks" className="text-xs text-[var(--theme-primary)]">View all</Link></div>
+          <div className="space-y-1.5">{todayTasks.length === 0 ? <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">No routines scheduled today.</p> : todayTasks.slice(0, 7).map((task) => <div key={task.id} className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 hover:bg-white/[0.04]"><span className={task.today_status === 'completed' ? 'w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-300 grid place-items-center' : task.today_status === 'skipped' ? 'w-6 h-6 rounded-full bg-amber-500/10 text-amber-300 grid place-items-center' : 'w-6 h-6 rounded-full border border-white/20 grid place-items-center text-transparent'}>{task.today_status === 'completed' ? <Check className="w-3.5 h-3.5" /> : '•'}</span><div className="flex-1 min-w-0"><p className={`text-xs font-medium truncate ${task.today_status === 'completed' ? 'text-white/45 line-through' : 'text-white'}`}>{task.title}</p><p className="text-[10px] text-[var(--theme-text-muted)]">{task.preferred_time || 'Any time today'}{task.category ? ` · ${task.category}` : ''}</p></div><span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">{task.today_status}</span></div>)}</div>
+          <div className="pt-3 mt-3 border-t border-white/10"><Link href="/tasks" className="text-xs text-[var(--theme-primary)] inline-flex items-center gap-1">Manage routines <ArrowRight className="w-3 h-3" /></Link></div>
+        </GlassCard>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
-          <GlassCard padding="lg">
-            <TodayView items={todayItems} loading={loading} onToggleTask={toggleTask} />
-          </GlassCard>
-
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-white">Recent activity</h2>
-              <button onClick={() => router.push('/history')} className="text-xs font-medium text-blue-400 hover:text-blue-300">View history</button>
-            </div>
-            <div className="space-y-2">
-              {activities.length === 0 && !loading && (
-                <GlassCard padding="md"><p className="text-sm text-slate-500">Activity appears here as you complete routines, check in on goals, finish assignments, and add money entries.</p></GlassCard>
-              )}
-              {activities.map((activity: any, i: number) => (
-                <GlassCard key={activity.id || i} padding="sm" className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm text-white truncate">{activity.metadata_json?.title || activity.type?.replaceAll('_', ' ') || 'Activity'}</p>
-                    <p className="text-xs text-slate-500 capitalize">{activity.entity_type}</p>
-                  </div>
-                  <span className="text-xs text-slate-500 shrink-0">{new Date(activity.created_at).toLocaleDateString()}</span>
-                </GlassCard>
-              ))}
-            </div>
-          </div>
+        <div className="xl:col-span-4 space-y-4">
+          <GlassCard padding="md"><div className="flex items-center justify-between mb-3"><p className="text-sm font-semibold text-white">Goal check-ins</p><Link href="/goals" className="text-xs text-[var(--theme-primary)]">View all</Link></div><div className="space-y-3">{goals.length === 0 ? <p className="text-xs text-[var(--theme-text-muted)] py-4">No active goals.</p> : goals.slice(0, 3).map((goal) => { const percent = goalPercent(goal); const latest = (goal.goal_checkins || []).find((item: any) => item.ai_analysis)?.ai_analysis; return <div key={goal.id} className="rounded-xl border border-white/10 bg-black/10 p-3"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="text-xs font-semibold text-white truncate">{goal.title}</p><p className="text-[10px] text-[var(--theme-text-muted)] mt-1">{checkInDue(goal) ? 'Check-in due today' : 'Check-in up to date'}</p></div>{percent != null && <span className="text-xs font-semibold text-[var(--theme-primary)]">{percent}%</span>}</div>{percent != null && <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-2"><div className="h-full bg-[var(--theme-primary)]" style={{ width: `${percent}%` }} /></div>}{latest && <p className="text-[10px] text-white/65 mt-2 line-clamp-2">AI: {latest.summary}</p>}</div>; })}</div></GlassCard>
+          <GlassCard padding="md"><div className="flex items-center justify-between mb-3"><p className="text-sm font-semibold text-white">Finance snapshot</p><Link href="/finance" className="text-xs text-[var(--theme-primary)]">Money</Link></div><div className="grid grid-cols-3 gap-2 text-center"><div><p className="text-[10px] text-[var(--theme-text-muted)]">Income</p><p className="text-sm font-semibold text-emerald-300 mt-1">{formatCurrency(totalIncome)}</p></div><div><p className="text-[10px] text-[var(--theme-text-muted)]">Expenses</p><p className="text-sm font-semibold text-red-300 mt-1">{formatCurrency(totalExpenses)}</p></div><div><p className="text-[10px] text-[var(--theme-text-muted)]">Savings</p><p className="text-sm font-semibold text-sky-300 mt-1">{formatCurrency(totalSavings)}</p></div></div></GlassCard>
         </div>
 
-        <div className="xl:col-span-1">
-          <div className="sticky top-6"><RightRail goals={railData.goals} targets={railData.targets} insight={railData.insight} /></div>
+        <div className="xl:col-span-3 space-y-4">
+          <GlassCard padding="md"><div className="flex items-center justify-between mb-3"><p className="text-sm font-semibold text-white">Assignments & reminders</p><Link href="/assignments" className="text-xs text-[var(--theme-primary)]">View all</Link></div><div className="space-y-2">{assignments.slice(0, 4).map((assignment) => <div key={assignment.id} className="rounded-xl border border-white/10 bg-black/10 p-3"><div className="flex items-start justify-between gap-2"><p className="text-xs font-medium text-white line-clamp-1">{assignment.title}</p>{assignment.computed_status === 'overdue' && <AlertTriangle className="w-3.5 h-3.5 text-red-300 shrink-0" />}</div><p className="text-[10px] text-[var(--theme-text-muted)] mt-1">{new Date(assignment.deadline).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</p></div>)}{assignments.length === 0 && <p className="text-xs text-[var(--theme-text-muted)] py-4">No active assignments.</p>}</div>{reminders.length > 0 && <div className="mt-3 pt-3 border-t border-white/10"><div className="flex items-center gap-2 text-[11px] text-[var(--theme-text-muted)]"><Bell className="w-3.5 h-3.5 text-[var(--theme-primary)]" /> {reminders.length} reminder event{reminders.length === 1 ? '' : 's'} visible</div></div>}</GlassCard>
+          <GlassCard padding="md"><p className="text-sm font-semibold text-white">Today note</p><div className="mt-4 flex gap-3"><MessageSquareText className="w-4 h-4 text-[var(--theme-primary)] shrink-0" /><p className="text-xs leading-relaxed text-white/80">Small progress is still progress. CrysTrack records what you actually execute, not whether you followed a perfect clock.</p></div></GlassCard>
         </div>
-      </div>
+      </section>
 
-      {showTypeChooser && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowTypeChooser(false)} />
-          <GlassCard padding="lg" className="relative w-full max-w-sm">
-            <h2 className="text-lg font-semibold text-white mb-1">Create something</h2>
-            <p className="text-xs text-slate-500 mb-4">Choose the kind of item you want to add.</p>
-            <div className="space-y-2">
-              {typeOptions.map((option) => (
-                <button
-                  key={option.label}
-                  onClick={() => { setShowTypeChooser(false); router.push(option.href); }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/[0.035] hover:bg-white/[0.07] border border-white/10 hover:border-white/20 transition-all text-left"
-                >
-                  <span className="text-blue-400">{option.icon}</span>
-                  <span className="text-sm font-medium text-white">{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </GlassCard>
-        </div>
-      )}
+      <GlassCard padding="md"><div className="flex items-center justify-between mb-3"><p className="text-sm font-semibold text-white">Recent activity</p><Link href="/history" className="text-xs text-[var(--theme-primary)]">Full history</Link></div><div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">{history.length === 0 ? <p className="text-xs text-[var(--theme-text-muted)]">Your activity will appear here.</p> : history.slice(0, 6).map((item: any) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/10 px-3 py-2.5"><p className="text-xs text-white truncate">{item.metadata_json?.title || item.type?.replaceAll('_', ' ') || 'Activity'}</p><p className="text-[10px] text-[var(--theme-text-muted)] mt-1">{new Date(item.created_at).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</p></div>)}</div></GlassCard>
     </div>
   );
 }

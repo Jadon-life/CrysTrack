@@ -2,12 +2,11 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function localDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+function dateKeyToDate(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function occurrenceDateKey(value: string) {
@@ -17,42 +16,61 @@ function occurrenceDateKey(value: string) {
 function calculateStreak(
   weekdays: number[],
   occurrences: Array<{ date: string; status: string }>,
-  today = new Date(),
+  todayKey: string,
 ) {
-  if (weekdays.length === 0) return 0;
+  const start = dateKeyToDate(todayKey);
+  if (!start || weekdays.length === 0) return 0;
 
   const completed = new Set(
-    occurrences
-      .filter((o) => o.status === 'completed')
-      .map((o) => occurrenceDateKey(o.date)),
+    occurrences.filter((occurrence) => occurrence.status === 'completed').map((occurrence) => occurrenceDateKey(occurrence.date)),
   );
 
   let streak = 0;
-  let cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-  // A current scheduled day should not break the streak before the user has had a chance to complete it.
-  if (weekdays.includes(cursor.getDay()) && !completed.has(localDateKey(cursor))) {
-    cursor = new Date(cursor.getTime() - DAY_MS);
-  }
+  let cursor = new Date(start.getTime());
+  if (weekdays.includes(cursor.getUTCDay()) && !completed.has(todayKey)) cursor = new Date(cursor.getTime() - DAY_MS);
 
   for (let checked = 0; checked < 366; checked += 1) {
-    if (!weekdays.includes(cursor.getDay())) {
+    if (!weekdays.includes(cursor.getUTCDay())) {
       cursor = new Date(cursor.getTime() - DAY_MS);
       continue;
     }
-
-    if (!completed.has(localDateKey(cursor))) break;
+    const key = cursor.toISOString().slice(0, 10);
+    if (!completed.has(key)) break;
     streak += 1;
     cursor = new Date(cursor.getTime() - DAY_MS);
   }
-
   return streak;
 }
 
-export async function GET() {
+function normaliseReminderConfig(value: any) {
+  const channels = Array.isArray(value?.channels)
+    ? Array.from(new Set(value.channels.filter((channel: unknown) => channel === 'push' || channel === 'telegram')))
+    : ['push'];
+  return {
+    enabled: value?.enabled !== false,
+    channels: channels.length ? channels : ['push'],
+    beforeMinutes: Math.min(180, Math.max(0, Number(value?.beforeMinutes ?? 15) || 0)),
+    atPreferredTime: value?.atPreferredTime !== false,
+    followUpMinutes: Array.isArray(value?.followUpMinutes)
+      ? value.followUpMinutes.map(Number).filter((minutes: number) => Number.isFinite(minutes) && minutes > 0 && minutes <= 720).slice(0, 4)
+      : [120],
+    endOfDayReminder: value?.endOfDayReminder !== false,
+  };
+}
+
+export async function GET(request: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const url = new URL(request.url);
+  const requestedDate = url.searchParams.get('date');
+  const todayKey = requestedDate && DATE_RE.test(requestedDate) ? requestedDate : new Date().toISOString().slice(0, 10);
+  const todayDate = dateKeyToDate(todayKey) || new Date();
+  const requestedWeekday = Number(url.searchParams.get('weekday'));
+  const todayWeekday = Number.isInteger(requestedWeekday) && requestedWeekday >= 0 && requestedWeekday <= 6
+    ? requestedWeekday
+    : todayDate.getUTCDay();
 
   const { data: tasks, error: taskError } = await supabase
     .from('recurring_tasks')
@@ -66,8 +84,7 @@ export async function GET() {
   if (!tasks?.length) return NextResponse.json([]);
 
   const taskIds = tasks.map((task: any) => task.id);
-  const historyStart = new Date(Date.now() - 370 * DAY_MS).toISOString();
-
+  const historyStart = new Date((todayDate?.getTime() || Date.now()) - 370 * DAY_MS).toISOString();
   const { data: occurrences, error: occurrenceError } = await supabase
     .from('task_occurrences')
     .select('id, task_id, date, status, completed_at')
@@ -77,8 +94,6 @@ export async function GET() {
 
   if (occurrenceError) return NextResponse.json({ error: occurrenceError.message }, { status: 500 });
 
-  const todayKey = localDateKey();
-  const todayWeekday = new Date().getDay();
   const byTask = new Map<string, any[]>();
   for (const occurrence of occurrences || []) {
     const list = byTask.get(occurrence.task_id) || [];
@@ -86,21 +101,19 @@ export async function GET() {
     byTask.set(occurrence.task_id, list);
   }
 
-  const enriched = tasks.map((task: any) => {
+  return NextResponse.json(tasks.map((task: any) => {
     const taskOccurrences = byTask.get(task.id) || [];
     const weekdays = (task.task_schedules || []).map((schedule: any) => schedule.weekday);
     const todayOccurrence = taskOccurrences.find((occurrence: any) => occurrenceDateKey(occurrence.date) === todayKey);
     const scheduledToday = weekdays.includes(todayWeekday);
-
     return {
       ...task,
       scheduled_today: scheduledToday,
       today_status: scheduledToday ? (todayOccurrence?.status || 'pending') : 'not_scheduled',
-      streak: calculateStreak(weekdays, taskOccurrences),
+      today_occurrence_id: todayOccurrence?.id || null,
+      streak: calculateStreak(weekdays, taskOccurrences, todayKey),
     };
-  });
-
-  return NextResponse.json(enriched);
+  }));
 }
 
 export async function POST(request: Request) {
@@ -111,12 +124,11 @@ export async function POST(request: Request) {
   const body = await request.json();
   const title = String(body.title || '').trim();
   const schedules: number[] = Array.isArray(body.schedules)
-    ? Array.from(new Set<number>(body.schedules.map((day: unknown) => Number(day))))
-        .filter((day: number) => Number.isInteger(day) && day >= 0 && day <= 6)
+    ? Array.from(new Set<number>(body.schedules.map((day: unknown) => Number(day)))).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
     : [];
 
   if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-  if (schedules.length === 0) return NextResponse.json({ error: 'Select at least one valid day' }, { status: 400 });
+  if (!schedules.length) return NextResponse.json({ error: 'Select at least one valid day' }, { status: 400 });
 
   const { data: task, error } = await supabase
     .from('recurring_tasks')
@@ -126,6 +138,7 @@ export async function POST(request: Request) {
       description: body.description || null,
       preferred_time: body.preferredTime || null,
       category: body.category || null,
+      reminder_config: normaliseReminderConfig(body.reminderConfig),
     })
     .select()
     .single();
@@ -134,7 +147,6 @@ export async function POST(request: Request) {
 
   const scheduleRows = schedules.map((weekday) => ({ task_id: task.id, weekday }));
   const { error: scheduleError } = await supabase.from('task_schedules').insert(scheduleRows);
-
   if (scheduleError) {
     await supabase.from('recurring_tasks').delete().eq('id', task.id).eq('user_id', user.id);
     return NextResponse.json({ error: scheduleError.message }, { status: 500 });

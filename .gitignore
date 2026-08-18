@@ -4,3 +4,5 @@ crystrack/.env.localcrystrack/.next/
 crystrack/.env*.local
 crystrack/*.tsbuildinfo
 crystrack/next-env.d.ts
+
+crystrack/.next/

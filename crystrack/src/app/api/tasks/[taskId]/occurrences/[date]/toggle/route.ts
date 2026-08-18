@@ -9,10 +9,7 @@ function parseDateKey(value: string) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export async function POST(
-  _request: Request,
-  { params }: { params: { taskId: string; date: string } },
-) {
+export async function POST(_request: Request, { params }: { params: { taskId: string; date: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -27,12 +24,10 @@ export async function POST(
     .eq('user_id', user.id)
     .is('archived_at', null)
     .single();
-
   if (taskError || !task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
 
   const weekday = occurrenceDate.getUTCDay();
-  const scheduled = (task.task_schedules || []).some((schedule: any) => schedule.weekday === weekday);
-  if (!scheduled) {
+  if (!(task.task_schedules || []).some((schedule: any) => schedule.weekday === weekday)) {
     return NextResponse.json({ error: 'Task is not scheduled for this day' }, { status: 409 });
   }
 
@@ -45,38 +40,17 @@ export async function POST(
     .gte('date', dateIso)
     .lt('date', nextDate)
     .maybeSingle();
-
   if (occurrenceError) return NextResponse.json({ error: occurrenceError.message }, { status: 500 });
+  if (existing?.status === 'skipped' || existing?.status === 'missed') {
+    return NextResponse.json({ error: `This task is already ${existing.status}` }, { status: 409 });
+  }
 
   const completing = existing?.status !== 'completed';
-  let occurrence;
-
-  if (existing) {
-    const { data, error } = await supabase
-      .from('task_occurrences')
-      .update({
-        status: completing ? 'completed' : 'pending',
-        completed_at: completing ? new Date().toISOString() : null,
-      })
-      .eq('id', existing.id)
-      .select()
-      .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    occurrence = data;
-  } else {
-    const { data, error } = await supabase
-      .from('task_occurrences')
-      .insert({
-        task_id: task.id,
-        date: dateIso,
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    occurrence = data;
-  }
+  const payload = { status: completing ? 'completed' : 'pending', completed_at: completing ? new Date().toISOString() : null };
+  const { data: occurrence, error } = existing
+    ? await supabase.from('task_occurrences').update(payload).eq('id', existing.id).select().single()
+    : await supabase.from('task_occurrences').insert({ task_id: task.id, date: dateIso, ...payload }).select().single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   if (completing) {
     await supabase.from('activity_events').insert({
@@ -86,6 +60,13 @@ export async function POST(
       entity_id: task.id,
       metadata_json: { title: task.title, status: 'completed', date: params.date },
     });
+  } else {
+    await supabase.from('activity_events').delete()
+      .eq('user_id', user.id)
+      .eq('type', 'task_completed')
+      .eq('entity_type', 'task')
+      .eq('entity_id', task.id)
+      .contains('metadata_json', { date: params.date });
   }
 
   return NextResponse.json(occurrence);

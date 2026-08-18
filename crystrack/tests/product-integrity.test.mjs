@@ -46,18 +46,19 @@ test('tailwind stat surfaces are statically discoverable', () => {
 
 test('navigation follows the consolidated product model', () => {
   const nav = read('src/components/navigation/nav-items.tsx');
-  for (const label of ["'Today'", "'Plan'", "'Money'", "'Insights'", "'Settings'"]) {
+  for (const label of ["'Today'", "'Plan'", "'Money'", "'Insights'", "'Calendar'"]) {
     assert.equal(nav.includes(label), true, `Missing navigation label ${label}`);
   }
   assert.equal(nav.includes("label: 'Tasks'"), false);
   assert.equal(nav.includes("label: 'Assignments'"), false);
+  assert.equal(nav.includes("label: 'Settings'"), false);
 });
 
 test('authenticated app shell no longer runs the 3D background globally', () => {
   const layout = read('src/components/layout/app-layout.tsx');
   const uses = layout.match(/<ThreeBackground \/>/g) || [];
   assert.equal(uses.length, 1, 'ThreeBackground should be limited to the auth experience');
-  assert.equal(layout.includes('app-shell-bg'), true);
+  assert.equal(layout.includes('<EnvironmentBackground />'), true);
 });
 
 test('database repair supplies required integrity primitives', () => {

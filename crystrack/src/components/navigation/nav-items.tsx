@@ -1,24 +1,24 @@
 import React from 'react';
-import { LayoutDashboard, Layers3, Wallet, BrainCircuit, Settings } from 'lucide-react';
+import { BarChart3, CalendarDays, CircleDollarSign, Layers3, Sparkles } from 'lucide-react';
 
 export interface NavItemData {
   label: string;
   href: string;
   icon: React.ReactNode;
-  matches?: string[];
+  match?: string[];
 }
 
 export const navItems: NavItemData[] = [
-  { label: 'Today', href: '/', icon: <LayoutDashboard className="w-5 h-5" />, matches: ['/'] },
-  { label: 'Plan', href: '/plan', icon: <Layers3 className="w-5 h-5" />, matches: ['/plan', '/tasks', '/goals', '/assignments'] },
-  { label: 'Money', href: '/finance', icon: <Wallet className="w-5 h-5" />, matches: ['/finance'] },
-  { label: 'Insights', href: '/insights', icon: <BrainCircuit className="w-5 h-5" />, matches: ['/insights', '/history'] },
-  { label: 'Settings', href: '/settings', icon: <Settings className="w-5 h-5" />, matches: ['/settings'] },
+  { label: 'Today', href: '/', icon: <Sparkles className="w-4 h-4" />, match: ['/'] },
+  { label: 'Plan', href: '/plan', icon: <Layers3 className="w-4 h-4" />, match: ['/plan', '/tasks', '/goals', '/assignments'] },
+  { label: 'Money', href: '/finance', icon: <CircleDollarSign className="w-4 h-4" />, match: ['/finance'] },
+  { label: 'Insights', href: '/insights', icon: <BarChart3 className="w-4 h-4" />, match: ['/insights', '/history'] },
+  { label: 'Calendar', href: '/calendar', icon: <CalendarDays className="w-4 h-4" />, match: ['/calendar'] },
 ];
 
-export const mobileNavItems = navItems;
-
 export function navItemIsActive(pathname: string, item: NavItemData) {
-  const matches = item.matches || [item.href];
-  return matches.some((match) => match === '/' ? pathname === '/' : pathname === match || pathname.startsWith(`${match}/`));
+  if (item.href === '/') return pathname === '/';
+  return (item.match || [item.href]).some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
+
+export const mobileNavItems = navItems;
