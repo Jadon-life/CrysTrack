@@ -12,26 +12,18 @@ interface GlassCardProps {
   style?: React.CSSProperties;
 }
 
-export function GlassCard({ 
-  children, 
-  className, 
-  hover = false, 
-  glow = false,
-  padding = 'md',
-  style
-}: GlassCardProps) {
+export function GlassCard({ children, className, hover = false, glow = false, padding = 'md', style }: GlassCardProps) {
   return (
-    <div 
+    <div
       style={style}
       className={cn(
-        'rounded-xl border border-white/10 backdrop-blur-xl transition-all duration-300',
+        'rounded-xl border border-white/10 bg-[#0e1425]/78 backdrop-blur-sm transition-colors duration-200',
         padding === 'sm' && 'p-3',
         padding === 'md' && 'p-5',
         padding === 'lg' && 'p-6',
-        hover && 'hover:border-white/20 hover:bg-white/[0.07] cursor-pointer',
-        glow && 'shadow-lg shadow-blue-500/10',
-        'bg-white/[0.03]',
-        className
+        hover && 'hover:border-white/15 hover:bg-[#11182b]/90',
+        glow && 'border-blue-500/15',
+        className,
       )}
     >
       {children}

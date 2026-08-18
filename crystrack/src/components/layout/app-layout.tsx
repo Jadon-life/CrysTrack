@@ -16,28 +16,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
   const { user, loading } = useAuth();
 
-  // Redirect unauthenticated users to auth page (except auth page itself)
   React.useEffect(() => {
-    if (!loading && !user && !isAuthPage) {
-      router.push('/auth');
-    }
+    if (!loading && !user && !isAuthPage) router.push('/auth');
   }, [user, loading, isAuthPage, router]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: theme.background }}>
-        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center bg-[#080c19]"><Loader2 className="w-8 h-8 text-blue-400 animate-spin" /></div>;
   }
 
   if (isAuthPage) {
     return (
       <div className="relative min-h-screen flex items-center justify-center" style={{ background: theme.background }}>
         <ThreeBackground />
-        <div className="relative z-10 w-full max-w-md px-4">
-          {children}
-        </div>
+        <div className="relative z-10 w-full max-w-md px-4">{children}</div>
       </div>
     );
   }
@@ -45,22 +36,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="relative min-h-screen flex" style={{ background: theme.background }}>
-      <ThreeBackground />
-
-      <div className="hidden lg:block">
-        <Sidebar />
-      </div>
-
-      <main className="flex-1 min-h-screen pb-20 lg:pb-0 lg:ml-64">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {children}
-        </div>
+    <div className="relative min-h-screen flex app-shell-bg">
+      <div className="hidden lg:block"><Sidebar /></div>
+      <main className="flex-1 min-h-screen pb-24 lg:pb-0 lg:ml-64">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">{children}</div>
       </main>
-
-      <div className="lg:hidden">
-        <MobileNav />
-      </div>
+      <div className="lg:hidden"><MobileNav /></div>
     </div>
   );
 }
