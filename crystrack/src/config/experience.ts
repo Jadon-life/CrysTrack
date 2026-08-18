@@ -13,7 +13,7 @@ export const EXPERIENCE_CONFIG = {
     golden: 'Golden city skyline (Unsplash).jpg',
     evening: 'Sunset Vibes (Unsplash).jpg',
     // CC0 Wikimedia Commons image. Changing this one line swaps the night scene.
-    night: 'Pudong skyline at night from Huangpu River 20260417 (4).jpg',
+    night: 'Dubai skyline unsplash.jpg',
   },
   wealth: {
     canonicalCurrency: 'NGN' as const,

@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Cloud,
   CloudRain,
+  Diamond,
   LogOut,
   MapPin,
   Menu,
@@ -24,15 +25,6 @@ import { useTheme } from '@/components/layout/theme-provider';
 import { weatherLabel } from '@/lib/environment';
 import { cn } from '@/lib/utils';
 import { navItems, navItemIsActive } from './nav-items';
-
-function CrysTrackMark({ className = 'w-6 h-6' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} fill="none" aria-hidden="true">
-      <path d="M6 5.5C6 10.1 9.7 13.8 14.3 13.8h3.4c4.6 0 8.3-3.7 8.3-8.3" stroke="currentColor" strokeWidth="4.2" strokeLinecap="round" />
-      <path d="M6 26.5c0-4.6 3.7-8.3 8.3-8.3h3.4c4.6 0 8.3 3.7 8.3 8.3" stroke="currentColor" strokeWidth="4.2" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function WeatherIcon({ weather }: { weather: string }) {
   if (weather === 'rain' || weather === 'storm') return <CloudRain className="w-4 h-4" />;
@@ -88,7 +80,7 @@ function NotificationMenu() {
       const response = await fetch('/api/reminders?limit=8', { cache: 'no-store' });
       if (response.ok) setItems(await response.json());
     } catch {
-      // The notification centre is intentionally fail-soft.
+      // Notification centre can remain empty if the reminder API is unavailable.
     }
   };
 
@@ -235,8 +227,8 @@ export function TopNavigation() {
       <header className="topnav-wrap">
         <div className="topnav-shell">
           <Link href="/" className="topnav-brand" aria-label="CrysTrack home">
-            <span className="text-[#ff812f]"><CrysTrackMark /></span>
-            <span className="font-bold tracking-[-0.025em] text-white">CRYSTRACK</span>
+            <span className="topnav-brandmark"><Diamond className="w-4 h-4" /></span>
+            <span className="font-semibold tracking-tight text-white">CrysTrack</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
@@ -276,7 +268,7 @@ export function TopNavigation() {
         <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute left-3 right-3 top-3 rounded-2xl border border-white/15 bg-[#07101c]/95 p-3 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between px-2 py-2">
-              <div className="flex items-center gap-2 text-white font-semibold"><span className="text-[#ff812f]"><CrysTrackMark className="w-5 h-5" /></span> CRYSTRACK</div>
+              <div className="flex items-center gap-2 text-white font-semibold"><Diamond className="w-4 h-4 text-[var(--theme-primary)]" /> CrysTrack</div>
               <button type="button" className="topnav-icon-button" onClick={() => setMobileOpen(false)}><X className="w-4 h-4" /></button>
             </div>
             <nav className="grid grid-cols-2 gap-2 mt-2">

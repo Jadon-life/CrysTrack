@@ -183,7 +183,7 @@ export default function TasksPage() {
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-4 routine-readable-section">
         <div>
           <h2 className="text-lg font-semibold text-white">All routines</h2>
           <p className="text-xs text-slate-500 mt-1">Review schedules without mixing them with today&apos;s execution list.</p>
