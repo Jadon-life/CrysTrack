@@ -8,7 +8,7 @@ const read = (path) => readFileSync(join(root, path), 'utf8');
 
 test('top navigation follows the approved information architecture', () => {
   const nav = read('src/components/navigation/nav-items.tsx');
-  for (const label of ['Today', 'Plan', 'Money', 'Insights', 'Calendar']) assert.match(nav, new RegExp(`label: '${label}'`));
+  for (const label of ['Today', 'Plan', 'Wealth', 'Insights', 'Calendar']) assert.match(nav, new RegExp(`label: '${label}'`));
   assert.doesNotMatch(nav, /label: 'Settings'/);
   const layout = read('src/components/layout/app-layout.tsx');
   assert.match(layout, /<TopNavigation/);

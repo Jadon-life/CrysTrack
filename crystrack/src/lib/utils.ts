@@ -34,10 +34,11 @@ export function formatDateTime(date: string | Date, timezone = 'UTC'): string {
   }).format(d);
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number, currency: 'NGN' | 'USD' = 'NGN'): string {
+  return new Intl.NumberFormat(currency === 'NGN' ? 'en-NG' : 'en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency,
+    maximumFractionDigits: currency === 'NGN' ? 0 : 2,
   }).format(amount);
 }
 

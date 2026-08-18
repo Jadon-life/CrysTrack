@@ -46,7 +46,7 @@ test('tailwind stat surfaces are statically discoverable', () => {
 
 test('navigation follows the consolidated product model', () => {
   const nav = read('src/components/navigation/nav-items.tsx');
-  for (const label of ["'Today'", "'Plan'", "'Money'", "'Insights'", "'Calendar'"]) {
+  for (const label of ["'Today'", "'Plan'", "'Wealth'", "'Insights'", "'Calendar'"]) {
     assert.equal(nav.includes(label), true, `Missing navigation label ${label}`);
   }
   assert.equal(nav.includes("label: 'Tasks'"), false);

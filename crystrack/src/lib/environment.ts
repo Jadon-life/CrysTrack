@@ -1,4 +1,5 @@
 import type { TimePhase } from '@/lib/theme';
+import { EXPERIENCE_CONFIG } from '@/config/experience';
 
 export type WeatherKind = 'clear' | 'cloudy' | 'rain' | 'storm' | 'fog' | 'snow' | 'unknown';
 export type LocationSource = 'gps' | 'ip' | 'device' | 'fallback';
@@ -47,6 +48,7 @@ export function phaseFromSolarTimes(currentLocal: string, sunrise: string | null
   const now = minuteOfDay(currentLocal);
   const rise = minuteOfDay(sunrise);
   const set = minuteOfDay(sunset);
+
   if (now == null || rise == null || set == null) {
     const hour = Number(currentLocal.slice(11, 13) || currentLocal.slice(0, 2));
     if (hour >= 5 && hour < 10) return 'morning';
@@ -76,6 +78,7 @@ function deviceLocalIso() {
 export function fallbackEnvironment(): EnvironmentState {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   const localTime = deviceLocalIso();
+
   return {
     phase: phaseFromSolarTimes(localTime, null, null),
     weather: 'unknown',
@@ -99,9 +102,11 @@ async function reverseGeocode(coordinates?: Coordinates) {
     params.set('latitude', String(coordinates.latitude));
     params.set('longitude', String(coordinates.longitude));
   }
+
   const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?${params.toString()}`, {
     cache: 'no-store',
   });
+
   if (!response.ok) throw new Error('Location lookup failed');
   return response.json();
 }
@@ -115,9 +120,11 @@ async function fetchWeather(coordinates: Coordinates) {
     timezone: 'auto',
     forecast_days: '1',
   });
+
   const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
     cache: 'no-store',
   });
+
   if (!response.ok) throw new Error('Weather lookup failed');
   return response.json();
 }
@@ -176,21 +183,15 @@ export async function loadEnvironment(coordinates?: Coordinates): Promise<Enviro
   };
 }
 
-const COMMONS_BACKGROUNDS: Record<TimePhase, string> = {
-  morning: 'Sunrise Bettmerhorn snowy mountains (Unsplash).jpg',
-  day: 'Mountain Landscape (Unsplash).jpg',
-  golden: 'Golden city skyline (Unsplash).jpg',
-  evening: 'Sunset Vibes (Unsplash).jpg',
-  night: 'Dubai skyline unsplash.jpg',
-};
-
 function commonsRedirect(file: string, width: number) {
   return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(file)}?width=${width}`;
 }
 
 export function environmentBackgroundAsset(phase: TimePhase) {
-  const file = COMMONS_BACKGROUNDS[phase];
+  const file = EXPERIENCE_CONFIG.scenes[phase];
+
   return {
+    file,
     src: commonsRedirect(file, 2560),
     srcSet: `${commonsRedirect(file, 1280)} 1280w, ${commonsRedirect(file, 1920)} 1920w, ${commonsRedirect(file, 2560)} 2560w, ${commonsRedirect(file, 3840)} 3840w`,
   };
