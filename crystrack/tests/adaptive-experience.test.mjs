@@ -51,6 +51,14 @@ test('reminders are server-dispatched with DND, push, Telegram and delivery dedu
   assert.match(dispatcher, /TELEGRAM_BOT_TOKEN/);
   assert.match(dispatcher, /isWithinDnd/);
   assert.match(dispatcher, /deliveryKey/);
+  assert.match(dispatcher, /MAX_DELIVERY_ATTEMPTS/);
+  assert.match(dispatcher, /attempt_count/);
+  assert.match(dispatcher, /channelsToAttempt/);
+  const push = read('src/lib/push.ts');
+  assert.match(push, /getPushSetupStatus/);
+  assert.match(push, /subscription-unsynced/);
+  const subscribe = read('src/app/api/push/subscribe/route.ts');
+  assert.match(subscribe, /export async function GET/);
   const sw = read('public/sw.js');
   assert.match(sw, /addEventListener\('push'/);
   assert.match(sw, /showNotification/);

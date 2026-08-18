@@ -34,11 +34,15 @@ function defaultTaskConfig() {
   return { enabled: true, channels: ['push'], beforeMinutes: 15, atPreferredTime: true, followUpMinutes: [120], endOfDayReminder: true };
 }
 
-async function deliver(
+const MAX_DELIVERY_ATTEMPTS = 3;
+const PROCESSING_STALE_MS = 5 * 60 * 1000;
+const RETRY_DELAY_MS = 45 * 1000;
+
+async function reserveDelivery(
   admin: ReturnType<typeof createAdminClient>,
   input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload },
 ) {
-  const { data: reserved, error: reserveError } = await admin
+  const { data: inserted, error: insertError } = await admin
     .from('reminder_deliveries')
     .insert({
       user_id: input.userId,
@@ -53,16 +57,80 @@ async function deliver(
     .select('id')
     .single();
 
-  if (reserveError) {
-    if (reserveError.code === '23505') return { duplicate: true, sent: [] as string[], failed: [] as string[] };
-    throw reserveError;
+  if (!insertError && inserted) {
+    return { duplicate: false, id: inserted.id as string, priorSent: [] as string[], channelsToAttempt: input.channels };
   }
 
-  const sent: string[] = [];
+  if (insertError?.code !== '23505') throw insertError;
+
+  const { data: existing, error: existingError } = await admin
+    .from('reminder_deliveries')
+    .select('id, status, attempt_count, sent_channels, updated_at')
+    .eq('delivery_key', input.deliveryKey)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (!existing) return { duplicate: true, id: null, priorSent: [] as string[], channelsToAttempt: [] as string[] };
+
+  const priorSent = Array.isArray(existing.sent_channels) ? existing.sent_channels : [];
+  const channelsToAttempt = input.channels.filter((channel) => !priorSent.includes(channel));
+  if (!channelsToAttempt.length || existing.status === 'sent') {
+    return { duplicate: true, id: existing.id, priorSent, channelsToAttempt: [] as string[] };
+  }
+
+  const updatedAt = new Date(existing.updated_at || 0).getTime();
+  const ageMs = Date.now() - updatedAt;
+  const attempts = Number(existing.attempt_count || 1);
+
+  if (existing.status === 'processing' && ageMs < PROCESSING_STALE_MS) {
+    return { duplicate: true, id: existing.id, priorSent, channelsToAttempt: [] as string[] };
+  }
+
+  if ((existing.status === 'failed' || existing.status === 'partial') && ageMs < RETRY_DELAY_MS) {
+    return { duplicate: true, id: existing.id, priorSent, channelsToAttempt: [] as string[] };
+  }
+
+  if (attempts >= MAX_DELIVERY_ATTEMPTS) {
+    return { duplicate: true, id: existing.id, priorSent, channelsToAttempt: [] as string[] };
+  }
+
+  let claim = admin
+    .from('reminder_deliveries')
+    .update({
+      scheduled_for: input.scheduledFor,
+      channels: input.channels,
+      payload: input.payload,
+      status: 'processing',
+      failed_channels: [],
+      last_error: null,
+      attempt_count: attempts + 1,
+    })
+    .eq('id', existing.id);
+
+  if (existing.updated_at) claim = claim.eq('updated_at', existing.updated_at);
+
+  const { data: claimed, error: claimError } = await claim.select('id').maybeSingle();
+  if (claimError) throw claimError;
+  if (!claimed) return { duplicate: true, id: existing.id, priorSent, channelsToAttempt: [] as string[] };
+
+  return { duplicate: false, id: claimed.id as string, priorSent, channelsToAttempt };
+}
+
+async function deliver(
+  admin: ReturnType<typeof createAdminClient>,
+  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload },
+) {
+  const reservation = await reserveDelivery(admin, input);
+  if (reservation.duplicate || !reservation.id) {
+    return { duplicate: true, sent: reservation.priorSent, failed: [] as string[] };
+  }
+
+  const sent: string[] = [...reservation.priorSent];
   const failed: string[] = [];
   const errors: string[] = [];
+  const channelsToAttempt = reservation.channelsToAttempt;
 
-  if (input.channels.includes('push')) {
+  if (channelsToAttempt.includes('push')) {
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     const privateKey = process.env.VAPID_PRIVATE_KEY;
     const subject = process.env.VAPID_SUBJECT;
@@ -101,7 +169,7 @@ async function deliver(
     }
   }
 
-  if (input.channels.includes('telegram')) {
+  if (channelsToAttempt.includes('telegram')) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const { data: connection } = await admin
       .from('telegram_connections')
@@ -134,22 +202,24 @@ async function deliver(
 
   const uniqueSent = Array.from(new Set(sent));
   const uniqueFailed = Array.from(new Set(failed));
-  const status = uniqueSent.length && uniqueFailed.length ? 'partial' : uniqueSent.length ? 'sent' : 'failed';
+  const requestedSatisfied = input.channels.every((channel) => uniqueSent.includes(channel));
+  const status = requestedSatisfied ? 'sent' : uniqueSent.length ? 'partial' : 'failed';
 
   await admin.from('reminder_deliveries').update({
     sent_channels: uniqueSent,
     failed_channels: uniqueFailed,
     status,
     last_error: errors.join('; ') || null,
-  }).eq('id', reserved.id);
+  }).eq('id', reservation.id);
 
-  if (uniqueSent.length) {
+  const newlySent = uniqueSent.filter((channel) => !reservation.priorSent.includes(channel));
+  if (newlySent.length) {
     await admin.from('activity_events').insert({
       user_id: input.userId,
       type: 'reminder_sent',
       entity_type: input.entityType,
       entity_id: input.entityId,
-      metadata_json: { title: input.payload.title, delivery_key: input.deliveryKey, channels: uniqueSent },
+      metadata_json: { title: input.payload.title, delivery_key: input.deliveryKey, channels: newlySent },
     });
   }
 

@@ -8,7 +8,7 @@ import { GlassCard } from '@/components/shared/glass-card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
-import { enablePushNotifications } from '@/lib/push';
+import { enablePushNotifications, getPushSetupStatus, type PushSetupStatus } from '@/lib/push';
 import { weatherLabel } from '@/lib/environment';
 import { cn } from '@/lib/utils';
 
@@ -36,7 +36,7 @@ export default function SettingsPage() {
   const [prefs, setPrefs] = useState(initialPrefs);
   const [profile, setProfile] = useState<any>(null);
   const [status, setStatus] = useState('');
-  const [pushPermission, setPushPermission] = useState<string>('default');
+  const [pushSetup, setPushSetup] = useState<PushSetupStatus>('permission-required');
   const [telegram, setTelegram] = useState<any>({ connected: false, connection: null });
   const [telegramLinking, setTelegramLinking] = useState(false);
 
@@ -53,7 +53,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void load();
-    if (typeof Notification !== 'undefined') setPushPermission(Notification.permission);
+    void getPushSetupStatus().then((result) => setPushSetup(result.status));
   }, []);
 
   useEffect(() => {
@@ -99,9 +99,18 @@ export default function SettingsPage() {
 
   const enablePush = async () => {
     const result = await enablePushNotifications();
-    setPushPermission(result.permission);
+    setPushSetup(result.status);
     setStatus(result.ok ? 'Web Push enabled' : result.error || 'Unable to enable Web Push');
     window.setTimeout(() => setStatus(''), 3000);
+  };
+
+  const pushCopy: Record<PushSetupStatus, string> = {
+    unsupported: 'Push notifications are not supported on this browser.',
+    'permission-required': 'Not enabled on this browser yet.',
+    'permission-denied': 'Notifications are blocked in your browser settings.',
+    'subscription-missing': 'Permission granted — finish push setup.',
+    'subscription-unsynced': 'Browser subscription exists — CrysTrack needs to resync it.',
+    subscribed: 'Active on this browser.',
   };
 
   const connectTelegram = async () => {
@@ -139,7 +148,7 @@ export default function SettingsPage() {
           {active === 'profile' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-5">Profile</h2><div className="space-y-4"><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Display name</label><input value={profile?.display_name || ''} onChange={(e) => setProfile((current: any) => ({ ...(current || {}), display_name: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" /></div><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Email</label><input value={user?.email || ''} disabled className="w-full bg-white/[0.025] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-slate-500" /></div><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Home timezone</label><input value={profile?.timezone || ''} onChange={(e) => setProfile((current: any) => ({ ...(current || {}), timezone: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" /></div><Button variant="primary" onClick={() => void saveProfile()}>Save profile</Button></div></GlassCard>}
 
           {active === 'reminders' && <div className="space-y-4">
-            <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white">Notification channels</h2><p className="text-xs text-[var(--theme-text-muted)] mt-1 mb-5">Each reminder can use Web Push, Telegram or both.</p><div className="grid sm:grid-cols-2 gap-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex items-center gap-2"><Zap className="w-4 h-4 text-[var(--theme-primary)]" /><p className="text-sm font-semibold text-white">Web Push</p></div><p className="text-xs text-[var(--theme-text-muted)] mt-2">{pushPermission === 'granted' ? 'Enabled on this browser.' : 'Not enabled on this browser yet.'}</p>{pushPermission !== 'granted' && <button onClick={() => void enablePush()} className="text-xs font-semibold text-[var(--theme-primary)] mt-3">Enable reminders</button>}</div><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex items-center gap-2"><Send className="w-4 h-4 text-sky-300" /><p className="text-sm font-semibold text-white">Telegram</p></div><p className="text-xs text-[var(--theme-text-muted)] mt-2">{telegram.connected ? `Connected${telegram.connection?.username ? ` as @${telegram.connection.username}` : ''}.` : telegramLinking ? 'Waiting for Telegram confirmation…' : 'Optional external reminder channel.'}</p>{telegram.connected ? <button onClick={() => void disconnectTelegram()} className="text-xs text-red-300 mt-3">Disconnect</button> : <button onClick={() => void connectTelegram()} className="inline-flex items-center gap-1 text-xs font-semibold text-sky-300 mt-3">Connect Telegram <ExternalLink className="w-3 h-3" /></button>}</div></div></GlassCard>
+            <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white">Notification channels</h2><p className="text-xs text-[var(--theme-text-muted)] mt-1 mb-5">Each reminder can use Web Push, Telegram or both.</p><div className="grid sm:grid-cols-2 gap-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex items-center gap-2"><Zap className="w-4 h-4 text-[var(--theme-primary)]" /><p className="text-sm font-semibold text-white">Web Push</p></div><p className="text-xs text-[var(--theme-text-muted)] mt-2">{pushCopy[pushSetup]}</p>{pushSetup !== 'subscribed' && <button onClick={() => void enablePush()} className="text-xs font-semibold text-[var(--theme-primary)] mt-3">{pushSetup === 'permission-required' ? 'Enable reminders' : 'Retry setup'}</button>}</div><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex items-center gap-2"><Send className="w-4 h-4 text-sky-300" /><p className="text-sm font-semibold text-white">Telegram</p></div><p className="text-xs text-[var(--theme-text-muted)] mt-2">{telegram.connected ? `Connected${telegram.connection?.username ? ` as @${telegram.connection.username}` : ''}.` : telegramLinking ? 'Waiting for Telegram confirmation…' : 'Optional external reminder channel.'}</p>{telegram.connected ? <button onClick={() => void disconnectTelegram()} className="text-xs text-red-300 mt-3">Disconnect</button> : <button onClick={() => void connectTelegram()} className="inline-flex items-center gap-1 text-xs font-semibold text-sky-300 mt-3">Connect Telegram <ExternalLink className="w-3 h-3" /></button>}</div></div></GlassCard>
             <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-5">Reminder defaults</h2><div className="space-y-5"><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Default channel</label><select value={defaultChannel} onChange={(e) => setDefaultChannel(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white"><option value="push" className="bg-slate-950">Web Push</option><option value="telegram" className="bg-slate-950">Telegram</option><option value="both" className="bg-slate-950">Both</option></select></div><div className="grid sm:grid-cols-2 gap-4"><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Untimed task reminder</label><input type="time" value={prefs.untimed_task_reminder_time} onChange={(e) => setPrefs((current: any) => ({ ...current, untimed_task_reminder_time: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white" /></div><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Incomplete task reminder</label><input type="time" value={prefs.incomplete_task_reminder_time} onChange={(e) => setPrefs((current: any) => ({ ...current, incomplete_task_reminder_time: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white" /></div></div><div className="border-t border-white/10 pt-4"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-white">Do Not Disturb</p><p className="text-xs text-[var(--theme-text-muted)]">Urgent assignments may bypass DND; ordinary alerts wait.</p></div><button type="button" onClick={() => setPrefs((current: any) => ({ ...current, dnd_enabled: !current.dnd_enabled }))} className={cn('w-11 h-6 rounded-full relative transition-colors', prefs.dnd_enabled ? 'bg-[var(--theme-primary)]' : 'bg-white/10')}><span className={cn('absolute top-1 w-4 h-4 rounded-full bg-white transition-all', prefs.dnd_enabled ? 'left-6' : 'left-1')} /></button></div>{prefs.dnd_enabled && <div className="grid grid-cols-2 gap-3 mt-3"><input type="time" value={prefs.dnd_start_time} onChange={(e) => setPrefs((current: any) => ({ ...current, dnd_start_time: e.target.value }))} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" /><input type="time" value={prefs.dnd_end_time} onChange={(e) => setPrefs((current: any) => ({ ...current, dnd_end_time: e.target.value }))} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" /></div>}</div><Button variant="primary" onClick={() => void savePrefs()}>Save reminder settings</Button></div></GlassCard>
           </div>}
 

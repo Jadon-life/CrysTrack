@@ -1,6 +1,25 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
+export async function GET(request: Request) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const endpoint = new URL(request.url).searchParams.get('endpoint') || '';
+  if (!endpoint) return NextResponse.json({ error: 'Endpoint is required' }, { status: 400 });
+
+  const { data, error } = await supabase
+    .from('push_subscriptions')
+    .select('is_active, last_seen_at')
+    .eq('user_id', user.id)
+    .eq('endpoint', endpoint)
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ active: Boolean(data?.is_active), lastSeenAt: data?.last_seen_at || null });
+}
+
 export async function POST(request: Request) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
