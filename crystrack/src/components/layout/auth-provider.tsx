@@ -8,12 +8,14 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signOut: async () => {},
+  refreshUser: async () => null,
 });
 
 export function useAuth() {
@@ -25,44 +27,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const supabase = React.useMemo(() => createClient(), []);
-  const auth = supabase.auth;
+
+  const refreshUser = React.useCallback(async () => {
+    try {
+      const {
+        data: { user: refreshedUser },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error('Auth refresh failed:', error);
+        return null;
+      }
+
+      setUser(refreshedUser ?? null);
+      return refreshedUser ?? null;
+    } catch (error) {
+      console.error('Auth refresh failed:', error);
+      return null;
+    }
+  }, [supabase]);
 
   useEffect(() => {
-    const getUser = async () => {
+    const initialize = async () => {
       try {
-        const {
-          data: { user },
-          error,
-        } = await auth.getUser();
-
-        if (error) {
-          console.error('Auth initialization failed:', error);
-        }
-
-        setUser(user ?? null);
-      } catch (error) {
-        console.error('Auth initialization failed:', error);
-        setUser(null);
+        await refreshUser();
       } finally {
         setLoading(false);
       }
     };
 
-    getUser();
+    void initialize();
 
-    const { data: listener } = auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
 
     return () => listener.subscription.unsubscribe();
-  }, [auth]);
+  }, [refreshUser, supabase]);
 
   const signOut = async () => {
-    await auth.signOut();
+    await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

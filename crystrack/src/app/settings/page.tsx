@@ -30,7 +30,7 @@ const initialPrefs = {
 };
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { preference, setPreference, reducedMotion, setReducedMotion, environment, environmentLoading, locationPermission, requestLocation } = useTheme();
   const [active, setActive] = useState('profile');
   const [prefs, setPrefs] = useState(initialPrefs);
@@ -88,12 +88,37 @@ export default function SettingsPage() {
 
   const saveProfile = async () => {
     if (!profile) return;
-    setStatus('Saving…');
+
+    const displayName = String(profile.display_name || '').trim();
+
+    if (!displayName) {
+      setStatus('Display name cannot be empty');
+      window.setTimeout(() => setStatus(''), 2600);
+      return;
+    }
+
+    setStatus('Savingâ€¦');
+
     const response = await fetch('/api/profile', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName: profile.display_name, timezone: profile.timezone }),
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        displayName,
+        timezone: profile.timezone,
+      }),
     });
-    setStatus(response.ok ? 'Saved' : 'Could not save profile');
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      setStatus(data?.error || 'Could not save profile');
+      window.setTimeout(() => setStatus(''), 3200);
+      return;
+    }
+
+    setProfile(data);
+    await refreshUser();
+    setStatus('Profile saved');
     window.setTimeout(() => setStatus(''), 2200);
   };
 
