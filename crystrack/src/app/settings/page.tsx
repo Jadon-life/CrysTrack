@@ -11,6 +11,13 @@ import { useTheme } from '@/components/layout/theme-provider';
 import { enablePushNotifications, getPushSetupStatus, type PushSetupStatus } from '@/lib/push';
 import { weatherLabel } from '@/lib/environment';
 import { cn } from '@/lib/utils';
+import { createClient as createSupabaseClient } from '@/lib/supabase/client';
+import {
+  AVATAR_BUCKET,
+  MAX_AVATAR_BYTES,
+  avatarExtensionForMime,
+  detectAvatarMime,
+} from '@/lib/profile-avatar';
 
 const sections = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -31,6 +38,7 @@ const initialPrefs = {
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
+  const supabase = useMemo(() => createSupabaseClient(), []);
   const { preference, setPreference, reducedMotion, setReducedMotion, environment, environmentLoading, locationPermission, requestLocation } = useTheme();
   const [active, setActive] = useState('profile');
   const [prefs, setPrefs] = useState(initialPrefs);
@@ -128,43 +136,121 @@ export default function SettingsPage() {
     event.target.value = '';
     if (!file) return;
 
+    if (!user) {
+      setStatus('Your session is not ready. Refresh the page and try again.');
+      return;
+    }
+
+    if (file.size <= 0) {
+      setStatus('The selected image is empty.');
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      setStatus('Profile pictures must be 5 MB or smaller.');
+      return;
+    }
+
     setAvatarUploading(true);
     setStatus('Uploading profile pictureâ€¦');
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+    let newPath: string | null = null;
 
-      const response = await fetch('/api/profile/avatar', {
-        method: 'POST',
-        body: formData,
+    try {
+      const detectedMime = await detectAvatarMime(file);
+
+      if (!detectedMime) {
+        setStatus('Use a genuine JPG, PNG or WebP image.');
+        return;
+      }
+
+      if (file.type && file.type !== detectedMime) {
+        setStatus('The selected file does not match its reported image type.');
+        return;
+      }
+
+      const extension = avatarExtensionForMime(detectedMime);
+      const oldPath = profile?.avatar_url || null;
+      newPath = `${user.id}/avatar-${Date.now()}.${extension}`;
+
+      // Upload straight from the browser to Supabase Storage.
+      // The image never passes through a Vercel Function, avoiding Vercel's
+      // 4.5 MB request-body ceiling. Existing Storage RLS restricts this path
+      // to the authenticated user's own folder.
+      const { error: uploadError } = await supabase.storage
+        .from(AVATAR_BUCKET)
+        .upload(newPath, file, {
+          contentType: detectedMime,
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('Profile avatar upload failed:', uploadError);
+        setStatus(uploadError.message || 'Could not upload profile picture');
+        return;
+      }
+
+      // Only small metadata crosses Vercel after the Storage upload succeeds.
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarPath: newPath }),
       });
 
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setStatus(data?.error || 'Could not upload profile picture');
+        await supabase.storage.from(AVATAR_BUCKET).remove([newPath]);
+        setStatus(data?.error || 'The picture uploaded, but the profile could not be updated.');
         return;
       }
 
       setProfile((current: any) => ({ ...(current || {}), ...data }));
       window.dispatchEvent(new Event('crystrack-profile-updated'));
       setStatus('Profile picture updated');
+
+      // The database already points to the new object. Old-object cleanup is
+      // intentionally best-effort so a cleanup failure cannot break the photo.
+      if (oldPath && oldPath !== newPath) {
+        const { error: cleanupError } = await supabase.storage
+          .from(AVATAR_BUCKET)
+          .remove([oldPath]);
+
+        if (cleanupError) {
+          console.error('Could not remove previous profile picture:', cleanupError);
+        }
+      }
+    } catch (error) {
+      console.error('Profile picture upload failed:', error);
+
+      if (newPath) {
+        await supabase.storage.from(AVATAR_BUCKET).remove([newPath]).catch(() => undefined);
+      }
+
+      setStatus('Could not upload profile picture. Please try again.');
     } finally {
       setAvatarUploading(false);
-      window.setTimeout(() => setStatus(''), 3000);
+      window.setTimeout(() => setStatus(''), 3500);
     }
   };
 
   const removeAvatar = async () => {
-    if (avatarUploading) return;
+    if (avatarUploading || !user) return;
+
+    const oldPath = profile?.avatar_url || null;
+    if (!oldPath) return;
 
     setAvatarUploading(true);
     setStatus('Removing profile pictureâ€¦');
 
     try {
-      const response = await fetch('/api/profile/avatar', {
-        method: 'DELETE',
+      // Clear the profile reference first. This request contains only JSON
+      // metadata and is tiny.
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarPath: null }),
       });
 
       const data = await response.json().catch(() => null);
@@ -177,11 +263,24 @@ export default function SettingsPage() {
       setProfile((current: any) => ({ ...(current || {}), ...data }));
       window.dispatchEvent(new Event('crystrack-profile-updated'));
       setStatus('Profile picture removed');
+
+      // Best-effort cleanup after the visible profile has already been cleared.
+      const { error: removeError } = await supabase.storage
+        .from(AVATAR_BUCKET)
+        .remove([oldPath]);
+
+      if (removeError) {
+        console.error('Could not delete old profile picture object:', removeError);
+      }
+    } catch (error) {
+      console.error('Profile picture removal failed:', error);
+      setStatus('Could not remove profile picture. Please try again.');
     } finally {
       setAvatarUploading(false);
-      window.setTimeout(() => setStatus(''), 3000);
+      window.setTimeout(() => setStatus(''), 3500);
     }
   };
+
   const enablePush = async () => {
     const result = await enablePushNotifications();
     setPushSetup(result.status);

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { AVATAR_BUCKET } from '@/lib/profile-avatar';
 
-const AVATAR_BUCKET = 'profile-avatars';
-const AVATAR_URL_TTL_SECONDS = 60 * 60 * 6;
+const AVATAR_URL_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 async function withSignedAvatar(
   supabase: ReturnType<typeof createClient>,
@@ -22,6 +22,13 @@ async function withSignedAvatar(
   }
 
   return { ...profile, avatar_signed_url: data.signedUrl };
+}
+
+function validAvatarPath(userId: string, value: string) {
+  const escapedUserId = userId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(
+    `^${escapedUserId}/avatar-\\d+\\.(jpg|png|webp)$`,
+  ).test(value);
 }
 
 export async function GET() {
@@ -77,6 +84,23 @@ export async function PUT(request: Request) {
   if (typeof body.currentTimezone === 'string') updates.current_timezone = body.currentTimezone.slice(0, 100);
   if (typeof body.currentCity === 'string' || body.currentCity === null) updates.current_city = body.currentCity;
   if (typeof body.currentCountryCode === 'string' || body.currentCountryCode === null) updates.current_country_code = body.currentCountryCode;
+
+  if ('avatarPath' in body) {
+    if (body.avatarPath === null) {
+      updates.avatar_url = null;
+    } else if (
+      typeof body.avatarPath === 'string' &&
+      validAvatarPath(user.id, body.avatarPath)
+    ) {
+      updates.avatar_url = body.avatarPath;
+    } else {
+      return NextResponse.json(
+        { error: 'Invalid profile picture path.' },
+        { status: 400 },
+      );
+    }
+  }
+
   if ('currentTimezone' in body || 'currentCity' in body || 'currentCountryCode' in body) {
     updates.current_location_updated_at = new Date().toISOString();
   }
