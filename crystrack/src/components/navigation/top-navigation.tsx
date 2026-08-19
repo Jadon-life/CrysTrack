@@ -170,12 +170,40 @@ function NotificationMenu() {
 function ProfileMenu() {
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const loadAvatar = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/profile', { cache: 'no-store' });
+      if (!response.ok) return;
+      const profile = await response.json();
+      setAvatarUrl(profile?.avatar_signed_url || null);
+    } catch (error) {
+      console.error('Could not load profile avatar:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadAvatar();
+
+    const onProfileUpdated = () => {
+      void loadAvatar();
+    };
+
+    window.addEventListener('crystrack-profile-updated', onProfileUpdated);
+    return () => {
+      window.removeEventListener('crystrack-profile-updated', onProfileUpdated);
+    };
+  }, [loadAvatar]);
 
   useEffect(() => {
     const onPointer = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setOpen(false);
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
     };
+
     document.addEventListener('mousedown', onPointer);
     return () => document.removeEventListener('mousedown', onPointer);
   }, []);
@@ -190,12 +218,35 @@ function ProfileMenu() {
 
   return (
     <div className="relative" ref={containerRef}>
-      <button type="button" className="topnav-profile" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
-        <span className="topnav-avatar">{initial}</span>
-        <span className="hidden xl:block min-w-0 text-left">
-          <span className="block text-xs font-semibold text-white truncate max-w-28">{displayName}</span>
-          <span className="block text-[10px] text-[var(--theme-text-muted)]">Personal</span>
+      <button
+        type="button"
+        className="topnav-profile"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+      >
+        <span className="topnav-avatar overflow-hidden">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-full w-full object-cover"
+              aria-hidden="true"
+            />
+          ) : (
+            initial
+          )}
         </span>
+
+        <span className="hidden xl:block min-w-0 text-left">
+          <span className="block text-xs font-semibold text-white truncate max-w-28">
+            {displayName}
+          </span>
+          <span className="block text-[10px] text-[var(--theme-text-muted)]">
+            Personal
+          </span>
+        </span>
+
         <ChevronDown className="w-3.5 h-3.5 text-[var(--theme-text-muted)]" />
       </button>
 
@@ -203,11 +254,31 @@ function ProfileMenu() {
         <div className="topnav-popover right-0 w-56 p-2">
           <div className="px-3 py-2 border-b border-white/10 mb-1">
             <p className="text-xs font-semibold text-white truncate">{displayName}</p>
-            <p className="text-[11px] text-[var(--theme-text-muted)] truncate mt-0.5">{user?.email}</p>
+            <p className="text-[11px] text-[var(--theme-text-muted)] truncate mt-0.5">
+              {user?.email}
+            </p>
           </div>
-          <Link href="/settings" onClick={() => setOpen(false)} className="topnav-menu-item"><User className="w-4 h-4" /> Profile & preferences</Link>
-          <Link href="/settings" onClick={() => setOpen(false)} className="topnav-menu-item"><Settings className="w-4 h-4" /> Settings</Link>
-          <button type="button" onClick={() => void signOut()} className="topnav-menu-item w-full text-left"><LogOut className="w-4 h-4" /> Sign out</button>
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="topnav-menu-item"
+          >
+            <User className="w-4 h-4" /> Profile & preferences
+          </Link>
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="topnav-menu-item"
+          >
+            <Settings className="w-4 h-4" /> Settings
+          </Link>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="topnav-menu-item w-full text-left"
+          >
+            <LogOut className="w-4 h-4" /> Sign out
+          </button>
         </div>
       )}
     </div>

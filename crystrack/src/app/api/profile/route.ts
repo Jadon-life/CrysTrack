@@ -1,6 +1,29 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+const AVATAR_BUCKET = 'profile-avatars';
+const AVATAR_URL_TTL_SECONDS = 60 * 60 * 6;
+
+async function withSignedAvatar(
+  supabase: ReturnType<typeof createClient>,
+  profile: Record<string, any>,
+) {
+  if (!profile.avatar_url) {
+    return { ...profile, avatar_signed_url: null };
+  }
+
+  const { data, error } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .createSignedUrl(profile.avatar_url, AVATAR_URL_TTL_SECONDS);
+
+  if (error) {
+    console.error('Could not create profile avatar signed URL:', error);
+    return { ...profile, avatar_signed_url: null };
+  }
+
+  return { ...profile, avatar_signed_url: data.signedUrl };
+}
+
 export async function GET() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -14,7 +37,7 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json(data || {
+  const profile = data || {
     user_id: user.id,
     display_name:
       user.user_metadata?.full_name ||
@@ -22,7 +45,10 @@ export async function GET() {
       user.email?.split('@')[0] ||
       'CrysTrack',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-  });
+    avatar_url: null,
+  };
+
+  return NextResponse.json(await withSignedAvatar(supabase, profile));
 }
 
 export async function PUT(request: Request) {
@@ -48,7 +74,6 @@ export async function PUT(request: Request) {
   if (displayName) updates.display_name = displayName;
   if (typeof body.timezone === 'string') updates.timezone = body.timezone.slice(0, 100);
   if (typeof body.locale === 'string') updates.locale = body.locale.slice(0, 10);
-  if (typeof body.avatarUrl === 'string') updates.avatar_url = body.avatarUrl;
   if (typeof body.currentTimezone === 'string') updates.current_timezone = body.currentTimezone.slice(0, 100);
   if (typeof body.currentCity === 'string' || body.currentCity === null) updates.current_city = body.currentCity;
   if (typeof body.currentCountryCode === 'string' || body.currentCountryCode === null) updates.current_country_code = body.currentCountryCode;
@@ -84,5 +109,5 @@ export async function PUT(request: Request) {
     }
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json(await withSignedAvatar(supabase, data));
 }

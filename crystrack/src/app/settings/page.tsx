@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Bell, ChevronRight, Database, ExternalLink, MapPin, Monitor, Moon, Palette, Send, Shield, Sun, User, Zap,
+  Bell, Camera, ChevronRight, Database, ExternalLink, Loader2, MapPin, Monitor, Moon, Palette, Send, Shield, Sun, Trash2, User, Zap,
 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ export default function SettingsPage() {
   const [pushSetup, setPushSetup] = useState<PushSetupStatus>('permission-required');
   const [telegram, setTelegram] = useState<any>({ connected: false, connection: null });
   const [telegramLinking, setTelegramLinking] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const load = async () => {
     const [prefsResponse, profileResponse, telegramResponse] = await Promise.all([
@@ -122,6 +123,65 @@ export default function SettingsPage() {
     window.setTimeout(() => setStatus(''), 2200);
   };
 
+  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    event.target.value = '';
+    if (!file) return;
+
+    setAvatarUploading(true);
+    setStatus('Uploading profile pictureâ€¦');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/profile/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setStatus(data?.error || 'Could not upload profile picture');
+        return;
+      }
+
+      setProfile((current: any) => ({ ...(current || {}), ...data }));
+      window.dispatchEvent(new Event('crystrack-profile-updated'));
+      setStatus('Profile picture updated');
+    } finally {
+      setAvatarUploading(false);
+      window.setTimeout(() => setStatus(''), 3000);
+    }
+  };
+
+  const removeAvatar = async () => {
+    if (avatarUploading) return;
+
+    setAvatarUploading(true);
+    setStatus('Removing profile pictureâ€¦');
+
+    try {
+      const response = await fetch('/api/profile/avatar', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setStatus(data?.error || 'Could not remove profile picture');
+        return;
+      }
+
+      setProfile((current: any) => ({ ...(current || {}), ...data }));
+      window.dispatchEvent(new Event('crystrack-profile-updated'));
+      setStatus('Profile picture removed');
+    } finally {
+      setAvatarUploading(false);
+      window.setTimeout(() => setStatus(''), 3000);
+    }
+  };
   const enablePush = async () => {
     const result = await enablePushNotifications();
     setPushSetup(result.status);
@@ -170,7 +230,121 @@ export default function SettingsPage() {
         </GlassCard>
 
         <div className="lg:col-span-3">
-          {active === 'profile' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-5">Profile</h2><div className="space-y-4"><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Display name</label><input value={profile?.display_name || ''} onChange={(e) => setProfile((current: any) => ({ ...(current || {}), display_name: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" /></div><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Email</label><input value={user?.email || ''} disabled className="w-full bg-white/[0.025] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-slate-500" /></div><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Home timezone</label><input value={profile?.timezone || ''} onChange={(e) => setProfile((current: any) => ({ ...(current || {}), timezone: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" /></div><Button variant="primary" onClick={() => void saveProfile()}>Save profile</Button></div></GlassCard>}
+          {active === 'profile' && (
+            <GlassCard padding="lg">
+              <h2 className="text-lg font-semibold text-white mb-5">Profile</h2>
+
+              <div className="space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-white/10 bg-black/10 p-4">
+                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/15 bg-white/10 flex items-center justify-center text-xl font-semibold text-white">
+                    {profile?.avatar_signed_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={profile.avatar_signed_url}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      String(profile?.display_name || user?.email || 'C')
+                        .slice(0, 1)
+                        .toUpperCase()
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white">Profile picture</p>
+                    <p className="text-xs text-[var(--theme-text-muted)] mt-1">
+                      JPG, PNG or WebP Â· maximum 5 MB. Your photo is stored privately.
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      <label
+                        className={cn(
+                          'inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition-colors',
+                          avatarUploading
+                            ? 'cursor-wait opacity-60'
+                            : 'cursor-pointer hover:bg-white/10',
+                        )}
+                      >
+                        {avatarUploading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Camera className="w-3.5 h-3.5" />
+                        )}
+                        {profile?.avatar_url ? 'Change photo' : 'Upload photo'}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="sr-only"
+                          disabled={avatarUploading}
+                          onChange={(event) => void uploadAvatar(event)}
+                        />
+                      </label>
+
+                      {profile?.avatar_url && (
+                        <button
+                          type="button"
+                          disabled={avatarUploading}
+                          onClick={() => void removeAvatar()}
+                          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">
+                    Display name
+                  </label>
+                  <input
+                    value={profile?.display_name || ''}
+                    onChange={(e) =>
+                      setProfile((current: any) => ({
+                        ...(current || {}),
+                        display_name: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">
+                    Email
+                  </label>
+                  <input
+                    value={user?.email || ''}
+                    disabled
+                    className="w-full bg-white/[0.025] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">
+                    Home timezone
+                  </label>
+                  <input
+                    value={profile?.timezone || ''}
+                    onChange={(e) =>
+                      setProfile((current: any) => ({
+                        ...(current || {}),
+                        timezone: e.target.value,
+                      }))
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+
+                <Button variant="primary" onClick={() => void saveProfile()}>
+                  Save profile
+                </Button>
+              </div>
+            </GlassCard>
+          )}
 
           {active === 'reminders' && <div className="space-y-4">
             <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white">Notification channels</h2><p className="text-xs text-[var(--theme-text-muted)] mt-1 mb-5">Each reminder can use Web Push, Telegram or both.</p><div className="grid sm:grid-cols-2 gap-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex items-center gap-2"><Zap className="w-4 h-4 text-[var(--theme-primary)]" /><p className="text-sm font-semibold text-white">Web Push</p></div><p className="text-xs text-[var(--theme-text-muted)] mt-2">{pushCopy[pushSetup]}</p>{pushSetup !== 'subscribed' && <button onClick={() => void enablePush()} className="text-xs font-semibold text-[var(--theme-primary)] mt-3">{pushSetup === 'permission-required' ? 'Enable reminders' : 'Retry setup'}</button>}</div><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex items-center gap-2"><Send className="w-4 h-4 text-sky-300" /><p className="text-sm font-semibold text-white">Telegram</p></div><p className="text-xs text-[var(--theme-text-muted)] mt-2">{telegram.connected ? `Connected${telegram.connection?.username ? ` as @${telegram.connection.username}` : ''}.` : telegramLinking ? 'Waiting for Telegram confirmation…' : 'Optional external reminder channel.'}</p>{telegram.connected ? <button onClick={() => void disconnectTelegram()} className="text-xs text-red-300 mt-3">Disconnect</button> : <button onClick={() => void connectTelegram()} className="inline-flex items-center gap-1 text-xs font-semibold text-sky-300 mt-3">Connect Telegram <ExternalLink className="w-3 h-3" /></button>}</div></div></GlassCard>
