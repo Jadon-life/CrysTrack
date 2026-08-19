@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CreateModal } from '@/components/shared/create-modal';
 import { fetcher, post } from '@/lib/api';
 import { cn, getLocalDateKey } from '@/lib/utils';
-import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward } from 'lucide-react';
+import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive } from 'lucide-react';
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -20,6 +20,8 @@ export default function TasksPage() {
   const [error, setError] = useState('');
   const [filterDay, setFilterDay] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState<any>(null);
+  const [archiving, setArchiving] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '', description: '', preferredTime: '', category: '', schedules: [] as number[],
     remindersEnabled: true, reminderChannel: 'push', beforeMinutes: 15, atPreferredTime: true, followUp: true, endOfDayReminder: true,
@@ -97,6 +99,32 @@ export default function TasksPage() {
     }
   };
 
+  const archiveRoutine = async () => {
+    if (!archiveTarget || archiving) return;
+
+    setArchiving(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/tasks/${archiveTarget.id}/archive`, {
+        method: 'POST',
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to archive routine');
+      }
+
+      setArchiveTarget(null);
+      await loadTasks();
+    } catch (e: any) {
+      setError(e.message || 'Failed to archive routine');
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   const todayTasks = useMemo(
     () => tasks.filter((task: any) => task.scheduled_today).sort((a: any, b: any) => (a.preferred_time || '99:99').localeCompare(b.preferred_time || '99:99')),
     [tasks],
@@ -110,7 +138,7 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 scenic-readable-copy">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400">Plan · Routines</p>
           <h1 className="text-2xl font-bold text-white mt-1">Tasks</h1>
@@ -124,7 +152,7 @@ export default function TasksPage() {
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
       <section className="space-y-3">
-        <div className="flex items-end justify-between gap-4">
+        <div className="flex items-end justify-between gap-4 scenic-readable-strip">
           <div>
             <h2 className="text-lg font-semibold text-white">Today</h2>
             <p className="text-xs text-slate-500 mt-1">{completedToday} of {todayTasks.length} scheduled routines complete</p>
@@ -223,13 +251,71 @@ export default function TasksPage() {
                       <div className="flex items-center gap-1.5 text-amber-400"><Flame className="w-3.5 h-3.5" /><span>{task.streak || 0} streak</span></div>
                     </div>
                   </div>
-                  {task.category && <span className="text-xs px-2 py-1 rounded-full bg-white/[0.035] text-slate-400 border border-white/10 shrink-0">{task.category}</span>}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {task.category && <span className="text-xs px-2 py-1 rounded-full bg-white/[0.035] text-slate-400 border border-white/10 shrink-0">{task.category}</span>}
+                    <button
+                      type="button"
+                      onClick={() => setArchiveTarget(task)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-2.5 py-1.5 text-xs font-medium text-slate-100 transition-colors hover:border-amber-400/35 hover:bg-amber-500/12 hover:text-amber-100"
+                      title="Archive routine"
+                    >
+                      <Archive className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Archive</span>
+                    </button>
+                  </div>
                 </div>
               </GlassCard>
             );
           })}
         </div>
       </section>
+
+      {archiveTarget && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Close archive confirmation"
+            className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+            onClick={() => !archiving && setArchiveTarget(null)}
+          />
+          <GlassCard padding="lg" className="relative w-full max-w-md">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-500/10">
+                <Archive className="h-5 w-5 text-amber-300" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-white">Archive routine?</h2>
+                <p className="mt-2 text-sm leading-relaxed text-slate-100">
+                  <span className="font-medium text-white">{archiveTarget.title}</span> will disappear from Tasks and stop generating future routine reminders.
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-slate-200">
+                  Your completion history will be preserved. This is not a permanent delete.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={archiving}
+                onClick={() => setArchiveTarget(null)}
+              >
+                Cancel
+              </Button>
+              <button
+                type="button"
+                disabled={archiving}
+                onClick={() => void archiveRoutine()}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-400/20 bg-amber-500/15 px-4 py-2 text-sm font-semibold text-amber-100 transition-colors hover:bg-amber-500/25 disabled:cursor-wait disabled:opacity-60"
+              >
+                {archiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
+                {archiving ? 'Archiving...' : 'Archive routine'}
+              </button>
+            </div>
+          </GlassCard>
+        </div>
+      )}
 
       <CreateModal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create recurring task" onSubmit={handleCreate}>
         <div className="space-y-4">

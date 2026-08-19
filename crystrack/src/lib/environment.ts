@@ -184,11 +184,23 @@ const COMMONS_BACKGROUNDS: Record<TimePhase, string> = {
   night: 'Dubai skyline unsplash.jpg',
 };
 
+const LOCAL_BACKGROUNDS: Partial<Record<TimePhase, string>> = {
+  day: '/backgrounds/crystrack-day-urban-4k.webp',
+};
+
 function commonsRedirect(file: string, width: number) {
   return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(file)}?width=${width}`;
 }
 
 export function environmentBackgroundAsset(phase: TimePhase) {
+  const local = LOCAL_BACKGROUNDS[phase];
+  if (local) {
+    return {
+      src: local,
+      srcSet: `${local} 3840w`,
+    };
+  }
+
   const file = COMMONS_BACKGROUNDS[phase];
   return {
     src: commonsRedirect(file, 2560),

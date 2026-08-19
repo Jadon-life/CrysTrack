@@ -197,7 +197,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-6">
-      <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-1">
+      <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-1 scenic-readable-copy">
         <div>
           <p className="text-sm text-white/75">{greetingForPhase(environment.phase)},</p>
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-1">
