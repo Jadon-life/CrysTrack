@@ -46,7 +46,15 @@ function useEnvironmentPlayback(reducedMotion: boolean) {
   };
 }
 
-function DubaiVideoPanel({ scene, index }: { scene: DubaiVideoScene; index: number }) {
+function DubaiVideoPanel({
+  scene,
+  index,
+  panelCount,
+}: {
+  scene: DubaiVideoScene;
+  index: number;
+  panelCount: PanelCount;
+}) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [ready, setReady] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
@@ -71,12 +79,14 @@ function DubaiVideoPanel({ scene, index }: { scene: DubaiVideoScene; index: numb
     video.volume = 0;
   }, []);
 
-  if (failed) {
-    return <div className="environment-video-wall__panel environment-video-wall__panel--failed" aria-hidden="true" />;
-  }
+  if (failed) return null;
 
   return (
-    <div className="environment-video-wall__panel-wrap" aria-hidden="true">
+    <div
+      className={`environment-video-wall__panel-wrap environment-video-wall__panel-wrap--${index + 1}`}
+      data-panel-count={panelCount}
+      aria-hidden="true"
+    >
       <video
         ref={videoRef}
         className={`environment-video-wall__panel ${ready ? 'is-ready' : ''}`}
@@ -101,7 +111,6 @@ function DubaiVideoPanel({ scene, index }: { scene: DubaiVideoScene; index: numb
           }
         }}
         onError={() => setFailed(true)}
-        data-panel={index + 1}
       />
     </div>
   );
@@ -133,8 +142,10 @@ function DubaiVideoWall({
           key={`${phase}-${scene.src}-${index}`}
           scene={scene}
           index={index}
+          panelCount={panelCount}
         />
       ))}
+      <div className="environment-video-wall__continuity" />
       <div className="environment-video-wall__grade" />
     </div>
   );
