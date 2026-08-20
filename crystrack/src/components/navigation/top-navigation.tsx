@@ -53,7 +53,7 @@ function ThemeControl() {
           aria-pressed={preference === value}
         >
           <Icon className="w-4 h-4" />
-          {value === 'adaptive' && <span className="hidden xl:inline">Auto</span>}
+          {value === 'adaptive' && <span className="hidden 2xl:inline">Auto</span>}
         </button>
       ))}
     </div>
@@ -238,7 +238,7 @@ function ProfileMenu() {
           )}
         </span>
 
-        <span className="hidden xl:block min-w-0 text-left">
+        <span className="hidden 2xl:block min-w-0 text-left">
           <span className="block text-xs font-semibold text-white truncate max-w-28">
             {displayName}
           </span>
@@ -302,7 +302,7 @@ export function TopNavigation() {
             <span className="font-semibold tracking-tight text-white">CrysTrack</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
+          <nav className="hidden lg:flex items-center gap-1" aria-label="Primary navigation">
             {navItems.map((item) => {
               const active = navItemIsActive(pathname, item);
               return (
@@ -323,20 +323,20 @@ export function TopNavigation() {
             >
               <WeatherIcon weather={environment.weather} />
               <span className="font-semibold text-white">{temperature}</span>
-              <span className="hidden lg:flex items-center gap-1 text-[var(--theme-text-muted)]">
+              <span className="hidden 2xl:flex items-center gap-1 text-[var(--theme-text-muted)]">
                 <MapPin className="w-3 h-3" /> {environmentLoading ? 'Updating…' : location}
               </span>
             </button>
             <ThemeControl />
             <NotificationMenu />
             <ProfileMenu />
-            <button type="button" className="topnav-icon-button md:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu className="w-4 h-4" /></button>
+            <button type="button" className="topnav-icon-button lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu className="w-4 h-4" /></button>
           </div>
         </div>
       </header>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)}>
+        <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute left-3 right-3 top-3 rounded-2xl border border-white/15 bg-[#07101c]/95 p-3 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between px-2 py-2">
               <div className="flex items-center gap-2 text-white font-semibold"><Diamond className="w-4 h-4 text-[var(--theme-primary)]" /> CrysTrack</div>

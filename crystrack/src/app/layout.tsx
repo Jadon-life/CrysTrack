@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Manrope } from 'next/font/google';
 import './globals.css';
+import './premium-physical-ui.css';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { AuthProvider } from '@/components/layout/auth-provider';
 import { AppLayout } from '@/components/layout/app-layout';
