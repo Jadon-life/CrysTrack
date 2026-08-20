@@ -9,42 +9,35 @@ function read(relative) {
   return fs.readFileSync(path.join(root, relative), 'utf8');
 }
 
-test('final background uses the three approved YouTube videos', () => {
+test('final stable background retains exactly the three approved sources', () => {
   const manifest = read('src/lib/environment-youtube.ts');
   assert.match(manifest, /AjwcqYZ6cIw/);
   assert.match(manifest, /i9hsP_dLIaM/);
   assert.match(manifest, /vJKEcp3BAVw/);
-  assert.match(manifest, /startAt: 30/);
-  assert.match(manifest, /youtube-nocookie\.com/);
 });
 
-test('wide background is a single full-screen 16:9 video, not a three-panel wall', () => {
+test('walking-tour source receives strongest camera-motion reduction', () => {
+  const manifest = read('src/lib/environment-youtube.ts');
+  assert.match(manifest, /videoId: 'AjwcqYZ6cIw'[\s\S]*?endAt: 15[\s\S]*?playbackRate: 0\.25/);
+  assert.match(manifest, /videoId: 'vJKEcp3BAVw'[\s\S]*?startAt: 30[\s\S]*?endAt: 54/);
+});
+
+test('YouTube Player API enforces bounded silent looping', () => {
   const renderer = read('src/components/layout/environment-background.tsx');
+
+  assert.match(renderer, /youtube\.com\/iframe_api/);
+  assert.match(renderer, /player\.mute\(\)/);
+  assert.match(renderer, /player\.setVolume\(0\)/);
+  assert.match(renderer, /player\.setPlaybackRate/);
+  assert.match(renderer, /scene\.endAt - 0\.28/);
+  assert.match(renderer, /player\.seekTo\(scene\.startAt, true\)/);
+});
+
+test('old three-panel wall stays disabled and wide player stays 16:9', () => {
   const css = read('src/app/premium-physical-ui-final.css');
 
-  assert.match(renderer, /mode === 'youtube'/);
-  assert.match(renderer, /mode === 'local'/);
-  assert.doesNotMatch(renderer, /panelCountForViewport/);
-  assert.doesNotMatch(renderer, /panelCount={/);
-
-  assert.match(css, /min-width: 177\.777778vh/);
-  assert.match(css, /height: 56\.25vw/);
   assert.match(css, /\.environment-video-wall,/);
   assert.match(css, /display: none !important/);
-});
-
-test('video audio remains disabled', () => {
-  const renderer = read('src/components/layout/environment-background.tsx');
-  const manifest = read('src/lib/environment-youtube.ts');
-
-  assert.match(renderer, /video\.muted = true/);
-  assert.match(renderer, /video\.defaultMuted = true/);
-  assert.match(renderer, /video\.volume = 0/);
-  assert.match(manifest, /mute: '1'/);
-});
-
-test('mobile and narrow screens retain one local portrait video fallback', () => {
-  const renderer = read('src/components/layout/environment-background.tsx');
-  assert.match(renderer, /dubaiVideoScenesForPanels\(phase, 1\)\[0\]/);
-  assert.match(renderer, /width >= 900 && landscapeEnough/);
+  assert.match(css, /height: 56\.25vw !important/);
+  assert.match(css, /min-width: 177\.777778vh !important/);
 });

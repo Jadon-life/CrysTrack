@@ -8,8 +8,8 @@ import {
   type DubaiVideoScene,
 } from '@/lib/environment-video';
 import {
-  youtubeEnvironmentEmbedUrl,
   youtubeEnvironmentScene,
+  type YouTubeEnvironmentScene,
 } from '@/lib/environment-youtube';
 import { useTheme } from './theme-provider';
 
@@ -22,6 +22,83 @@ type NetworkNavigator = Navigator & {
 
 type EnvironmentMode = 'youtube' | 'local' | 'poster';
 
+type YouTubePlayer = {
+  mute: () => void;
+  setVolume: (volume: number) => void;
+  playVideo: () => void;
+  pauseVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  getCurrentTime: () => number;
+  getAvailablePlaybackRates: () => number[];
+  setPlaybackRate: (rate: number) => void;
+  destroy: () => void;
+};
+
+type YouTubePlayerEvent = {
+  target: YouTubePlayer;
+  data?: number;
+};
+
+type YouTubeNamespace = {
+  Player: new (
+    element: HTMLElement,
+    options: {
+      width: string;
+      height: string;
+      videoId: string;
+      playerVars: Record<string, string | number>;
+      events: {
+        onReady: (event: YouTubePlayerEvent) => void;
+        onStateChange: (event: YouTubePlayerEvent) => void;
+        onError: () => void;
+      };
+    },
+  ) => YouTubePlayer;
+  PlayerState: {
+    ENDED: number;
+    PLAYING: number;
+  };
+};
+
+declare global {
+  interface Window {
+    YT?: YouTubeNamespace;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
+
+function loadYouTubeApi() {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('YouTube API is browser-only'));
+  }
+
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (youtubeApiPromise) return youtubeApiPromise;
+
+  youtubeApiPromise = new Promise<YouTubeNamespace>((resolve, reject) => {
+    const previousReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.();
+      if (window.YT?.Player) resolve(window.YT);
+      else reject(new Error('YouTube Player API did not initialise'));
+    };
+
+    const existing = document.querySelector<HTMLScriptElement>('script[data-crystrack-youtube-api]');
+    if (existing) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://www.youtube.com/iframe_api';
+    script.async = true;
+    script.dataset.crystrackYoutubeApi = '1';
+    script.onerror = () => reject(new Error('YouTube Player API failed to load'));
+    document.head.appendChild(script);
+  });
+
+  return youtubeApiPromise;
+}
+
 function environmentModeForViewport(reducedMotion: boolean, saveData: boolean): EnvironmentMode {
   if (reducedMotion || saveData) return 'poster';
 
@@ -29,8 +106,6 @@ function environmentModeForViewport(reducedMotion: boolean, saveData: boolean): 
   const height = window.innerHeight;
   const landscapeEnough = width / Math.max(height, 1) >= 1.22;
 
-  // Wide/landscape screens get one full-bleed 16:9 YouTube environment.
-  // Portrait/narrow screens use one of the user's local portrait Dubai clips.
   if (width >= 900 && landscapeEnough) return 'youtube';
   return 'local';
 }
@@ -44,10 +119,7 @@ function useEnvironmentPlayback(reducedMotion: boolean) {
     const dataSaver = Boolean(navigatorWithConnection.connection?.saveData);
     setSaveData(dataSaver);
 
-    const update = () => {
-      setMode(environmentModeForViewport(reducedMotion, dataSaver));
-    };
-
+    const update = () => setMode(environmentModeForViewport(reducedMotion, dataSaver));
     update();
     window.addEventListener('resize', update, { passive: true });
     return () => window.removeEventListener('resize', update);
@@ -117,27 +189,135 @@ function LocalDubaiVideo({ scene }: { scene: DubaiVideoScene }) {
   );
 }
 
-function YouTubeDubaiVideo({ phase }: { phase: TimePhase }) {
-  const scene = youtubeEnvironmentScene(phase);
+function selectSupportedPlaybackRate(player: YouTubePlayer, requested: number) {
+  const rates = [...(player.getAvailablePlaybackRates?.() || [1])].sort((a, b) => a - b);
+  if (rates.includes(requested)) return requested;
+
+  const slowerOrEqual = rates.filter((rate) => rate <= requested);
+  if (slowerOrEqual.length) return slowerOrEqual[slowerOrEqual.length - 1];
+
+  return rates[0] || 1;
+}
+
+function StableYouTubeDubaiVideo({
+  scene,
+  poster,
+}: {
+  scene: YouTubeEnvironmentScene;
+  poster: string;
+}) {
+  const hostRef = React.useRef<HTMLDivElement>(null);
+  const playerRef = React.useRef<YouTubePlayer | null>(null);
+  const monitorRef = React.useRef<number | null>(null);
+  const loopTimerRef = React.useRef<number | null>(null);
   const [loaded, setLoaded] = React.useState(false);
+  const [looping, setLooping] = React.useState(false);
+  const [failed, setFailed] = React.useState(false);
 
   React.useEffect(() => {
-    setLoaded(false);
-  }, [scene.videoId, scene.startAt]);
+    let cancelled = false;
+
+    const clearTimers = () => {
+      if (monitorRef.current) window.clearInterval(monitorRef.current);
+      if (loopTimerRef.current) window.clearTimeout(loopTimerRef.current);
+      monitorRef.current = null;
+      loopTimerRef.current = null;
+    };
+
+    const applyPlaybackPolicy = (player: YouTubePlayer) => {
+      player.mute();
+      player.setVolume(0);
+      const rate = selectSupportedPlaybackRate(player, scene.playbackRate);
+      player.setPlaybackRate(rate);
+    };
+
+    const loopSegment = (player: YouTubePlayer) => {
+      if (loopTimerRef.current) return;
+      setLooping(true);
+
+      loopTimerRef.current = window.setTimeout(() => {
+        player.seekTo(scene.startAt, true);
+        applyPlaybackPolicy(player);
+        player.playVideo();
+
+        window.setTimeout(() => {
+          setLooping(false);
+          loopTimerRef.current = null;
+        }, 360);
+      }, 420);
+    };
+
+    void loadYouTubeApi()
+      .then((YT) => {
+        if (cancelled || !hostRef.current) return;
+
+        const player = new YT.Player(hostRef.current, {
+          width: '3840',
+          height: '2160',
+          videoId: scene.videoId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            iv_load_policy: 3,
+            playsinline: 1,
+            rel: 0,
+            modestbranding: 1,
+            mute: 1,
+            start: scene.startAt,
+            end: scene.endAt,
+            origin: window.location.origin,
+          },
+          events: {
+            onReady: (event) => {
+              if (cancelled) return;
+              playerRef.current = event.target;
+              applyPlaybackPolicy(event.target);
+              event.target.seekTo(scene.startAt, true);
+              event.target.playVideo();
+              setLoaded(true);
+
+              monitorRef.current = window.setInterval(() => {
+                const current = event.target.getCurrentTime();
+                if (Number.isFinite(current) && current >= scene.endAt - 0.28) {
+                  loopSegment(event.target);
+                }
+              }, 250);
+            },
+            onStateChange: (event) => {
+              if (cancelled) return;
+              if (event.data === YT.PlayerState.ENDED) loopSegment(event.target);
+            },
+            onError: () => {
+              if (!cancelled) setFailed(true);
+            },
+          },
+        });
+
+        playerRef.current = player;
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+      clearTimers();
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+  }, [scene.endAt, scene.playbackRate, scene.startAt, scene.videoId]);
+
+  if (failed) return null;
 
   return (
-    <div className={`environment-youtube ${loaded ? 'is-loaded' : ''}`} aria-hidden="true">
-      <iframe
-        key={`${scene.videoId}-${scene.startAt}`}
-        className="environment-youtube__iframe"
-        src={youtubeEnvironmentEmbedUrl(scene)}
-        title=""
-        tabIndex={-1}
-        aria-hidden="true"
-        allow="autoplay; encrypted-media"
-        referrerPolicy="strict-origin-when-cross-origin"
-        onLoad={() => setLoaded(true)}
-      />
+    <div
+      className={`environment-youtube ${loaded ? 'is-loaded' : ''} ${looping ? 'is-looping' : ''}`}
+      style={{ backgroundImage: `url("${poster}")` }}
+      aria-hidden="true"
+    >
+      <div ref={hostRef} className="environment-youtube__player-host" />
       <div className="environment-youtube__interaction-shield" />
     </div>
   );
@@ -154,6 +334,7 @@ function EnvironmentWorld({
 }) {
   const poster = dubaiVideoPoster(phase);
   const localScene = dubaiVideoScenesForPanels(phase, 1)[0];
+  const youtubeScene = youtubeEnvironmentScene(phase);
 
   return (
     <div
@@ -161,7 +342,13 @@ function EnvironmentWorld({
       style={{ backgroundImage: `url("${poster}")` }}
       aria-hidden="true"
     >
-      {mode === 'youtube' && <YouTubeDubaiVideo phase={phase} />}
+      {mode === 'youtube' && (
+        <StableYouTubeDubaiVideo
+          scene={youtubeScene}
+          poster={poster}
+        />
+      )}
+
       {mode === 'local' && <LocalDubaiVideo scene={localScene} />}
       <div className="environment-world__grade" />
     </div>

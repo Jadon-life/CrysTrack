@@ -1,7 +1,7 @@
-/* CrysTrack Final Visual Phase
-   One full-screen YouTube video on compatible wide screens.
-   One local portrait video on narrow/portrait screens.
-   No three-up video wall. No geometric stretching. No blur-fill. */
+/* CrysTrack Final Visual Phase — stable single-video background.
+   Wide screens use one YouTube player with controlled slow bounded playback.
+   Narrow/portrait screens use one local portrait video.
+   The old multi-panel video wall remains permanently disabled. */
 
 .environment-world {
   position: absolute;
@@ -29,7 +29,6 @@
   z-index: 0;
 }
 
-/* Completely retire Phase 2/3 multi-panel composition in the final phase. */
 .environment-video-wall,
 .environment-video-wall__panel-wrap,
 .environment-video-wall__panel,
@@ -38,9 +37,9 @@
 }
 
 /* --------------------------------------------------------------------------
-   Wide-screen YouTube background
-   The iframe remains 16:9 at all times. Oversizing + center crop fills the
-   viewport without changing video geometry.
+   Wide-screen YouTube background.
+   The generated iframe is kept at a true 16:9 geometry and oversized only by
+   cropping. There is no width/height distortion.
    -------------------------------------------------------------------------- */
 .environment-youtube {
   position: absolute;
@@ -48,8 +47,9 @@
   z-index: 1;
   overflow: hidden;
   opacity: 0;
-  background: transparent;
-  transition: opacity 900ms ease;
+  background-position: center;
+  background-size: cover;
+  transition: opacity 720ms ease;
   pointer-events: none;
 }
 
@@ -57,18 +57,25 @@
   opacity: 1;
 }
 
-.environment-youtube__iframe {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100vw;
-  height: 56.25vw;
-  min-width: 177.777778vh;
-  min-height: 100vh;
-  border: 0;
-  transform: translate(-50%, -50%) scale(1.012);
-  transform-origin: center;
-  pointer-events: none;
+/* Briefly reveal the same phase poster while the bounded segment seeks back
+   to its start. This hides the hard seek and makes the loop feel intentional. */
+.environment-youtube.is-looping {
+  opacity: .18;
+}
+
+.environment-youtube__player-host,
+.environment-youtube__player-host > iframe {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 100vw !important;
+  height: 56.25vw !important;
+  min-width: 177.777778vh !important;
+  min-height: 100vh !important;
+  border: 0 !important;
+  transform: translate(-50%, -50%) scale(1.014) !important;
+  transform-origin: center !important;
+  pointer-events: none !important;
   backface-visibility: hidden;
 }
 
@@ -80,9 +87,6 @@
   background: transparent;
 }
 
-/* --------------------------------------------------------------------------
-   Local portrait fallback for narrow/mobile-compatible screens
-   -------------------------------------------------------------------------- */
 .environment-local-video {
   position: absolute;
   z-index: 1;
@@ -132,14 +136,8 @@
     radial-gradient(circle at 50% 42%, rgba(63,119,234,.028), transparent 43%);
 }
 
-/* Keep app readability layer above the final world. */
-.environment-background__readability {
-  z-index: 5;
-}
-
-.environment-weather {
-  z-index: 6;
-}
+.environment-background__readability { z-index: 5; }
+.environment-weather { z-index: 6; }
 
 @media (max-width: 899px), (max-aspect-ratio: 1.219/1) {
   .environment-youtube {
