@@ -1,0 +1,164 @@
+/* CrysTrack Final Visual Phase
+   One full-screen YouTube video on compatible wide screens.
+   One local portrait video on narrow/portrait screens.
+   No three-up video wall. No geometric stretching. No blur-fill. */
+
+.environment-world {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transform: scale(1.002);
+  transition:
+    opacity 1800ms cubic-bezier(.22,.68,.24,1),
+    transform 2200ms cubic-bezier(.22,.68,.24,1);
+  will-change: opacity, transform;
+}
+
+.environment-world.is-active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 1;
+}
+
+.environment-world.is-outgoing {
+  opacity: 0;
+  z-index: 0;
+}
+
+/* Completely retire Phase 2/3 multi-panel composition in the final phase. */
+.environment-video-wall,
+.environment-video-wall__panel-wrap,
+.environment-video-wall__panel,
+.environment-video-wall__continuity {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Wide-screen YouTube background
+   The iframe remains 16:9 at all times. Oversizing + center crop fills the
+   viewport without changing video geometry.
+   -------------------------------------------------------------------------- */
+.environment-youtube {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  opacity: 0;
+  background: transparent;
+  transition: opacity 900ms ease;
+  pointer-events: none;
+}
+
+.environment-youtube.is-loaded {
+  opacity: 1;
+}
+
+.environment-youtube__iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 56.25vw;
+  min-width: 177.777778vh;
+  min-height: 100vh;
+  border: 0;
+  transform: translate(-50%, -50%) scale(1.012);
+  transform-origin: center;
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+
+.environment-youtube__interaction-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: auto;
+  background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Local portrait fallback for narrow/mobile-compatible screens
+   -------------------------------------------------------------------------- */
+.environment-local-video {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transform: translateZ(0) scale(1.006);
+  transition: opacity 650ms ease;
+  filter: saturate(1.035) contrast(1.025) brightness(.99);
+  backface-visibility: hidden;
+}
+
+.environment-local-video.is-ready {
+  opacity: 1;
+}
+
+.environment-world__grade {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(1,6,12,.07), transparent 24%, transparent 70%, rgba(1,6,12,.15)),
+    radial-gradient(circle at 50% 35%, transparent 0 43%, rgba(1,5,10,.055) 100%);
+}
+
+.environment-world--morning .environment-world__grade,
+.environment-world--day .environment-world__grade {
+  background:
+    linear-gradient(180deg, rgba(5,14,23,.035), transparent 32%, rgba(1,7,13,.095)),
+    radial-gradient(circle at 50% 22%, rgba(220,241,255,.025), transparent 36%);
+}
+
+.environment-world--golden .environment-world__grade,
+.environment-world--evening .environment-world__grade {
+  background:
+    linear-gradient(180deg, rgba(36,17,3,.025), transparent 34%, rgba(9,5,2,.11)),
+    radial-gradient(circle at 48% 37%, rgba(255,177,79,.035), transparent 38%);
+}
+
+.environment-world--night .environment-world__grade {
+  background:
+    linear-gradient(180deg, rgba(0,3,10,.07), transparent 31%, rgba(0,2,8,.17)),
+    radial-gradient(circle at 50% 42%, rgba(63,119,234,.028), transparent 43%);
+}
+
+/* Keep app readability layer above the final world. */
+.environment-background__readability {
+  z-index: 5;
+}
+
+.environment-weather {
+  z-index: 6;
+}
+
+@media (max-width: 899px), (max-aspect-ratio: 1.219/1) {
+  .environment-youtube {
+    display: none !important;
+  }
+
+  .environment-local-video {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .environment-world {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .environment-youtube,
+  .environment-local-video {
+    display: none !important;
+  }
+}
