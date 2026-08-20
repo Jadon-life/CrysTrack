@@ -1,9 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { goalCheckinState } from '@/lib/goals/checkin-occurrence';
 
 function normaliseChannels(value: unknown) {
   const channels = Array.isArray(value) ? value.filter((item) => item === 'push' || item === 'telegram') : ['push'];
   return channels.length ? Array.from(new Set(channels)) : ['push'];
+}
+
+function normaliseDays(value: unknown) {
+  return Array.isArray(value)
+    ? Array.from(new Set<number>(value.map(Number).filter((day: number) => Number.isInteger(day) && day >= 0 && day <= 6))).sort((a, b) => a - b)
+    : [];
 }
 
 export async function GET() {
@@ -11,18 +18,32 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: goals, error } = await supabase
-    .from('goals')
-    .select('*, goal_checkins(*)')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
+  const [{ data: goals, error }, { data: profile }] = await Promise.all([
+    supabase
+      .from('goals')
+      .select('*, goal_checkins(*)')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('timezone, current_timezone')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json((goals || []).map((goal: any) => ({
-    ...goal,
-    goal_checkins: [...(goal.goal_checkins || [])].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-  })));
+  const timezone = profile?.current_timezone || profile?.timezone || 'UTC';
+  const now = new Date();
+
+  return NextResponse.json((goals || []).map((goal: any) => {
+    const checkins = [...(goal.goal_checkins || [])].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return {
+      ...goal,
+      goal_checkins: checkins,
+      checkin_state: goalCheckinState(goal.checkin_config, checkins, now, timezone),
+    };
+  }));
 }
 
 export async function POST(request: Request) {
@@ -43,9 +64,11 @@ export async function POST(request: Request) {
 
   const checkin = body.checkinConfig || {};
   const frequency = ['daily', 'weekly', 'specific'].includes(checkin.frequency) ? checkin.frequency : 'weekly';
-  const days = Array.isArray(checkin.days)
-    ? Array.from(new Set<number>(checkin.days.map(Number).filter((day: number) => Number.isInteger(day) && day >= 0 && day <= 6)))
-    : [];
+  const suppliedDays = normaliseDays(checkin.days);
+  if (frequency !== 'daily' && suppliedDays.length === 0) {
+    return NextResponse.json({ error: 'Choose at least one valid check-in day' }, { status: 400 });
+  }
+  const days = frequency === 'daily' ? [] : frequency === 'weekly' ? [suppliedDays[0]] : suppliedDays;
   const checkinConfig = {
     frequency,
     days,

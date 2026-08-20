@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, Bell, Clock, Loader2, Plus } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
+import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -92,11 +93,12 @@ export default function AssignmentsPage() {
       },
     });
     await loadAssignments();
+    window.dispatchEvent(new Event('crystrack-activity-updated'));
     setNewAssignment((current) => ({ title: '', description: '', deadline: '', priority: 'medium', category: '', remindersEnabled: true, reminderChannel: current.reminderChannel, reminderOffsets: [1440, 120, 0] }));
   };
 
   const handleComplete = async (id: string) => {
-    try { await patch(`/api/assignments/${id}/complete`, {}); await loadAssignments(); }
+    try { await patch(`/api/assignments/${id}/complete`, {}); await loadAssignments(); window.dispatchEvent(new Event('crystrack-activity-updated')); }
     catch (e: any) { setError(e.message || 'Failed to complete assignment'); }
   };
 
@@ -116,6 +118,8 @@ export default function AssignmentsPage() {
       </div>
 
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+
+      <DomainInsightCard domain="assignments" />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

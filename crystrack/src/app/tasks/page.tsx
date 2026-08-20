@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GlassCard } from '@/components/shared/glass-card';
+import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -69,6 +70,7 @@ export default function TasksPage() {
       },
     });
     await loadTasks();
+    window.dispatchEvent(new Event('crystrack-activity-updated'));
     setNewTask((current) => ({ title: '', description: '', preferredTime: '', category: '', schedules: [], remindersEnabled: true, reminderChannel: current.reminderChannel, beforeMinutes: 15, atPreferredTime: true, followUp: true, endOfDayReminder: true }));
   };
 
@@ -84,6 +86,7 @@ export default function TasksPage() {
     try {
       await post(`/api/tasks/${taskId}/occurrences/${getLocalDateKey()}/toggle`, {});
       await loadTasks();
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
       setError(e.message || 'Failed to update task');
     }
@@ -94,6 +97,7 @@ export default function TasksPage() {
     try {
       await post(`/api/tasks/${taskId}/occurrences/${getLocalDateKey()}/skip`, {});
       await loadTasks();
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
       setError(e.message || 'Failed to skip task');
     }
@@ -118,6 +122,7 @@ export default function TasksPage() {
 
       setArchiveTarget(null);
       await loadTasks();
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
       setError(e.message || 'Failed to archive routine');
     } finally {
@@ -150,6 +155,8 @@ export default function TasksPage() {
       </div>
 
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+
+      <DomainInsightCard domain="tasks" />
 
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-4 scenic-readable-strip">

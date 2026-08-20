@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertCircle, Bell, BrainCircuit, Calendar, CheckCircle2, Loader2, MessageSquareText, Plus, Target } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
+import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -32,16 +33,8 @@ function goalPercent(goal: any) {
   return Math.max(0, Math.min(100, Math.round((((current - start) / (target - start)) * 100) * 10) / 10));
 }
 
-function checkedInToday(goal: any) {
-  return (goal.goal_checkins || []).some((item: any) => new Date(item.created_at).toDateString() === new Date().toDateString());
-}
-
-function checkInScheduledToday(goal: any) {
-  const config = goal.checkin_config || {};
-  const frequency = config.frequency || 'weekly';
-  if (frequency === 'daily') return true;
-  const days = Array.isArray(config.days) ? config.days.map(Number) : [];
-  return days.includes(new Date().getDay());
+function checkInState(goal: any) {
+  return goal.checkin_state || { status: 'not_scheduled', due: false, available: false, completed: false };
 }
 
 function latestAnalysis(goal: any) {
@@ -85,7 +78,21 @@ export default function GoalsPage() {
 
   const toggleCheckinDay = (day: number) => setNewGoal((current) => ({
     ...current,
-    checkinDays: current.checkinDays.includes(day) ? current.checkinDays.filter((value) => value !== day) : [...current.checkinDays, day],
+    checkinDays: current.checkinFrequency === 'weekly'
+      ? [day]
+      : current.checkinDays.includes(day)
+        ? current.checkinDays.filter((value) => value !== day)
+        : [...current.checkinDays, day],
+  }));
+
+  const setCheckinFrequency = (frequency: string) => setNewGoal((current) => ({
+    ...current,
+    checkinFrequency: frequency,
+    checkinDays: frequency === 'daily'
+      ? []
+      : frequency === 'weekly'
+        ? [current.checkinDays[0] ?? new Date().getDay()]
+        : current.checkinDays.length ? current.checkinDays : [new Date().getDay()],
   }));
 
   const handleCreate = async () => {
@@ -117,6 +124,7 @@ export default function GoalsPage() {
       },
     });
     await loadGoals();
+    window.dispatchEvent(new Event('crystrack-activity-updated'));
     setNewGoal((current) => ({ ...newGoalState(), reminderChannel: current.reminderChannel }));
   };
 
@@ -127,6 +135,7 @@ export default function GoalsPage() {
     }
     const result = await post(`/api/goals/${checkInGoal.id}/checkins`, checkIn);
     await loadGoals();
+    window.dispatchEvent(new Event('crystrack-activity-updated'));
     if ((checkInGoal.progress_mode === 'ai' || checkInGoal.ai_coaching) && result?.aiConfigured === false) {
       setError('Check-in saved. Goal AI is ready in the code but will remain inactive until a free Groq API key is added to the server environment.');
     } else if (result?.analysis?.status === 'unavailable') {
@@ -136,7 +145,7 @@ export default function GoalsPage() {
     setCheckIn(emptyCheckIn);
   };
 
-  const checkInsDue = useMemo(() => goals.filter((goal) => checkInScheduledToday(goal) && !checkedInToday(goal)), [goals]);
+  const checkInsDue = useMemo(() => goals.filter((goal) => checkInState(goal).due), [goals]);
 
   return (
     <div className="space-y-6">
@@ -146,6 +155,8 @@ export default function GoalsPage() {
       </div>
 
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+      <DomainInsightCard domain="goals" />
+
       {checkInsDue.length > 0 && <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><AlertCircle className="w-5 h-5 text-amber-300" /><p className="text-sm text-amber-100">{checkInsDue.length} scheduled goal check-in{checkInsDue.length === 1 ? '' : 's'} due today.</p></div><button onClick={() => setCheckInGoal(checkInsDue[0])} className="text-xs font-semibold text-amber-200">Review now</button></div>}
 
       {loading && <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-[var(--theme-primary)] animate-spin" /></div>}
@@ -154,7 +165,8 @@ export default function GoalsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {goals.map((goal: any, index: number) => {
           const percent = goalPercent(goal);
-          const due = checkInScheduledToday(goal) && !checkedInToday(goal);
+          const state = checkInState(goal);
+          const due = state.due;
           const analysis = latestAnalysis(goal);
           const start = goal.starting_value == null ? 0 : Number(goal.starting_value);
           const current = Number(goal.progress_value ?? start);
@@ -170,7 +182,7 @@ export default function GoalsPage() {
               {analysis && <div className={cn('mt-4 rounded-xl border p-3', analysisTone(analysis.status))}><div className="flex items-center gap-2"><BrainCircuit className="w-4 h-4" /><span className="text-[10px] font-bold uppercase tracking-wide">{String(analysis.status).replaceAll('_', ' ')}</span></div><p className="text-xs leading-relaxed mt-2 text-white/90">{analysis.summary}</p>{analysis.next_action && <p className="text-[11px] mt-2 text-white/70"><strong>Next:</strong> {analysis.next_action}</p>}</div>}
 
               <div className="flex items-center justify-between gap-3 text-xs text-[var(--theme-text-muted)] mt-4 mb-4"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{goal.deadline ? getRelativeTime(goal.deadline) : 'No deadline'}</span></div>{due && <span className="text-amber-200">Check-in due</span>}</div>
-              <Button variant={due ? 'primary' : 'default'} size="sm" className="w-full" onClick={() => { setCheckInGoal(goal); setCheckIn({ ...emptyCheckIn, progressValue: percent != null ? String(current) : '' }); }}><MessageSquareText className="w-4 h-4 mr-1.5" />Check in</Button>
+              <Button variant={due ? 'primary' : 'default'} size="sm" className="w-full" disabled={!state.available} onClick={() => { setCheckInGoal(goal); setCheckIn({ ...emptyCheckIn, progressValue: percent != null ? String(current) : '' }); }}><MessageSquareText className="w-4 h-4 mr-1.5" />{state.completed ? 'Checked in' : state.available ? 'Check in' : 'Not scheduled today'}</Button>
             </GlassCard>
           );
         })}
@@ -189,8 +201,8 @@ export default function GoalsPage() {
           </div>
 
           <div className="rounded-xl border border-white/10 bg-black/10 p-4 space-y-4">
-            <div className="flex gap-2"><Bell className="w-4 h-4 text-[var(--theme-primary)] mt-0.5" /><div><p className="text-sm font-medium text-white">Check-in rhythm</p><p className="text-xs text-slate-400 mt-1">A check-in records progress; missing one does not mean the whole goal failed.</p></div></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-xs text-slate-400 mb-1">Frequency</label><select value={newGoal.checkinFrequency} onChange={(e) => setNewGoal({ ...newGoal, checkinFrequency: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"><option value="daily" className="bg-slate-950">Daily</option><option value="weekly" className="bg-slate-950">Weekly</option><option value="specific" className="bg-slate-950">Specific days</option></select></div><div><label className="block text-xs text-slate-400 mb-1">Check-in time</label><input type="time" value={newGoal.checkinTime} onChange={(e) => setNewGoal({ ...newGoal, checkinTime: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" /></div></div>
+            <div className="flex gap-2"><Bell className="w-4 h-4 text-[var(--theme-primary)] mt-0.5" /><div><p className="text-sm font-medium text-white">Check-in rhythm</p><p className="text-xs text-slate-400 mt-1">Each scheduled occurrence expires on its own boundary; a missed occurrence counts as no progress evidence recorded for that period.</p></div></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-xs text-slate-400 mb-1">Frequency</label><select value={newGoal.checkinFrequency} onChange={(e) => setCheckinFrequency(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"><option value="daily" className="bg-slate-950">Daily</option><option value="weekly" className="bg-slate-950">Weekly</option><option value="specific" className="bg-slate-950">Specific days</option></select></div><div><label className="block text-xs text-slate-400 mb-1">Check-in time</label><input type="time" value={newGoal.checkinTime} onChange={(e) => setNewGoal({ ...newGoal, checkinTime: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" /></div></div>
             {newGoal.checkinFrequency !== 'daily' && <div className="flex flex-wrap gap-2">{weekdays.map((day, index) => <button type="button" key={day} onClick={() => toggleCheckinDay(index)} className={cn('px-2.5 py-1.5 rounded-lg border text-xs', newGoal.checkinDays.includes(index) ? 'border-[var(--theme-primary)] text-white bg-white/10' : 'border-white/10 text-slate-400')}>{day}</button>)}</div>}
             <div><label className="block text-xs text-slate-400 mb-1">Reminder channel</label><select value={newGoal.reminderChannel} onChange={(e) => setNewGoal({ ...newGoal, reminderChannel: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"><option value="push" className="bg-slate-950">Web Push</option><option value="telegram" className="bg-slate-950">Telegram</option><option value="both" className="bg-slate-950">Web Push + Telegram</option></select></div>
             {newGoal.deadline && <label className="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" checked={newGoal.deadlineReminders} onChange={(e) => setNewGoal({ ...newGoal, deadlineReminders: e.target.checked })} /> Warn me as the goal deadline approaches</label>}

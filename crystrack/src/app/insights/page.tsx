@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GlassCard } from '@/components/shared/glass-card';
+import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { fetcher } from '@/lib/api';
 import { BrainCircuit, AlertTriangle, Lightbulb, Target, CheckSquare, Wallet, Loader2, History } from 'lucide-react';
 
@@ -44,6 +45,8 @@ export default function InsightsPage() {
           <History className="w-4 h-4" /> History
         </Link>
       </div>
+
+      <DomainInsightCard domain="overview" />
 
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
       {loading && <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-blue-400 animate-spin" /></div>}

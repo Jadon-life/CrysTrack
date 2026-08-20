@@ -124,7 +124,9 @@ export default function WealthPage() {
   const load = async () => {
     setLoading(true);
     try {
-      setData(await fetcher('/api/wealth', { cache: 'no-store' }));
+      const nextData = await fetcher('/api/wealth', { cache: 'no-store' });
+      setData(nextData);
+      void fetcher('/api/ai/domain/wealth', { method: 'POST' }).then(setAiInsight).catch(() => null);
     } catch (error: any) {
       setStatus(error?.message || 'Could not load Wealth');
     } finally {
@@ -228,7 +230,7 @@ export default function WealthPage() {
   const refreshInsight = async () => {
     setAiLoading(true);
     try {
-      setAiInsight(await fetcher('/api/wealth/insight', { method: 'POST' }));
+      setAiInsight(await fetcher('/api/ai/domain/wealth', { method: 'POST' }));
     } catch (error: any) {
       setStatus(error?.message || 'AI insight is unavailable');
     } finally {
@@ -336,7 +338,7 @@ export default function WealthPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="dashboard-panel-title text-sm flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-[var(--theme-primary)]" /> Wealth Intelligence</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Raw transactions stay in CrysTrack. AI receives sanitized pattern metrics only.</p>
+              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">CrysTrack processes your ledger for patterns; AI receives compact transaction context without identity, credentials, private notes or debt counterparties.</p>
             </div>
             <Button variant="outline" onClick={() => void refreshInsight()} disabled={aiLoading}>
               {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
@@ -346,8 +348,8 @@ export default function WealthPage() {
           <div className="rounded-xl border border-white/10 bg-black/15 p-4 mt-4">
             <p className="text-sm font-semibold text-white">{aiInsight?.insight?.headline || 'Current pattern'}</p>
             <p className="text-xs leading-relaxed text-white/85 mt-2">{aiInsight?.insight?.summary || summary?.deterministicRemark}</p>
-            {aiInsight?.insight?.observation && <p className="text-[11px] leading-relaxed text-[var(--theme-text-muted)] mt-3">{aiInsight.insight.observation}</p>}
-            {aiInsight?.insight?.next_action && <div className="mt-3 pt-3 border-t border-white/10"><p className="text-[10px] uppercase tracking-wide text-[var(--theme-primary)]">Next review</p><p className="text-xs text-white mt-1">{aiInsight.insight.next_action}</p></div>}
+            {aiInsight?.insight?.observations?.[0] && <p className="text-[11px] leading-relaxed text-[var(--theme-text-muted)] mt-3">{aiInsight.insight.observations[0]}</p>}
+            {aiInsight?.insight?.actions?.[0] && <div className="mt-3 pt-3 border-t border-white/10"><p className="text-[10px] uppercase tracking-wide text-[var(--theme-primary)]">Next review</p><p className="text-xs text-white mt-1">{aiInsight.insight.actions[0]}</p></div>}
           </div>
 
           <div className="grid grid-cols-2 gap-3 mt-3">

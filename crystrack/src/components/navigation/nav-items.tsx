@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, CalendarDays, Layers3, Sparkles, WalletCards } from 'lucide-react';
+import { BarChart3, BrainCircuit, CalendarDays, Layers3, Sparkles, WalletCards } from 'lucide-react';
 
 export interface NavItemData {
   label: string;
@@ -13,6 +13,7 @@ export const navItems: NavItemData[] = [
   { label: 'Plan', href: '/plan', icon: <Layers3 className="w-4 h-4" />, match: ['/plan', '/tasks', '/goals', '/assignments'] },
   { label: 'Wealth', href: '/finance', icon: <WalletCards className="w-4 h-4" />, match: ['/finance'] },
   { label: 'Insights', href: '/insights', icon: <BarChart3 className="w-4 h-4" />, match: ['/insights', '/history'] },
+  { label: 'AI', href: '/ai', icon: <BrainCircuit className="w-4 h-4" />, match: ['/ai'] },
   { label: 'Calendar', href: '/calendar', icon: <CalendarDays className="w-4 h-4" />, match: ['/calendar'] },
 ];
 
