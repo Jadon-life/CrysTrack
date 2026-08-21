@@ -1,0 +1,475 @@
+/* CrysTrack Phase 3 — seamless Dubai composition + entrance ceremonies.
+   Layout dimensions and page structure are intentionally untouched. */
+
+/* --------------------------------------------------------------------------
+   Seamless wide Dubai video composition
+   Portrait source videos overlap and feather into one continuous environment.
+   No divider lines, no geometry stretching and no blurred side-fill layer.
+   -------------------------------------------------------------------------- */
+.environment-video-wall {
+  display: block !important;
+  isolation: isolate;
+}
+
+.environment-video-wall__panel-wrap {
+  position: absolute !important;
+  top: -1.5%;
+  bottom: -1.5%;
+  height: 103%;
+  overflow: hidden;
+  background: transparent !important;
+  z-index: 1;
+  transform: translateZ(0);
+}
+
+.environment-video-wall__panel-wrap::before,
+.environment-video-wall__panel-wrap + .environment-video-wall__panel-wrap::before {
+  display: none !important;
+  content: none !important;
+}
+
+.environment-video-wall__panel-wrap[data-panel-count='3'] {
+  width: 47.5%;
+}
+
+.environment-video-wall__panel-wrap[data-panel-count='3'].environment-video-wall__panel-wrap--1 {
+  left: -1.5%;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 68%, rgba(0,0,0,.78) 78%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 68%, rgba(0,0,0,.78) 78%, transparent 100%);
+}
+
+.environment-video-wall__panel-wrap[data-panel-count='3'].environment-video-wall__panel-wrap--2 {
+  left: 26.25%;
+  z-index: 2;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.72) 17%, #000 29%, #000 71%, rgba(0,0,0,.72) 83%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.72) 17%, #000 29%, #000 71%, rgba(0,0,0,.72) 83%, transparent 100%);
+}
+
+.environment-video-wall__panel-wrap[data-panel-count='3'].environment-video-wall__panel-wrap--3 {
+  right: -1.5%;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.78) 22%, #000 32%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.78) 22%, #000 32%, #000 100%);
+}
+
+.environment-video-wall__panel-wrap[data-panel-count='2'] {
+  width: 63.5%;
+}
+
+.environment-video-wall__panel-wrap[data-panel-count='2'].environment-video-wall__panel-wrap--1 {
+  left: -1.5%;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 66%, rgba(0,0,0,.76) 79%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 66%, rgba(0,0,0,.76) 79%, transparent 100%);
+}
+
+.environment-video-wall__panel-wrap[data-panel-count='2'].environment-video-wall__panel-wrap--2 {
+  right: -1.5%;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.76) 21%, #000 34%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.76) 21%, #000 34%, #000 100%);
+}
+
+.environment-video-wall__panel-wrap[data-panel-count='1'] {
+  inset: -1.5% !important;
+  width: 103%;
+  height: 103%;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.environment-video-wall__panel {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translateZ(0) scale(1.018) !important;
+  filter: saturate(1.045) contrast(1.028) brightness(.99);
+}
+
+.environment-video-wall__continuity {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg,
+      rgba(8,17,28,.045) 0%,
+      rgba(20,35,48,.015) 20%,
+      rgba(12,24,36,.032) 38%,
+      rgba(16,29,41,.018) 62%,
+      rgba(10,20,31,.04) 100%),
+    radial-gradient(ellipse at 50% 52%, transparent 0 40%, rgba(1,6,12,.055) 100%);
+  -webkit-backdrop-filter: saturate(103%) contrast(101%);
+  backdrop-filter: saturate(103%) contrast(101%);
+}
+
+.environment-video-wall__grade {
+  z-index: 4;
+}
+
+/* --------------------------------------------------------------------------
+   Full-screen ceremonies
+   -------------------------------------------------------------------------- */
+.immersive-ceremony {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  overflow: hidden;
+  color: #fff;
+  background: rgba(2,7,13,.08);
+  animation: ceremonyEnter 520ms ease both;
+}
+
+.immersive-ceremony--closing {
+  pointer-events: none;
+  animation: ceremonyClose 720ms ease forwards;
+}
+
+.immersive-ceremony__skip {
+  position: absolute;
+  z-index: 40;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.24);
+  background: rgba(4,11,20,.34);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  backdrop-filter: blur(14px) saturate(130%);
+  color: rgba(255,255,255,.92);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 10px 30px rgba(0,0,0,.2);
+}
+
+.immersive-ceremony__signature {
+  position: absolute;
+  z-index: 38;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.72);
+}
+
+/* Morning frozen glass */
+.ceremony-morning,
+.ceremony-morning__ice,
+.ceremony-morning__frost,
+.ceremony-morning__shards,
+.ceremony-droplets,
+.ceremony-cloth {
+  position: absolute;
+  inset: 0;
+}
+
+.ceremony-morning__ice {
+  border: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  background:
+    linear-gradient(120deg, rgba(238,249,255,.2), rgba(190,228,245,.08) 42%, rgba(243,251,255,.17)),
+    radial-gradient(circle at 32% 24%, rgba(255,255,255,.24), transparent 27%),
+    rgba(199,228,240,.1);
+  -webkit-backdrop-filter: blur(7px) saturate(108%);
+  backdrop-filter: blur(7px) saturate(108%);
+  box-shadow: inset 0 0 70px rgba(225,246,255,.18);
+  transition: opacity 500ms ease, backdrop-filter 500ms ease;
+}
+
+.ceremony-morning__frost {
+  opacity: .72;
+  background:
+    repeating-radial-gradient(ellipse at 18% 22%, rgba(255,255,255,.08) 0 1px, transparent 2px 16px),
+    linear-gradient(108deg, transparent 0 30%, rgba(255,255,255,.13) 37%, transparent 46% 73%, rgba(255,255,255,.07) 80%, transparent 90%);
+  mix-blend-mode: screen;
+}
+
+.ceremony-morning__cracks {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  opacity: 0;
+  filter: drop-shadow(0 0 3px rgba(215,246,255,.8));
+}
+
+.ceremony-morning__cracks path {
+  fill: none;
+  stroke: rgba(244,253,255,.88);
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.ceremony-morning.is-cracked .ceremony-morning__cracks {
+  opacity: 1;
+  animation: crackFlash 460ms ease both;
+}
+
+.ceremony-morning__instruction {
+  position: absolute;
+  left: 50%;
+  bottom: max(76px, calc(env(safe-area-inset-bottom) + 58px));
+  transform: translateX(-50%);
+  padding: 9px 14px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.88);
+  background: rgba(4,12,20,.28);
+  border: 1px solid rgba(255,255,255,.19);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.ceremony-morning.is-shattered .ceremony-morning__ice,
+.ceremony-morning.is-cleaning .ceremony-morning__ice {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ceremony-morning__shards {
+  pointer-events: none;
+  opacity: 0;
+}
+
+.ceremony-morning.is-shattered .ceremony-morning__shards,
+.ceremony-morning.is-cleaning .ceremony-morning__shards {
+  opacity: 1;
+}
+
+.ceremony-morning__shards span {
+  --x: calc((var(--i) - 5.5) * 7vw);
+  --y: calc((var(--i) % 4) * 8vh);
+  position: absolute;
+  left: calc(50% + var(--x));
+  top: calc(42% + var(--y));
+  width: clamp(44px, 7vw, 130px);
+  aspect-ratio: 1.25;
+  clip-path: polygon(14% 8%, 92% 0, 72% 100%, 0 74%);
+  background: linear-gradient(135deg, rgba(234,250,255,.28), rgba(151,205,229,.06));
+  border: 1px solid rgba(239,252,255,.38);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 12px 40px rgba(0,0,0,.12);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: shardFall 1100ms cubic-bezier(.2,.75,.2,1) both;
+  animation-delay: calc(var(--i) * 24ms);
+}
+
+.ceremony-droplets {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.ceremony-morning.is-shattered .ceremony-droplets,
+.ceremony-morning.is-cleaning .ceremony-droplets {
+  opacity: 1;
+}
+
+.ceremony-droplets i {
+  position: absolute;
+  left: calc(7% + (var(--i) * 5.15%));
+  top: calc(8% + ((var(--i) * 13) % 73) * 1%);
+  width: calc(7px + (var(--i) % 5) * 3px);
+  height: calc(11px + (var(--i) % 4) * 5px);
+  border-radius: 55% 55% 60% 60% / 45% 45% 68% 68%;
+  background: linear-gradient(145deg, rgba(255,255,255,.48), rgba(191,229,244,.08));
+  border: 1px solid rgba(255,255,255,.21);
+  box-shadow: inset 1px 1px 2px rgba(255,255,255,.32), 0 2px 7px rgba(0,0,0,.12);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.ceremony-clean-prompt {
+  position: absolute;
+  z-index: 34;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  width: min(340px, calc(100vw - 36px));
+  padding: 16px;
+  border-radius: 21px;
+  border: 1px solid rgba(238,249,255,.28);
+  background: linear-gradient(145deg, rgba(15,31,43,.72), rgba(4,12,21,.58));
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: 0 24px 70px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -3px 6px rgba(0,0,0,.18);
+  animation: promptRise 480ms ease both;
+}
+
+.ceremony-clean-prompt__eyebrow {
+  color: rgba(167,225,255,.8);
+  text-transform: uppercase;
+  letter-spacing: .13em;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.ceremony-clean-prompt__title { margin-top: 3px; font-size: 16px; font-weight: 760; }
+.ceremony-clean-prompt__copy { margin-top: 5px; font-size: 11px; line-height: 1.55; color: rgba(231,240,247,.72); }
+
+.ceremony-clean-prompt__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 13px; }
+.ceremony-clean-prompt__actions button {
+  height: 34px; padding: 0 12px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.045);
+  color: rgba(255,255,255,.82); font-size: 11px; font-weight: 720;
+}
+.ceremony-clean-prompt__actions button.is-primary {
+  background: rgba(124,201,241,.15);
+  border-color: rgba(171,226,255,.34);
+  color: #fff;
+}
+
+.ceremony-cloth { pointer-events: none; z-index: 36; opacity: 0; }
+.ceremony-cloth span {
+  position: absolute;
+  width: min(38vw, 480px);
+  height: min(22vw, 260px);
+  left: -42vw;
+  top: 25%;
+  border-radius: 42% 50% 36% 48%;
+  background:
+    linear-gradient(128deg, rgba(231,237,240,.86), rgba(159,173,180,.76)),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.1) 0 2px, rgba(0,0,0,.04) 2px 4px);
+  box-shadow: 18px 25px 60px rgba(0,0,0,.3);
+  transform: rotate(-13deg);
+}
+.ceremony-morning.is-cleaning .ceremony-cloth { opacity: 1; }
+.ceremony-morning.is-cleaning .ceremony-cloth span { animation: clothWipe 1750ms cubic-bezier(.55,.04,.29,.99) both; }
+.ceremony-morning.is-cleaning .ceremony-droplets { animation: dropletsClean 1450ms 250ms ease forwards; }
+
+/* Evening amber haze */
+.ceremony-evening {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: rgba(69,31,5,.08);
+}
+.ceremony-evening__veil {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 31% 64%, rgba(255,183,81,.35), transparent 30%),
+    radial-gradient(circle at 72% 28%, rgba(255,124,35,.18), transparent 34%),
+    linear-gradient(120deg, rgba(255,203,127,.22), transparent 42%, rgba(112,48,6,.12));
+  -webkit-backdrop-filter: blur(14px) saturate(116%);
+  backdrop-filter: blur(14px) saturate(116%);
+  animation: amberLift 4000ms cubic-bezier(.2,.75,.2,1) both;
+}
+.ceremony-evening__flare {
+  position: absolute;
+  width: 65vw; aspect-ratio: 1;
+  left: -20vw; bottom: -38vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,202,120,.32), rgba(244,111,28,.08) 34%, transparent 67%);
+  filter: blur(7px);
+  animation: flareTravel 3900ms ease both;
+}
+.ceremony-evening__glass {
+  position: absolute; inset: 0;
+  border: 1px solid rgba(255,228,186,.13);
+  box-shadow: inset 0 0 90px rgba(255,189,91,.08);
+  animation: eveningGlassClear 3900ms ease both;
+}
+
+/* Night ignition */
+.ceremony-night {
+  position: absolute; inset: 0; overflow: hidden;
+  background: linear-gradient(180deg, rgba(0,3,10,.54), rgba(2,5,14,.22));
+  -webkit-backdrop-filter: contrast(115%) brightness(72%);
+  backdrop-filter: contrast(115%) brightness(72%);
+  animation: nightReveal 4300ms ease both;
+}
+.ceremony-night__glass {
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg, rgba(75,115,188,.11), transparent 35%, rgba(111,81,163,.08));
+  border: 1px solid rgba(152,190,255,.15);
+  box-shadow: inset 0 0 90px rgba(39,79,145,.13);
+}
+.ceremony-night__lights { position: absolute; inset: 0; }
+.ceremony-night__lights i {
+  position: absolute;
+  left: calc(4% + (var(--i) * 3.85%));
+  bottom: calc(8% + ((var(--i) * 19) % 48) * 1%);
+  width: calc(2px + (var(--i) % 3) * 1px);
+  height: calc(2px + (var(--i) % 3) * 1px);
+  border-radius: 50%;
+  background: #ffd78a;
+  box-shadow: 0 0 7px rgba(255,207,112,.95), 0 0 16px rgba(111,170,255,.42);
+  opacity: 0;
+  animation: cityIgnite 620ms ease forwards;
+  animation-delay: calc(420ms + var(--i) * 75ms);
+}
+.ceremony-night__sweep {
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(105deg, transparent 36%, rgba(119,173,255,.12) 47%, rgba(224,238,255,.15) 50%, transparent 58%);
+  transform: translateX(-55%);
+  animation: nightSweep 2700ms 700ms ease both;
+}
+
+/* animation primitives */
+@keyframes ceremonyEnter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ceremonyClose { to { opacity: 0; visibility: hidden; } }
+@keyframes crackFlash { 0% { opacity: 0; } 28% { opacity: 1; } 60% { opacity: .78; } 100% { opacity: 1; } }
+@keyframes shardFall {
+  from { transform: translate3d(0,0,0) rotate(0deg); opacity: .95; }
+  to { transform: translate3d(calc((var(--i) - 6) * 19px), 70vh, 0) rotate(calc((var(--i) - 5) * 18deg)); opacity: 0; }
+}
+@keyframes promptRise { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes clothWipe {
+  0% { left: -42vw; top: 35%; transform: rotate(-13deg); }
+  45% { left: 36vw; top: 18%; transform: rotate(7deg); }
+  100% { left: 112vw; top: 42%; transform: rotate(-9deg); }
+}
+@keyframes dropletsClean { to { opacity: 0; filter: blur(5px); transform: translateX(18vw); } }
+@keyframes amberLift {
+  0% { opacity: 1; transform: scale(1.08) translateY(2%); }
+  72% { opacity: .3; }
+  100% { opacity: 0; transform: scale(1) translateY(-3%); backdrop-filter: blur(0); }
+}
+@keyframes flareTravel { from { transform: translateX(-6vw) scale(.85); opacity: .8; } to { transform: translateX(65vw) scale(1.18); opacity: 0; } }
+@keyframes eveningGlassClear { 0% { opacity: .9; } 100% { opacity: 0; } }
+@keyframes nightReveal { 0% { opacity: 1; backdrop-filter: contrast(115%) brightness(68%); } 100% { opacity: 0; backdrop-filter: contrast(100%) brightness(100%); } }
+@keyframes cityIgnite { 0% { opacity: 0; transform: scale(.45); } 55% { opacity: 1; transform: scale(1.5); } 100% { opacity: .82; transform: scale(1); } }
+@keyframes nightSweep { from { transform: translateX(-55%); } to { transform: translateX(55%); opacity: 0; } }
+
+@media (max-width: 719px) {
+  .environment-video-wall__panel-wrap[data-panel-count='1'] {
+    inset: -1% !important;
+    width: 102%;
+    height: 102%;
+  }
+
+  .environment-video-wall__panel { transform: translateZ(0) scale(1.006) !important; }
+
+  .ceremony-clean-prompt {
+    right: 14px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: calc(100vw - 28px);
+  }
+
+  .ceremony-morning__instruction { bottom: 78px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .immersive-ceremony *,
+  .immersive-ceremony *::before,
+  .immersive-ceremony *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .environment-video-wall__panel-wrap {
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
+}

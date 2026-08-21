@@ -1,0 +1,117 @@
+/* CrysTrack Final Background Correction — adaptive still scenery only.
+   No YouTube, local video, multi-panel wall or playback logic is used.
+   Existing CrysTrack layout, glass UI and ceremonies stay intact. */
+
+.environment-world {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(1.006);
+  transition:
+    opacity 1400ms cubic-bezier(.22,.68,.24,1),
+    transform 1600ms cubic-bezier(.22,.68,.24,1);
+  will-change: opacity, transform;
+}
+
+.environment-world.is-active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 1;
+}
+
+.environment-world.is-outgoing {
+  opacity: 0;
+  z-index: 0;
+}
+
+.environment-still-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.environment-youtube,
+.environment-youtube__player-host,
+.environment-youtube__player-host > iframe,
+.environment-youtube__interaction-shield,
+.environment-local-video,
+.environment-video-wall,
+.environment-video-wall__panel-wrap,
+.environment-video-wall__panel,
+.environment-video-wall__continuity,
+.environment-background video,
+.environment-background iframe {
+  display: none !important;
+}
+
+.environment-world__grade {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(1,6,12,.065), transparent 24%, transparent 70%, rgba(1,6,12,.16)),
+    radial-gradient(circle at 50% 35%, transparent 0 43%, rgba(1,5,10,.06) 100%);
+}
+
+.environment-world--morning .environment-world__grade {
+  background:
+    linear-gradient(180deg, rgba(7,18,29,.025), transparent 30%, rgba(2,8,14,.08)),
+    radial-gradient(circle at 42% 18%, rgba(255,231,190,.045), transparent 36%);
+}
+
+.environment-world--day .environment-world__grade {
+  background:
+    linear-gradient(180deg, rgba(5,14,23,.025), transparent 34%, rgba(1,7,13,.09)),
+    radial-gradient(circle at 50% 22%, rgba(220,241,255,.025), transparent 38%);
+}
+
+.environment-world--golden .environment-world__grade {
+  background:
+    linear-gradient(180deg, rgba(36,17,3,.02), transparent 36%, rgba(9,5,2,.11)),
+    radial-gradient(circle at 35% 36%, rgba(255,177,79,.05), transparent 39%);
+}
+
+.environment-world--evening .environment-world__grade {
+  background:
+    linear-gradient(180deg, rgba(28,11,7,.035), transparent 34%, rgba(5,4,8,.16)),
+    radial-gradient(circle at 48% 35%, rgba(255,126,78,.035), transparent 40%);
+}
+
+.environment-world--night .environment-world__grade {
+  background:
+    linear-gradient(180deg, rgba(0,3,10,.06), transparent 31%, rgba(0,2,8,.19)),
+    radial-gradient(circle at 50% 42%, rgba(63,119,234,.03), transparent 43%);
+}
+
+.environment-background__readability {
+  z-index: 5;
+  background:
+    linear-gradient(180deg, rgba(2,7,13,.12) 0%, rgba(2,7,13,.02) 28%, rgba(2,7,13,.11) 100%),
+    radial-gradient(circle at 50% 22%, transparent 0 38%, rgba(1,5,10,.065) 100%) !important;
+}
+
+.environment-weather { z-index: 6; }
+.environment-weather--rain,
+.environment-weather--storm { opacity: .34 !important; }
+.environment-weather--fog { opacity: .28 !important; }
+.environment-weather--snow { opacity: .26 !important; }
+
+@media (max-width: 899px) {
+  .environment-still-image { object-position: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .environment-world {
+    transition: none !important;
+    transform: none !important;
+  }
+}

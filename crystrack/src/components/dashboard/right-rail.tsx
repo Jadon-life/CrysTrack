@@ -1,82 +1,101 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, BrainCircuit, PiggyBank, Target } from 'lucide-react';
+import { BrainCircuit, PiggyBank, Target } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
-export function RightRail() {
+interface RightRailProps {
+  goals?: any[];
+  targets?: any[];
+  insight?: any;
+}
+
+export function RightRail({ goals = [], targets = [], insight }: RightRailProps) {
+  const visibleGoals = goals.slice(0, 3);
+  const visibleTargets = targets.slice(0, 3);
+
   return (
     <div className="space-y-4">
-      {/* Today's Note */}
       <GlassCard>
-        <h3 className="text-sm font-semibold text-white mb-3">Today&apos;s Note</h3>
-        <textarea 
-          placeholder="How are you feeling today? What's your focus?"
-          className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white placeholder:text-slate-500 resize-none h-24 focus:outline-none focus:border-blue-500/50 transition-colors"
-        />
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-semibold text-white">Goals</h3>
+          </div>
+          <Link href="/goals" className="text-[11px] font-medium text-blue-400 hover:text-blue-300">Open</Link>
+        </div>
+        {visibleGoals.length === 0 ? (
+          <p className="text-xs text-slate-500">No active goals yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {visibleGoals.map((goal) => {
+              const target = Number(goal.target_value || 0);
+              const current = Number(goal.progress_value || 0);
+              const percent = goal.measurable && target > 0 ? Math.min(100, Math.round((current / target) * 100)) : null;
+              return (
+                <div key={goal.id}>
+                  <div className="flex justify-between gap-3 text-xs mb-1">
+                    <span className="text-slate-300 truncate">{goal.title}</span>
+                    <span className="text-slate-500 shrink-0">{percent == null ? 'Active' : `${percent}%`}</span>
+                  </div>
+                  {percent != null && <Progress value={percent} className="h-1.5 bg-white/10" />}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </GlassCard>
 
-      {/* Goal Snapshot */}
       <GlassCard>
-        <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-violet-400" />
-          <h3 className="text-sm font-semibold text-white">Goal Snapshot</h3>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-300">Learn JavaScript</span>
-              <span className="text-violet-400">65%</span>
-            </div>
-            <Progress value={65} className="h-1.5 bg-white/10" />
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <PiggyBank className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-semibold text-white">Money targets</h3>
           </div>
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-300">Build Portfolio</span>
-              <span className="text-violet-400">30%</span>
-            </div>
-            <Progress value={30} className="h-1.5 bg-white/10" />
-          </div>
+          <Link href="/finance" className="text-[11px] font-medium text-blue-400 hover:text-blue-300">Open</Link>
         </div>
+        {visibleTargets.length === 0 ? (
+          <p className="text-xs text-slate-500">No active savings targets yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {visibleTargets.map((target) => {
+              const current = Number(target.current_amount || 0);
+              const goal = Number(target.target_amount || 0);
+              const percent = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
+              return (
+                <div key={target.id}>
+                  <div className="flex justify-between gap-3 text-xs mb-1">
+                    <span className="text-slate-300 truncate">{target.title}</span>
+                    <span className="text-slate-500 shrink-0">{percent}%</span>
+                  </div>
+                  <Progress value={percent} className="h-1.5 bg-white/10" />
+                  <p className="text-[11px] text-slate-600 mt-1">{formatCurrency(current)} of {formatCurrency(goal)}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </GlassCard>
 
-      {/* Finance Snapshot */}
       <GlassCard>
-        <div className="flex items-center gap-2 mb-3">
-          <PiggyBank className="w-4 h-4 text-blue-400" />
-          <h3 className="text-sm font-semibold text-white">Finance</h3>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Emergency Fund</span>
-            <span className="text-emerald-400 font-medium">$4,200 / $10k</span>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <BrainCircuit className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-semibold text-white">Current insight</h3>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">New Laptop</span>
-            <span className="text-blue-400 font-medium">$800 / $2k</span>
-          </div>
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs text-emerald-400">+$1,200 this month</span>
-          </div>
+          <Link href="/insights" className="text-[11px] font-medium text-blue-400 hover:text-blue-300">Open</Link>
         </div>
-      </GlassCard>
-
-      {/* AI Insight */}
-      <GlassCard glow>
-        <div className="flex items-center gap-2 mb-3">
-          <BrainCircuit className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-white">AI Insight</h3>
-        </div>
-        <p className="text-xs text-slate-300 leading-relaxed">
-          You&apos;ve maintained a 5-day streak on morning workouts. Your JavaScript goal is on track, 
-          but consider dedicating 10 more minutes daily to stay ahead of your deadline.
-        </p>
-        <div className="mt-3 flex items-center gap-2">
-          <TrendingDown className="w-3 h-3 text-amber-400" />
-          <span className="text-xs text-amber-400">2 assignments need attention</span>
-        </div>
+        {insight ? (
+          <>
+            <p className="text-xs font-medium text-slate-200 mb-1">{insight.title}</p>
+            <p className="text-xs text-slate-400 leading-relaxed">{insight.summary}</p>
+          </>
+        ) : (
+          <p className="text-xs text-slate-500">Insights appear as CrysTrack collects real progress data.</p>
+        )}
       </GlassCard>
     </div>
   );

@@ -1,0 +1,378 @@
+/* CrysTrack Phase 1 — premium physical UI foundation.
+   Loaded after globals.css so this file can refine the accepted visual system
+   without deleting legacy/fallback styles used elsewhere in the product. */
+
+.crys-glass-card {
+  --glass-pointer-x: 50%;
+  --glass-pointer-y: 45%;
+  --glass-fluid-x: 0px;
+  --glass-fluid-y: 0px;
+  isolation: isolate;
+  border-radius: clamp(20px, 1.25vw, 26px);
+  border: 1px solid color-mix(in srgb, var(--theme-border) 82%, rgba(255, 255, 255, 0.38));
+  background:
+    linear-gradient(
+      138deg,
+      rgba(255, 255, 255, 0.115) 0%,
+      rgba(255, 255, 255, 0.038) 24%,
+      rgba(3, 13, 24, 0.18) 58%,
+      rgba(2, 9, 18, 0.29) 100%
+    ),
+    color-mix(in srgb, var(--theme-glass-tint) 72%, transparent);
+  -webkit-backdrop-filter: blur(23px) saturate(154%) contrast(103%);
+  backdrop-filter: blur(23px) saturate(154%) contrast(103%);
+  box-shadow:
+    0 22px 62px rgba(0, 0, 0, 0.24),
+    0 4px 18px rgba(0, 0, 0, 0.12),
+    inset 0 1.35px 0 rgba(255, 255, 255, 0.24),
+    inset 1px 0 0 rgba(255, 255, 255, 0.075),
+    inset 0 -1.4px 0 rgba(0, 0, 0, 0.24);
+}
+
+.crys-glass-card::before {
+  content: '';
+  position: absolute;
+  inset: -13%;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      circle at var(--glass-pointer-x) var(--glass-pointer-y),
+      rgba(255, 255, 255, 0.23) 0%,
+      rgba(255, 255, 255, 0.095) 12%,
+      rgba(139, 210, 255, 0.045) 22%,
+      transparent 38%
+    ),
+    linear-gradient(
+      118deg,
+      rgba(255, 255, 255, 0.11),
+      transparent 19%,
+      transparent 72%,
+      rgba(255, 255, 255, 0.045)
+    );
+  opacity: 0.72;
+  mix-blend-mode: screen;
+  transform: translate3d(var(--glass-fluid-x), var(--glass-fluid-y), 0) scale(1.025);
+  transform-origin: var(--glass-pointer-x) var(--glass-pointer-y);
+  transition:
+    transform 320ms cubic-bezier(.2, .8, .2, 1),
+    opacity 240ms ease;
+}
+
+.crys-glass-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.085), transparent 21%, transparent 76%, rgba(255, 255, 255, 0.025)),
+    radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.075), transparent 30%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    inset 0 8px 22px rgba(255, 255, 255, 0.018),
+    inset 0 -9px 24px rgba(0, 0, 0, 0.065);
+}
+
+.crys-glass-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.crys-glass-card[data-glass-pressed='true']::before {
+  animation: crysGlassLiquidSettle 540ms cubic-bezier(.18, .72, .18, 1);
+}
+
+.crys-glass-card--substantial {
+  border-radius: clamp(24px, 1.55vw, 31px);
+  border-color: color-mix(in srgb, var(--theme-border) 72%, rgba(242, 250, 255, 0.48));
+  background:
+    linear-gradient(
+      140deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.055) 21%,
+      rgba(4, 18, 31, 0.25) 55%,
+      rgba(2, 10, 20, 0.38) 100%
+    ),
+    color-mix(in srgb, var(--theme-glass-tint) 82%, transparent);
+  -webkit-backdrop-filter: blur(29px) saturate(162%) contrast(104%);
+  backdrop-filter: blur(29px) saturate(162%) contrast(104%);
+  box-shadow:
+    0 30px 88px rgba(0, 0, 0, 0.3),
+    0 8px 28px rgba(0, 0, 0, 0.15),
+    inset 0 1.6px 0 rgba(255, 255, 255, 0.3),
+    inset 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset -1px 0 0 rgba(255, 255, 255, 0.035),
+    inset 0 -1.6px 0 rgba(0, 0, 0, 0.3);
+}
+
+.crys-glass-card--substantial::before {
+  opacity: 0.79;
+}
+
+.crys-glass-card.crys-glass-card--hover {
+  transition:
+    border-color 220ms ease,
+    box-shadow 260ms ease,
+    background 260ms ease;
+}
+
+.crys-glass-card.crys-glass-card--hover:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--theme-primary) 30%, rgba(238, 249, 255, 0.38));
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.27),
+    0 0 28px color-mix(in srgb, var(--theme-glow) 42%, transparent),
+    inset 0 1.35px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -1.4px 0 rgba(0, 0, 0, 0.22);
+}
+
+@keyframes crysGlassLiquidSettle {
+  0% {
+    opacity: 0.7;
+    transform: translate3d(var(--glass-fluid-x), var(--glass-fluid-y), 0) scale(1.025);
+  }
+  28% {
+    opacity: 0.94;
+    transform: translate3d(var(--glass-fluid-x), var(--glass-fluid-y), 0) scale(1.052, 1.028);
+  }
+  52% {
+    opacity: 0.78;
+    transform: translate3d(0, 0, 0) scale(1.017, 1.041);
+  }
+  76% {
+    opacity: 0.86;
+    transform: translate3d(var(--glass-fluid-x), var(--glass-fluid-y), 0) scale(1.033, 1.02);
+  }
+  100% {
+    opacity: 0.72;
+    transform: translate3d(var(--glass-fluid-x), var(--glass-fluid-y), 0) scale(1.025);
+  }
+}
+
+/* Calendar receives the deeper sheet-of-glass treatment while its day cells
+   remain lighter, preserving hierarchy and readability. */
+.calendar-glass {
+  border-radius: clamp(26px, 1.7vw, 34px);
+}
+
+.calendar-glass--grid {
+  box-shadow:
+    0 34px 96px rgba(0, 0, 0, 0.32),
+    0 10px 34px rgba(0, 0, 0, 0.15),
+    inset 0 1.7px 0 rgba(255, 255, 255, 0.32),
+    inset 1px 0 0 rgba(255, 255, 255, 0.11),
+    inset 0 -1.7px 0 rgba(0, 0, 0, 0.31);
+}
+
+.calendar-day {
+  border-radius: 16px;
+  -webkit-backdrop-filter: blur(8px) saturate(128%);
+  backdrop-filter: blur(8px) saturate(128%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.065),
+    0 5px 15px rgba(0, 0, 0, 0.07);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms ease,
+    transform 220ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.calendar-day:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 8px 22px rgba(0, 0, 0, 0.11);
+}
+
+.calendar-day:active {
+  transform: translateY(0) scale(0.992);
+}
+
+.calendar-event-glass {
+  border-radius: 15px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.105));
+  -webkit-backdrop-filter: blur(10px) saturate(126%);
+  backdrop-filter: blur(10px) saturate(126%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+/* A slimmer floating navigation rail with deliberate safe-area margins.
+   It remains visually full-width without touching browser scrollbars/edges. */
+.topnav-wrap {
+  padding:
+    clamp(9px, 1vw, 15px)
+    max(clamp(13px, 1.55vw, 30px), env(safe-area-inset-right))
+    0
+    max(clamp(13px, 1.55vw, 30px), env(safe-area-inset-left));
+}
+
+.topnav-shell {
+  width: 100%;
+  max-width: 1880px;
+  min-height: 54px;
+  padding: 6px 8px;
+  gap: 8px;
+  border-radius: 20px;
+  border-color: color-mix(in srgb, var(--theme-border) 78%, rgba(255, 255, 255, 0.34));
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.075), transparent 28%, rgba(0,0,0,.08)),
+    color-mix(in srgb, var(--theme-surface-strong) 86%, transparent);
+  -webkit-backdrop-filter: blur(25px) saturate(154%);
+  backdrop-filter: blur(25px) saturate(154%);
+  box-shadow:
+    0 18px 54px rgba(0, 0, 0, 0.25),
+    inset 0 1.25px 0 rgba(255, 255, 255, 0.19),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.topnav-brand {
+  gap: 7px;
+  padding: 5px 7px;
+  border-radius: 12px;
+}
+
+.topnav-brandmark {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+
+.topnav-link {
+  min-height: 34px;
+  gap: 6px;
+  padding: 0 clamp(8px, .7vw, 11px);
+  border-radius: 11px;
+  font-size: 11.5px;
+}
+
+.topnav-icon-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+}
+
+.topnav-weather {
+  min-height: 34px;
+  gap: 6px;
+  padding: 0 9px;
+  border-radius: 11px;
+}
+
+.topnav-theme {
+  height: 34px;
+  padding: 2px;
+  border-radius: 11px;
+}
+
+.topnav-theme__button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 8px;
+}
+
+.topnav-profile {
+  min-height: 36px;
+  gap: 7px;
+  padding: 2px 5px 2px 3px;
+  border-radius: 11px;
+}
+
+.topnav-avatar {
+  width: 30px;
+  height: 30px;
+}
+
+.topnav-popover {
+  top: calc(100% + 8px);
+}
+
+@media (max-width: 1180px) {
+  .topnav-link {
+    padding-inline: 8px;
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .topnav-shell {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 640px) {
+  .crys-glass-card {
+    border-radius: 20px;
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+    backdrop-filter: blur(18px) saturate(145%);
+  }
+
+  .crys-glass-card--substantial,
+  .calendar-glass {
+    border-radius: 23px;
+  }
+
+  .topnav-wrap {
+    padding:
+      8px
+      max(10px, env(safe-area-inset-right))
+      0
+      max(10px, env(safe-area-inset-left));
+  }
+
+  .topnav-shell {
+    width: 100%;
+    min-height: 50px;
+    padding: 5px 6px;
+    gap: 4px;
+    border-radius: 17px;
+  }
+
+  .topnav-brand {
+    padding: 4px 5px;
+    gap: 5px;
+  }
+
+  .topnav-brandmark {
+    width: 27px;
+    height: 27px;
+  }
+
+  .topnav-icon-button,
+  .topnav-weather,
+  .topnav-theme {
+    min-height: 32px;
+    height: 32px;
+  }
+
+  .topnav-icon-button {
+    width: 32px;
+  }
+
+  .topnav-theme__button {
+    min-width: 27px;
+    height: 27px;
+  }
+}
+
+@media (hover: none) {
+  .calendar-day:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crys-glass-card::before,
+  .crys-glass-card[data-glass-pressed='true']::before,
+  .calendar-day,
+  .topnav-link,
+  .topnav-icon-button,
+  .topnav-weather,
+  .topnav-profile {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

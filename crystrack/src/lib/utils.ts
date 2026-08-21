@@ -5,6 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function getLocalDateKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function formatDate(date: string | Date, timezone = 'UTC'): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat('en-US', {
@@ -27,10 +34,11 @@ export function formatDateTime(date: string | Date, timezone = 'UTC'): string {
   }).format(d);
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number, currency: 'NGN' | 'USD' = 'NGN'): string {
+  return new Intl.NumberFormat(currency === 'NGN' ? 'en-NG' : 'en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency,
+    maximumFractionDigits: currency === 'NGN' ? 0 : 2,
   }).format(amount);
 }
 

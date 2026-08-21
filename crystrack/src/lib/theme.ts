@@ -1,7 +1,11 @@
+export type TimePhase = 'morning' | 'day' | 'golden' | 'evening' | 'night';
+export type ThemePreference = 'adaptive' | 'light' | 'dark';
+
 export interface ThemeColors {
   background: string;
   surface: string;
   surfaceGlass: string;
+  surfaceStrong: string;
   primary: string;
   secondary: string;
   accent: string;
@@ -13,114 +17,118 @@ export interface ThemeColors {
   danger: string;
   info: string;
   glow: string;
+  glassTint: string;
 }
 
-export const themes: Record<string, ThemeColors> = {
+export const themes: Record<TimePhase, ThemeColors> = {
   morning: {
-    background: '#0a1628',
-    surface: 'rgba(15, 23, 42, 0.7)',
-    surfaceGlass: 'rgba(30, 41, 59, 0.4)',
-    primary: '#3b82f6',
-    secondary: '#06b6d4',
-    accent: '#8b5cf6',
-    text: '#f1f5f9',
-    textMuted: '#94a3b8',
-    border: 'rgba(59, 130, 246, 0.2)',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    info: '#3b82f6',
-    glow: 'rgba(59, 130, 246, 0.3)',
-  },
-  afternoon: {
-    background: '#0f172a',
-    surface: 'rgba(15, 23, 42, 0.75)',
-    surfaceGlass: 'rgba(30, 41, 59, 0.45)',
-    primary: '#60a5fa',
-    secondary: '#22d3ee',
-    accent: '#a78bfa',
-    text: '#f8fafc',
-    textMuted: '#cbd5e1',
-    border: 'rgba(96, 165, 250, 0.25)',
-    success: '#34d399',
+    background: '#081523',
+    surface: 'rgba(7, 28, 45, 0.78)',
+    surfaceGlass: 'rgba(12, 42, 61, 0.58)',
+    surfaceStrong: 'rgba(5, 20, 34, 0.88)',
+    primary: '#38a8ff',
+    secondary: '#48d7d0',
+    accent: '#f7a85a',
+    text: '#f8fbff',
+    textMuted: '#c5d2dd',
+    border: 'rgba(206, 235, 255, 0.25)',
+    success: '#4ade80',
     warning: '#fbbf24',
-    danger: '#f87171',
+    danger: '#fb7185',
     info: '#60a5fa',
-    glow: 'rgba(96, 165, 250, 0.35)',
+    glow: 'rgba(56, 168, 255, 0.28)',
+    glassTint: 'rgba(8, 34, 52, 0.62)',
+  },
+  day: {
+    background: '#0a1724',
+    surface: 'rgba(10, 31, 46, 0.78)',
+    surfaceGlass: 'rgba(16, 50, 67, 0.56)',
+    surfaceStrong: 'rgba(7, 25, 39, 0.9)',
+    primary: '#4aa8ff',
+    secondary: '#4fd1c5',
+    accent: '#f59e6a',
+    text: '#f8fbff',
+    textMuted: '#c7d4df',
+    border: 'rgba(219, 239, 252, 0.24)',
+    success: '#4ade80',
+    warning: '#fbbf24',
+    danger: '#fb7185',
+    info: '#60a5fa',
+    glow: 'rgba(74, 168, 255, 0.24)',
+    glassTint: 'rgba(10, 37, 53, 0.62)',
   },
   golden: {
-    background: '#1a120b',
-    surface: 'rgba(40, 30, 20, 0.7)',
-    surfaceGlass: 'rgba(60, 45, 30, 0.4)',
-    primary: '#f59e0b',
-    secondary: '#fbbf24',
-    accent: '#ea580c',
-    text: '#fef3c7',
-    textMuted: '#d4d4d8',
-    border: 'rgba(245, 158, 11, 0.25)',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    info: '#f59e0b',
-    glow: 'rgba(245, 158, 11, 0.35)',
+    background: '#1c1209',
+    surface: 'rgba(40, 27, 17, 0.8)',
+    surfaceGlass: 'rgba(67, 42, 23, 0.58)',
+    surfaceStrong: 'rgba(28, 18, 11, 0.9)',
+    primary: '#F88F22',
+    secondary: '#FBB931',
+    accent: '#EA6113',
+    text: '#FFF6E7',
+    textMuted: '#E5D7C6',
+    border: 'rgba(255, 227, 179, 0.26)',
+    success: '#5fd278',
+    warning: '#FBB931',
+    danger: '#ff6b5f',
+    info: '#69a7ff',
+    glow: 'rgba(248, 143, 34, 0.3)',
+    glassTint: 'rgba(47, 29, 16, 0.66)',
   },
-  sunset: {
-    background: '#1c1008',
-    surface: 'rgba(50, 30, 20, 0.75)',
-    surfaceGlass: 'rgba(70, 40, 25, 0.45)',
-    primary: '#ea580c',
-    secondary: '#f97316',
-    accent: '#f59e0b',
-    text: '#fef3c7',
-    textMuted: '#d6d3d1',
-    border: 'rgba(234, 88, 12, 0.3)',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    info: '#ea580c',
-    glow: 'rgba(234, 88, 12, 0.4)',
-  },
-  dusk: {
-    background: '#0f0a1a',
-    surface: 'rgba(20, 15, 40, 0.75)',
-    surfaceGlass: 'rgba(40, 30, 70, 0.45)',
-    primary: '#7c3aed',
-    secondary: '#8b5cf6',
-    accent: '#a78bfa',
-    text: '#e9d5ff',
-    textMuted: '#c4b5fd',
-    border: 'rgba(124, 58, 237, 0.25)',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    info: '#7c3aed',
-    glow: 'rgba(124, 58, 237, 0.35)',
+  evening: {
+    background: '#170f0b',
+    surface: 'rgba(31, 21, 16, 0.84)',
+    surfaceGlass: 'rgba(48, 31, 20, 0.62)',
+    surfaceStrong: 'rgba(20, 14, 11, 0.92)',
+    primary: '#F88F22',
+    secondary: '#FBB931',
+    accent: '#EA6113',
+    text: '#FFF7EA',
+    textMuted: '#E7D9C8',
+    border: 'rgba(255, 227, 179, 0.25)',
+    success: '#5dd574',
+    warning: '#FBB931',
+    danger: '#ff6b5f',
+    info: '#64a8ff',
+    glow: 'rgba(234, 97, 19, 0.32)',
+    glassTint: 'rgba(38, 24, 16, 0.72)',
   },
   night: {
-    background: '#020617',
-    surface: 'rgba(10, 15, 30, 0.8)',
-    surfaceGlass: 'rgba(20, 25, 50, 0.5)',
-    primary: '#6366f1',
-    secondary: '#818cf8',
-    accent: '#a5b4fc',
-    text: '#e2e8f0',
-    textMuted: '#94a3b8',
-    border: 'rgba(99, 102, 241, 0.2)',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    info: '#6366f1',
-    glow: 'rgba(99, 102, 241, 0.3)',
+    background: '#050914',
+    surface: 'rgba(7, 12, 25, 0.86)',
+    surfaceGlass: 'rgba(13, 22, 40, 0.64)',
+    surfaceStrong: 'rgba(4, 8, 18, 0.94)',
+    primary: '#8ab4ff',
+    secondary: '#7dd3fc',
+    accent: '#a78bfa',
+    text: '#f5f8ff',
+    textMuted: '#b8c3d3',
+    border: 'rgba(173, 202, 255, 0.2)',
+    success: '#4ade80',
+    warning: '#fbbf24',
+    danger: '#fb7185',
+    info: '#60a5fa',
+    glow: 'rgba(99, 143, 255, 0.25)',
+    glassTint: 'rgba(8, 14, 27, 0.76)',
   },
 };
 
+export function getThemeForPhase(phase: TimePhase, preference: ThemePreference = 'adaptive'): ThemeColors {
+  if (preference === 'light') return themes.morning;
+  if (preference === 'dark') return phase === 'golden' || phase === 'evening' ? themes.evening : themes.night;
+  return themes[phase];
+}
+
+export function getFallbackPhase(date = new Date()): TimePhase {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 10) return 'morning';
+  if (hour >= 10 && hour < 16) return 'day';
+  if (hour >= 16 && hour < 18) return 'golden';
+  if (hour >= 18 && hour < 21) return 'evening';
+  return 'night';
+}
+
+// Backwards-compatible helper for components that existed before the adaptive engine.
 export function getCurrentTheme(): ThemeColors {
-  const hour = new Date().getHours();
-  let key = 'night';
-  if (hour >= 5 && hour < 10) key = 'morning';
-  else if (hour >= 10 && hour < 16) key = 'afternoon';
-  else if (hour >= 16 && hour < 18) key = 'golden';
-  else if (hour >= 18 && hour < 19) key = 'sunset';
-  else if (hour >= 19 && hour < 21) key = 'dusk';
-  return themes[key];
+  return getThemeForPhase(getFallbackPhase());
 }
