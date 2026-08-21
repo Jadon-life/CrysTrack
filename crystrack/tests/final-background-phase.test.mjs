@@ -4,40 +4,43 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 
-function read(relative) {
-  return fs.readFileSync(path.join(root, relative), 'utf8');
-}
-
-test('final stable background retains exactly the three approved sources', () => {
-  const manifest = read('src/lib/environment-youtube.ts');
-  assert.match(manifest, /AjwcqYZ6cIw/);
-  assert.match(manifest, /i9hsP_dLIaM/);
-  assert.match(manifest, /vJKEcp3BAVw/);
-});
-
-test('walking-tour source receives strongest camera-motion reduction', () => {
-  const manifest = read('src/lib/environment-youtube.ts');
-  assert.match(manifest, /videoId: 'AjwcqYZ6cIw'[\s\S]*?endAt: 15[\s\S]*?playbackRate: 0\.25/);
-  assert.match(manifest, /videoId: 'vJKEcp3BAVw'[\s\S]*?startAt: 30[\s\S]*?endAt: 54/);
-});
-
-test('YouTube Player API enforces bounded silent looping', () => {
+test('final background renderer is still-image-only', () => {
   const renderer = read('src/components/layout/environment-background.tsx');
-
-  assert.match(renderer, /youtube\.com\/iframe_api/);
-  assert.match(renderer, /player\.mute\(\)/);
-  assert.match(renderer, /player\.setVolume\(0\)/);
-  assert.match(renderer, /player\.setPlaybackRate/);
-  assert.match(renderer, /scene\.endAt - 0\.28/);
-  assert.match(renderer, /player\.seekTo\(scene\.startAt, true\)/);
+  assert.match(renderer, /environment-still-image/);
+  assert.match(renderer, /selectEnvironmentBackground/);
+  assert.match(renderer, /data-background-kind="still"/);
+  assert.doesNotMatch(renderer, /youtube\.com\/iframe_api/);
+  assert.doesNotMatch(renderer, /<video/);
+  assert.doesNotMatch(renderer, /LocalDubaiVideo/);
+  assert.doesNotMatch(renderer, /StableYouTubeDubaiVideo/);
 });
 
-test('old three-panel wall stays disabled and wide player stays 16:9', () => {
-  const css = read('src/app/premium-physical-ui-final.css');
+test('adaptive background pool uses phase, weather and stable context', () => {
+  const environment = read('src/lib/environment.ts');
+  for (const phase of ['morning', 'day', 'golden', 'evening', 'night']) {
+    assert.match(environment, new RegExp(`'${phase}'`));
+  }
+  assert.match(environment, /ENVIRONMENT_BACKGROUND_POOL/);
+  assert.match(environment, /selectEnvironmentBackground/);
+  assert.match(environment, /environment\.weather/);
+  assert.match(environment, /environment\.city/);
+  assert.match(environment, /stableHash/);
+  assert.match(environment, /3840w/);
+});
 
-  assert.match(css, /\.environment-video-wall,/);
+test('final CSS retires every legacy video surface', () => {
+  const css = read('src/app/premium-physical-ui-final.css');
+  assert.match(css, /environment-still-image/);
+  assert.match(css, /environment-background video/);
+  assert.match(css, /environment-background iframe/);
   assert.match(css, /display: none !important/);
-  assert.match(css, /height: 56\.25vw !important/);
-  assert.match(css, /min-width: 177\.777778vh !important/);
+  assert.doesNotMatch(css, /height: 56\.25vw/);
+});
+
+test('clean golden-hour scenic background is packaged', () => {
+  const asset = path.join(root, 'public/backgrounds/crystrack-golden-dubai.webp');
+  assert.equal(fs.existsSync(asset), true);
+  assert.ok(fs.statSync(asset).size > 200_000);
 });

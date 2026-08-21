@@ -176,36 +176,128 @@ export async function loadEnvironment(coordinates?: Coordinates): Promise<Enviro
   };
 }
 
-const COMMONS_BACKGROUNDS: Record<TimePhase, string> = {
-  morning: 'Sunrise Bettmerhorn snowy mountains (Unsplash).jpg',
-  day: 'Mountain Landscape (Unsplash).jpg',
-  golden: 'Golden city skyline (Unsplash).jpg',
-  evening: 'Sunset Vibes (Unsplash).jpg',
-  night: 'Dubai skyline unsplash.jpg',
-};
-
-const LOCAL_BACKGROUNDS: Partial<Record<TimePhase, string>> = {
-  day: '/backgrounds/crystrack-day-urban-4k.webp',
-};
+export interface EnvironmentBackgroundAsset {
+  id: string;
+  src: string;
+  srcSet: string;
+  objectPosition: string;
+  phases: TimePhase[];
+  weather: WeatherKind[];
+}
 
 function commonsRedirect(file: string, width: number) {
   return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(file)}?width=${width}`;
 }
 
-export function environmentBackgroundAsset(phase: TimePhase) {
-  const local = LOCAL_BACKGROUNDS[phase];
-  if (local) {
-    return {
-      src: local,
-      srcSet: `${local} 3840w`,
-    };
-  }
-
-  const file = COMMONS_BACKGROUNDS[phase];
+function commonsAsset(
+  id: string,
+  file: string,
+  phases: TimePhase[],
+  weather: WeatherKind[],
+  objectPosition = '50% 50%',
+): EnvironmentBackgroundAsset {
   return {
+    id,
     src: commonsRedirect(file, 2560),
     srcSet: `${commonsRedirect(file, 1280)} 1280w, ${commonsRedirect(file, 1920)} 1920w, ${commonsRedirect(file, 2560)} 2560w, ${commonsRedirect(file, 3840)} 3840w`,
+    objectPosition,
+    phases,
+    weather,
   };
+}
+
+export const ENVIRONMENT_BACKGROUND_POOL: EnvironmentBackgroundAsset[] = [
+  commonsAsset(
+    'morning-mountain-sunrise',
+    'Sunrise Bettmerhorn snowy mountains (Unsplash).jpg',
+    ['morning'],
+    ['clear', 'cloudy', 'fog', 'snow', 'unknown'],
+    '50% 48%',
+  ),
+  {
+    id: 'day-urban-4k',
+    src: '/backgrounds/crystrack-day-urban-4k.webp',
+    srcSet: '/backgrounds/crystrack-day-urban-4k.webp 3840w',
+    objectPosition: '50% 48%',
+    phases: ['morning', 'day'],
+    weather: ['clear', 'cloudy', 'unknown'],
+  },
+  commonsAsset(
+    'day-mountain-depth',
+    'Mountain Landscape (Unsplash).jpg',
+    ['day'],
+    ['cloudy', 'fog', 'rain', 'snow'],
+    '50% 50%',
+  ),
+  {
+    id: 'golden-dubai-rooftop',
+    src: '/backgrounds/crystrack-golden-dubai.webp',
+    srcSet: '/backgrounds/crystrack-golden-dubai.webp 3840w',
+    objectPosition: '50% 50%',
+    phases: ['golden', 'evening'],
+    weather: ['clear', 'cloudy', 'unknown'],
+  },
+  commonsAsset(
+    'golden-city-skyline',
+    'Golden city skyline (Unsplash).jpg',
+    ['golden'],
+    ['cloudy', 'rain', 'unknown'],
+    '50% 48%',
+  ),
+  commonsAsset(
+    'evening-sunset',
+    'Sunset Vibes (Unsplash).jpg',
+    ['evening'],
+    ['clear', 'cloudy', 'rain', 'storm', 'unknown'],
+    '50% 46%',
+  ),
+  commonsAsset(
+    'night-dubai-skyline',
+    'Dubai skyline unsplash.jpg',
+    ['night'],
+    ['clear', 'cloudy', 'rain', 'storm', 'fog', 'unknown'],
+    '50% 48%',
+  ),
+];
+
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+export function selectEnvironmentBackground(environment: Pick<
+  EnvironmentState,
+  'phase' | 'weather' | 'city' | 'countryCode' | 'localTime'
+>): EnvironmentBackgroundAsset {
+  const phaseCandidates = ENVIRONMENT_BACKGROUND_POOL.filter((asset) =>
+    asset.phases.includes(environment.phase),
+  );
+  const weatherCandidates = phaseCandidates.filter((asset) =>
+    asset.weather.includes(environment.weather),
+  );
+  const candidates = weatherCandidates.length ? weatherCandidates : phaseCandidates;
+  if (!candidates.length) return ENVIRONMENT_BACKGROUND_POOL[0];
+
+  const dayKey = environment.localTime.slice(0, 10);
+  const contextKey = [
+    environment.phase,
+    environment.weather,
+    environment.city || '',
+    environment.countryCode || '',
+    dayKey,
+  ].join('|');
+
+  return candidates[stableHash(contextKey) % candidates.length];
+}
+
+export function environmentBackgroundAsset(phase: TimePhase) {
+  const fallback = ENVIRONMENT_BACKGROUND_POOL.find((asset) => asset.phases.includes(phase))
+    || ENVIRONMENT_BACKGROUND_POOL[0];
+  return { src: fallback.src, srcSet: fallback.srcSet };
 }
 
 export function environmentBackgroundPath(phase: TimePhase): string {

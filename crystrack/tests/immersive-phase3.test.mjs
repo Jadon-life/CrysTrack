@@ -4,27 +4,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+function read(relative) { return fs.readFileSync(path.join(root, relative), 'utf8'); }
 
-function read(relative) {
-  return fs.readFileSync(path.join(root, relative), 'utf8');
-}
-
-test('Phase 3 renderer removes hard video seams and keeps videos hard-muted', () => {
+test('Phase 3 ceremonies coexist with the final still-image renderer', () => {
   const renderer = read('src/components/layout/environment-background.tsx');
-  const css = read('src/app/premium-physical-ui-phase3.css');
-
-  assert.match(renderer, /video\.muted = true/);
-  assert.match(renderer, /video\.volume = 0/);
-  assert.match(renderer, /environment-video-wall__continuity/);
-  assert.match(css, /mask-image:/);
-  assert.match(css, /environment-video-wall__panel-wrap--2/);
-  assert.doesNotMatch(css, /panel-wrap \+ .*::before/);
+  assert.match(renderer, /environment-still-image/);
+  assert.doesNotMatch(renderer, /<video/);
+  assert.doesNotMatch(renderer, /youtube\.com\/iframe_api/);
 });
 
 test('Phase 3 entrance ceremonies are first-entry-per-block and skippable', () => {
   const component = read('src/components/layout/immersive-ceremony.tsx');
   const logic = read('src/lib/immersive-experience.ts');
-
   assert.match(component, />Skip </);
   assert.match(component, /markCeremonySeen/);
   assert.match(component, /Clean the glass\?/);
