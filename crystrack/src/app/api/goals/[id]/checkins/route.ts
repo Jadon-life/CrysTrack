@@ -26,6 +26,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
       .maybeSingle(),
   ]);
   if (goalError || !goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+  if (goal.deadline && new Date(goal.deadline).getTime() < Date.now()) {
+    return NextResponse.json({ error: 'Goal deadline has passed; check-ins are closed' }, { status: 409 });
+  }
 
   const timezone = profile?.current_timezone || profile?.timezone || 'UTC';
   const window = goalCheckinWindow(goal.checkin_config, new Date(), timezone);

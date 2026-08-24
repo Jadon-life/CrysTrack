@@ -2,14 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AlertTriangle, Bell, Clock, Loader2, Plus } from 'lucide-react';
+import { AlertTriangle, Bell, Clock, Loader2, Plus, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CreateModal } from '@/components/shared/create-modal';
-import { fetcher, patch, post } from '@/lib/api';
+import { del, fetcher, patch, post } from '@/lib/api';
 import { cn, formatDateTime, getRelativeTime } from '@/lib/utils';
 
 const priorityColors = {
@@ -102,6 +102,18 @@ export default function AssignmentsPage() {
     catch (e: any) { setError(e.message || 'Failed to complete assignment'); }
   };
 
+  const handleDeleteAssignment = async (assignment: any) => {
+    if (!window.confirm(`Delete "${assignment.title}" permanently?`)) return;
+    setError('');
+    try {
+      await del(`/api/assignments/${assignment.id}`);
+      await loadAssignments();
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
+    } catch (e: any) {
+      setError(e.message || 'Failed to delete assignment');
+    }
+  };
+
   const sortedAssignments = useMemo(() => [...assignments].sort((a, b) => statusOrder.indexOf(a.computed_status) - statusOrder.indexOf(b.computed_status)), [assignments]);
   const statusCounts = {
     overdue: assignments.filter((item: any) => item.computed_status === 'overdue').length,
@@ -134,22 +146,34 @@ export default function AssignmentsPage() {
       {!loading && assignments.length === 0 && <GlassCard padding="lg" className="text-center py-12"><p className="text-[var(--theme-text-muted)]">No active assignments.</p></GlassCard>}
 
       <div className="space-y-3">
-        {sortedAssignments.map((assignment: any, index: number) => (
-          <GlassCard key={assignment.id} hover padding="md" className={cn('animate-enter border-l-4', priorityColors[assignment.priority as keyof typeof priorityColors])} style={{ animationDelay: `${index * 60}ms` }}>
-            <div className="flex items-start gap-4">
-              <Checkbox onCheckedChange={() => void handleComplete(assignment.id)} className="mt-1 border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap"><h3 className="text-base font-semibold text-white">{assignment.title}</h3><StatusBadge status={assignment.computed_status} /><StatusBadge status={assignment.priority} /></div>
-                {assignment.description && <p className="text-sm text-[var(--theme-text-muted)] mt-1">{assignment.description}</p>}
-                <div className="flex items-center gap-4 mt-3 flex-wrap">
-                  <div className="flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)]"><Clock className="w-3.5 h-3.5" /><span>{formatDateTime(assignment.deadline)}</span></div>
-                  <div className={cn('flex items-center gap-1.5 text-xs font-medium', assignment.computed_status === 'overdue' ? 'text-red-400' : assignment.computed_status === 'due_today' ? 'text-orange-300' : 'text-[var(--theme-text-muted)]')}>{assignment.computed_status === 'overdue' && <AlertTriangle className="w-3.5 h-3.5" />}<span>{getRelativeTime(assignment.deadline)}</span></div>
+        {sortedAssignments.map((assignment: any, index: number) => {
+          const overdue = assignment.computed_status === 'overdue';
+          return (
+            <GlassCard key={assignment.id} hover={!overdue} padding="md" className={cn('animate-enter border-l-4', priorityColors[assignment.priority as keyof typeof priorityColors], overdue && 'opacity-55 grayscale border-l-slate-500')} style={{ animationDelay: `${index * 60}ms` }}>
+              <div className="flex items-start gap-4">
+                {overdue ? (
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-white/10 bg-white/[0.03]" title="Deadline passed">
+                    <AlertTriangle className="h-3.5 w-3.5 text-slate-500" />
+                  </div>
+                ) : (
+                  <Checkbox onCheckedChange={() => void handleComplete(assignment.id)} className="mt-1 border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap"><h3 className={cn('text-base font-semibold', overdue ? 'text-slate-400' : 'text-white')}>{assignment.title}</h3><StatusBadge status={assignment.computed_status} /><StatusBadge status={assignment.priority} /></div>
+                  {assignment.description && <p className="text-sm text-[var(--theme-text-muted)] mt-1">{assignment.description}</p>}
+                  <div className="flex items-center gap-4 mt-3 flex-wrap">
+                    <div className="flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)]"><Clock className="w-3.5 h-3.5" /><span>{formatDateTime(assignment.deadline)}</span></div>
+                    <div className={cn('flex items-center gap-1.5 text-xs font-medium', overdue ? 'text-slate-400' : assignment.computed_status === 'due_today' ? 'text-orange-300' : 'text-[var(--theme-text-muted)]')}>{overdue && <AlertTriangle className="w-3.5 h-3.5" />}<span>{overdue ? 'Deadline passed — completion closed' : getRelativeTime(assignment.deadline)}</span></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {assignment.category && <span className="text-xs px-2 py-1 rounded-full bg-white/5 text-[var(--theme-text-muted)] border border-white/10 shrink-0">{assignment.category}</span>}
+                  <button type="button" onClick={() => void handleDeleteAssignment(assignment)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20" title="Delete assignment permanently"><Trash2 className="w-3.5 h-3.5" /><span className="hidden sm:inline">Delete</span></button>
                 </div>
               </div>
-              {assignment.category && <span className="text-xs px-2 py-1 rounded-full bg-white/5 text-[var(--theme-text-muted)] border border-white/10 shrink-0">{assignment.category}</span>}
-            </div>
-          </GlassCard>
-        ))}
+            </GlassCard>
+          );
+        })}
       </div>
 
       <CreateModal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create assignment" onSubmit={handleCreate}>

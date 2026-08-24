@@ -8,9 +8,9 @@ import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CreateModal } from '@/components/shared/create-modal';
-import { fetcher, post } from '@/lib/api';
+import { del, fetcher, post } from '@/lib/api';
 import { cn, getLocalDateKey } from '@/lib/utils';
-import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive } from 'lucide-react';
+import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive, Trash2 } from 'lucide-react';
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -127,6 +127,18 @@ export default function TasksPage() {
       setError(e.message || 'Failed to archive routine');
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const deleteTask = async (task: any) => {
+    if (!window.confirm(`Delete "${task.title}" permanently? Its schedules, occurrences and reminders will be removed.`)) return;
+    setError('');
+    try {
+      await del(`/api/tasks/${task.id}`);
+      await loadTasks();
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
+    } catch (e: any) {
+      setError(e.message || 'Failed to delete task');
     }
   };
 
@@ -268,6 +280,15 @@ export default function TasksPage() {
                     >
                       <Archive className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Archive</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deleteTask(task)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20"
+                      title="Delete task permanently"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Delete</span>
                     </button>
                   </div>
                 </div>

@@ -2,14 +2,14 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AlertCircle, Bell, BrainCircuit, Calendar, CheckCircle2, Loader2, MessageSquareText, Plus, Target } from 'lucide-react';
+import { AlertCircle, Bell, BrainCircuit, Calendar, CheckCircle2, Loader2, MessageSquareText, Plus, Target, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { CreateModal } from '@/components/shared/create-modal';
-import { fetcher, post } from '@/lib/api';
+import { del, fetcher, post } from '@/lib/api';
 import { cn, getRelativeTime } from '@/lib/utils';
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -35,6 +35,12 @@ function goalPercent(goal: any) {
 
 function checkInState(goal: any) {
   return goal.checkin_state || { status: 'not_scheduled', due: false, available: false, completed: false };
+}
+
+function goalIsOverdue(goal: any) {
+  if (!goal.deadline || goal.status !== 'active') return false;
+  const deadline = new Date(goal.deadline).getTime();
+  return Number.isFinite(deadline) && deadline < Date.now();
 }
 
 function latestAnalysis(goal: any) {
@@ -130,6 +136,7 @@ export default function GoalsPage() {
 
   const submitCheckIn = async () => {
     if (!checkInGoal) throw new Error('No goal selected');
+    if (goalIsOverdue(checkInGoal)) throw new Error('This goal deadline has passed. Check-ins are closed.');
     if (checkInGoal.progress_mode === 'ai' && !checkIn.responseText.trim() && !checkIn.learnedText.trim() && !checkIn.blockers.trim()) {
       throw new Error('AI-assisted check-ins need a short description of what changed or what you did');
     }
@@ -145,7 +152,26 @@ export default function GoalsPage() {
     setCheckIn(emptyCheckIn);
   };
 
-  const checkInsDue = useMemo(() => goals.filter((goal) => checkInState(goal).due), [goals]);
+  const handleDeleteGoal = async (goal: any) => {
+    if (!window.confirm(`Delete "${goal.title}" permanently? This removes its check-ins, insights and reminders.`)) return;
+    setError('');
+    try {
+      await del(`/api/goals/${goal.id}`);
+      if (checkInGoal?.id === goal.id) {
+        setCheckInGoal(null);
+        setCheckIn(emptyCheckIn);
+      }
+      await loadGoals();
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
+    } catch (e: any) {
+      setError(e.message || 'Failed to delete goal');
+    }
+  };
+
+  const checkInsDue = useMemo(
+    () => goals.filter((goal) => !goalIsOverdue(goal) && checkInState(goal).due),
+    [goals],
+  );
 
   return (
     <div className="space-y-6">
@@ -166,14 +192,15 @@ export default function GoalsPage() {
         {goals.map((goal: any, index: number) => {
           const percent = goalPercent(goal);
           const state = checkInState(goal);
-          const due = state.due;
+          const overdue = goalIsOverdue(goal);
+          const due = !overdue && state.due;
           const analysis = latestAnalysis(goal);
           const start = goal.starting_value == null ? 0 : Number(goal.starting_value);
           const current = Number(goal.progress_value ?? start);
           const unit = goal.progress_unit || '';
           return (
-            <GlassCard key={goal.id} padding="md" hover className="animate-enter" style={{ animationDelay: `${index * 60}ms` }}>
-              <div className="flex items-start justify-between gap-3 mb-3"><div className="flex items-center gap-2"><Target className="w-5 h-5 text-[var(--theme-primary)]" /><StatusBadge status={goal.status} /></div><span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">{goal.progress_mode === 'ai' ? 'AI assisted' : 'Numeric'}</span></div>
+            <GlassCard key={goal.id} padding="md" hover={!overdue} className={cn('animate-enter', overdue && 'opacity-55 grayscale')} style={{ animationDelay: `${index * 60}ms` }}>
+              <div className="flex items-start justify-between gap-3 mb-3"><div className="flex items-center gap-2"><Target className={cn('w-5 h-5', overdue ? 'text-slate-500' : 'text-[var(--theme-primary)]')} /><StatusBadge status={overdue ? 'overdue' : goal.status} /></div><span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">{goal.progress_mode === 'ai' ? 'AI assisted' : 'Numeric'}</span></div>
               <h3 className="text-lg font-semibold text-white">{goal.title}</h3>
               {goal.description && <p className="text-sm text-[var(--theme-text-muted)] mt-1 line-clamp-2">{goal.description}</p>}
 
@@ -181,8 +208,15 @@ export default function GoalsPage() {
 
               {analysis && <div className={cn('mt-4 rounded-xl border p-3', analysisTone(analysis.status))}><div className="flex items-center gap-2"><BrainCircuit className="w-4 h-4" /><span className="text-[10px] font-bold uppercase tracking-wide">{String(analysis.status).replaceAll('_', ' ')}</span></div><p className="text-xs leading-relaxed mt-2 text-white/90">{analysis.summary}</p>{analysis.next_action && <p className="text-[11px] mt-2 text-white/70"><strong>Next:</strong> {analysis.next_action}</p>}</div>}
 
-              <div className="flex items-center justify-between gap-3 text-xs text-[var(--theme-text-muted)] mt-4 mb-4"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{goal.deadline ? getRelativeTime(goal.deadline) : 'No deadline'}</span></div>{due && <span className="text-amber-200">Check-in due</span>}</div>
-              <Button variant={due ? 'primary' : 'default'} size="sm" className="w-full" disabled={!state.available} onClick={() => { setCheckInGoal(goal); setCheckIn({ ...emptyCheckIn, progressValue: percent != null ? String(current) : '' }); }}><MessageSquareText className="w-4 h-4 mr-1.5" />{state.completed ? 'Checked in' : state.available ? 'Check in' : 'Not scheduled today'}</Button>
+              <div className="flex items-center justify-between gap-3 text-xs text-[var(--theme-text-muted)] mt-4 mb-4"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{goal.deadline ? getRelativeTime(goal.deadline) : 'No deadline'}</span></div>{overdue ? <span className="text-slate-400">Deadline passed</span> : due && <span className="text-amber-200">Check-in due</span>}</div>
+              <div className="flex items-stretch gap-2">
+                {overdue ? (
+                  <div className="flex-1 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.025] px-3 py-2 text-xs font-medium text-slate-400">Deadline passed — check-ins closed</div>
+                ) : (
+                  <Button variant={due ? 'primary' : 'default'} size="sm" className="flex-1" disabled={!state.available} onClick={() => { setCheckInGoal(goal); setCheckIn({ ...emptyCheckIn, progressValue: percent != null ? String(current) : '' }); }}><MessageSquareText className="w-4 h-4 mr-1.5" />{state.completed ? 'Checked in' : state.available ? 'Check in' : 'Not scheduled today'}</Button>
+                )}
+                <button type="button" onClick={() => void handleDeleteGoal(goal)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20" title="Delete goal permanently"><Trash2 className="w-4 h-4" /><span className="hidden sm:inline">Delete</span></button>
+              </div>
             </GlassCard>
           );
         })}
