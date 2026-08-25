@@ -102,5 +102,5 @@ export function EnvironmentBackground() {
     };
   }, [upcomingKey, environment, clock]);
 
-  return <div className={`environment-background environment-background--${activePhase}`} data-background-kind="still" data-background-id={activeAsset.id} data-background-rotation="12-photo-dubai-nature" aria-hidden="true">{outgoing && !reducedMotion && <StillWorld asset={outgoing.asset} phase={outgoing.phase} outgoing />}<StillWorld asset={activeAsset} phase={activePhase} /><div className="environment-background__readability" /><div className={`environment-weather environment-weather--${environment.weather} ${reducedMotion ? 'is-static' : ''}`} /></div>;
+  return <div className={`environment-background environment-background--${activePhase}`} data-background-kind="still" data-background-id={activeAsset.id} data-background-rotation="12-photo-local-v8" aria-hidden="true">{outgoing && !reducedMotion && <StillWorld key={`outgoing-${outgoing.asset.id}`} asset={outgoing.asset} phase={outgoing.phase} outgoing />}<StillWorld key={`active-${activeAsset.id}`} asset={activeAsset} phase={activePhase} /><div className="environment-background__readability" /><div className={`environment-weather environment-weather--${environment.weather} ${reducedMotion ? 'is-static' : ''}`} /></div>;
 }

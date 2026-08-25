@@ -46,7 +46,7 @@ test('adaptive background remains still-image based and uses the approved twelve
 
   const component = read('src/components/layout/environment-background.tsx');
   assert.match(component, /selectEnvironmentBackground\(environment, new Date\(clock\)\)/);
-  assert.match(component, /data-background-rotation="12-photo-dubai-nature"/);
+  assert.match(component, /data-background-rotation="12-photo-local-v8"/);
   assert.doesNotMatch(component, /pointermove/);
   assert.doesNotMatch(component, /environment-background__scene/);
 });

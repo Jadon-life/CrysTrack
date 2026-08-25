@@ -15,10 +15,15 @@ test('routine archive is a user-scoped soft archive', () => {
   assert.doesNotMatch(route, /\.from\('recurring_tasks'\)\s*\.delete/);
 });
 
-test('day background uses the bundled local 4K asset', () => {
+test('day backgrounds use bundled local adaptive assets', () => {
   const env = read('src/lib/environment.ts');
-  assert.match(env, /crystrack-day-urban-4k\.webp/);
-  assert.ok(existsSync(join(root, 'public/backgrounds/crystrack-day-urban-4k.webp')));
+  const midday = 'public/backgrounds/adaptive/06-midday-green-hills.jpg';
+  const afternoon = 'public/backgrounds/adaptive/07-afternoon-dubai.jpg';
+
+  assert.match(env, /src: '\/backgrounds\/adaptive\/06-midday-green-hills\.jpg'/);
+  assert.match(env, /src: '\/backgrounds\/adaptive\/07-afternoon-dubai\.jpg'/);
+  assert.ok(existsSync(join(root, midday)));
+  assert.ok(existsSync(join(root, afternoon)));
 });
 
 test('fallback phase ranges remain unchanged', () => {
