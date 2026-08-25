@@ -15,12 +15,14 @@ test('top navigation follows the approved information architecture', () => {
   assert.match(layout, /<EnvironmentBackground/);
 });
 
-test('adaptive environment uses real weather, solar phases, location and five responsive background states', () => {
+test('adaptive environment uses real weather, solar phases, location and twelve responsive background states', () => {
   const environment = read('src/lib/environment.ts');
   assert.match(environment, /api\.open-meteo\.com/);
   assert.match(environment, /reverse-geocode-client/);
-  for (const phase of ['morning', 'day', 'golden', 'evening', 'night']) assert.match(environment, new RegExp(`${phase}:`));
-  assert.match(environment, /3840w/);
+  for (const phase of ['morning', 'day', 'golden', 'evening', 'night']) assert.match(environment, new RegExp(`'${phase}'`));
+  for (const minute of ['0','300','390','510','630','750','870','960','1050','1140','1230','1350']) assert.match(environment, new RegExp(`slotStartMinute: ${minute}`));
+  for (const id of ['afternoon-dubai-business-bay','late-afternoon-downtown-dubai','golden-sheikh-zayed-road','sunset-dubai-skyline','blue-hour-downtown-dubai','night-sheikh-zayed-dubai']) assert.match(environment, new RegExp(id));
+  assert.doesNotMatch(environment, /3840w/);
   const theme = read('src/lib/theme.ts');
   for (const color of ['#EA6113', '#F88F22', '#FBB931']) assert.match(theme, new RegExp(color));
 });

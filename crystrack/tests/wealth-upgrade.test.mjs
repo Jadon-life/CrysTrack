@@ -34,18 +34,19 @@ test('previous CrysTrack logo is restored', () => {
   assert.doesNotMatch(navigation, /function CrysTrackMark/);
 });
 
-test('previous adaptive background set is restored', () => {
+test('adaptive background remains still-image based and uses the approved twelve-photo rotation', () => {
   const environment = read('src/lib/environment.ts');
-
-  assert.match(environment, /Sunrise Bettmerhorn snowy mountains/);
-  assert.match(environment, /Mountain Landscape/);
-  assert.match(environment, /Golden city skyline/);
-  assert.match(environment, /Sunset Vibes/);
-  assert.match(environment, /Dubai skyline unsplash\.jpg/);
+  assert.match(environment, /ENVIRONMENT_BACKGROUND_POOL/);
+  assert.match(environment, /predawn-misty-mountain-lake/);
+  assert.match(environment, /afternoon-dubai-business-bay/);
+  assert.match(environment, /sunset-dubai-skyline/);
+  assert.match(environment, /night-sheikh-zayed-dubai/);
+  assert.match(environment, /slotStartMinute: 1350/);
   assert.doesNotMatch(environment, /Pudong skyline/);
 
   const component = read('src/components/layout/environment-background.tsx');
-  assert.match(component, /environmentBackgroundAsset\(environment\.phase\)/);
+  assert.match(component, /selectEnvironmentBackground\(environment, new Date\(clock\)\)/);
+  assert.match(component, /data-background-rotation="12-photo-dubai-nature"/);
   assert.doesNotMatch(component, /pointermove/);
   assert.doesNotMatch(component, /environment-background__scene/);
 });

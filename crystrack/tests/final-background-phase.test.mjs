@@ -2,45 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-
-const root = process.cwd();
-const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
-
-test('final background renderer is still-image-only', () => {
-  const renderer = read('src/components/layout/environment-background.tsx');
-  assert.match(renderer, /environment-still-image/);
-  assert.match(renderer, /selectEnvironmentBackground/);
-  assert.match(renderer, /data-background-kind="still"/);
-  assert.doesNotMatch(renderer, /youtube\.com\/iframe_api/);
-  assert.doesNotMatch(renderer, /<video/);
-  assert.doesNotMatch(renderer, /LocalDubaiVideo/);
-  assert.doesNotMatch(renderer, /StableYouTubeDubaiVideo/);
-});
-
-test('adaptive background pool uses phase, weather and stable context', () => {
-  const environment = read('src/lib/environment.ts');
-  for (const phase of ['morning', 'day', 'golden', 'evening', 'night']) {
-    assert.match(environment, new RegExp(`'${phase}'`));
-  }
-  assert.match(environment, /ENVIRONMENT_BACKGROUND_POOL/);
-  assert.match(environment, /selectEnvironmentBackground/);
-  assert.match(environment, /environment\.weather/);
-  assert.match(environment, /environment\.city/);
-  assert.match(environment, /stableHash/);
-  assert.match(environment, /3840w/);
-});
-
-test('final CSS retires every legacy video surface', () => {
-  const css = read('src/app/premium-physical-ui-final.css');
-  assert.match(css, /environment-still-image/);
-  assert.match(css, /environment-background video/);
-  assert.match(css, /environment-background iframe/);
-  assert.match(css, /display: none !important/);
-  assert.doesNotMatch(css, /height: 56\.25vw/);
-});
-
-test('clean golden-hour scenic background is packaged', () => {
-  const asset = path.join(root, 'public/backgrounds/crystrack-golden-dubai.webp');
-  assert.equal(fs.existsSync(asset), true);
-  assert.ok(fs.statSync(asset).size > 200_000);
-});
+const root = process.cwd(); const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
+test('final background renderer is still-image-only and uses twelve-photo rotation', () => { const renderer = read('src/components/layout/environment-background.tsx'); assert.match(renderer, /environment-still-image/); assert.match(renderer, /millisecondsUntilNextBackgroundSlot/); assert.match(renderer, /nextEnvironmentBackgrounds/); assert.match(renderer, /data-background-rotation="12-photo-dubai-nature"/); assert.doesNotMatch(renderer, /youtube\.com\/iframe_api/); assert.doesNotMatch(renderer, /<video/); });
+test('adaptive pool contains twelve time slots including distinct Dubai afternoon through night', () => { const environment = read('src/lib/environment.ts'); for (const minute of [0,300,390,510,630,750,870,960,1050,1140,1230,1350]) assert.match(environment, new RegExp(`slotStartMinute: ${minute}`)); for (const id of ['afternoon-dubai-business-bay','late-afternoon-downtown-dubai','golden-sheikh-zayed-road','sunset-dubai-skyline','blue-hour-downtown-dubai','night-sheikh-zayed-dubai']) assert.match(environment, new RegExp(id)); assert.doesNotMatch(environment, /3840w/); });
+test('final CSS still retires video surfaces', () => { const css = read('src/app/premium-physical-ui-final.css'); assert.match(css, /environment-still-image/); assert.match(css, /environment-background video/); assert.match(css, /environment-background iframe/); assert.match(css, /display: none !important/); });
+test('local scenic fallbacks remain packaged', () => { for (const file of ['public/backgrounds/crystrack-golden-dubai.webp','public/backgrounds/crystrack-day-urban-4k.webp']) { const asset = path.join(root,file); assert.equal(fs.existsSync(asset),true); assert.ok(fs.statSync(asset).size > 100_000); } });

@@ -1,7 +1,13 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { fallbackEnvironment, loadEnvironment, type EnvironmentState } from '@/lib/environment';
+import {
+  environmentLocalIso,
+  fallbackEnvironment,
+  loadEnvironment,
+  phaseFromSolarTimes,
+  type EnvironmentState,
+} from '@/lib/environment';
 import { getThemeForPhase, type ThemeColors, type ThemePreference } from '@/lib/theme';
 
 interface ThemeContextType {
@@ -85,11 +91,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const loadApproximateEnvironment = useCallback(async () => {
     setEnvironmentLoading(true);
-    try {
-      setEnvironment(await loadEnvironment());
-    } finally {
-      setEnvironmentLoading(false);
-    }
+    try { setEnvironment(await loadEnvironment()); }
+    finally { setEnvironmentLoading(false); }
   }, []);
 
   const requestLocation = useCallback(async (options?: { prompt?: boolean }) => {
@@ -109,10 +112,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
-            const next = await loadEnvironment({
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
+            const next = await loadEnvironment({ latitude: position.coords.latitude, longitude: position.coords.longitude });
             setEnvironment(next);
             await saveDetectedLocation(next);
           } finally {
@@ -121,12 +121,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           }
         },
         async () => {
-          try {
-            setEnvironment(await loadEnvironment());
-          } finally {
-            setEnvironmentLoading(false);
-            resolve();
-          }
+          try { setEnvironment(await loadEnvironment()); }
+          finally { setEnvironmentLoading(false); resolve(); }
         },
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 15 * 60 * 1000 },
       );
@@ -173,11 +169,36 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(interval);
   }, [refreshEnvironment]);
 
+  // Keep local time and phase alive every minute. Ceremonies and adaptive theme
+  // no longer wait up to ten minutes for the weather/location refresh.
+  useEffect(() => {
+    const tick = () => {
+      setEnvironment((current) => {
+        const localTime = environmentLocalIso(current.timezone);
+        const phase = phaseFromSolarTimes(localTime, current.sunrise, current.sunset);
+        if (localTime === current.localTime && phase === current.phase) return current;
+        return { ...current, localTime, phase };
+      });
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 60_000);
+    const onVisibility = () => { if (document.visibilityState === 'visible') tick(); };
+    window.addEventListener('focus', tick);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', tick);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.phase = environment.phase;
     root.dataset.weather = environment.weather;
     root.dataset.themePreference = preference;
+    root.dataset.crysReducedMotion = reducedMotion ? 'true' : 'false';
     root.style.setProperty('--theme-bg', theme.background);
     root.style.setProperty('--theme-surface', theme.surface);
     root.style.setProperty('--theme-surface-glass', theme.surfaceGlass);
@@ -190,7 +211,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty('--theme-border', theme.border);
     root.style.setProperty('--theme-glow', theme.glow);
     root.style.setProperty('--theme-glass-tint', theme.glassTint);
-  }, [environment.phase, environment.weather, preference, theme]);
+  }, [environment.phase, environment.weather, preference, reducedMotion, theme]);
 
   return (
     <ThemeContext.Provider value={{

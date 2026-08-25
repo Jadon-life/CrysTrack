@@ -68,15 +68,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <EnvironmentBackground />
       <TopNavigation />
       <main className="relative z-10 min-h-screen pt-[88px] sm:pt-[96px] pb-10">
-        <div className="w-full max-w-[1560px] mx-auto px-3 sm:px-5 lg:px-7 xl:px-9">
-          {children}
-        </div>
+        <div className="w-full max-w-[1560px] mx-auto px-3 sm:px-5 lg:px-7 xl:px-9">{children}</div>
       </main>
-      <ImmersiveCeremony
-        phase={environment.phase}
-        userKey={user.id}
-        reducedMotion={reducedMotion}
-      />
+      <ImmersiveCeremony phase={environment.phase} userKey={user.id} reducedMotion={reducedMotion} dateKey={environment.localTime.slice(0, 10)} />
     </div>
   );
 }

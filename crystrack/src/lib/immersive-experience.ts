@@ -2,6 +2,8 @@ export type CeremonyBlock = 'morning' | 'evening' | 'night';
 
 const ENABLED_KEY = 'crystrack-immersive-intros-enabled-v1';
 const PREF_EVENT = 'crystrack-immersive-pref-changed';
+const PREVIEW_EVENT = 'crystrack-immersive-preview-v2';
+const CEREMONY_VERSION = 'crystrack-ceremony-v2';
 
 export function immersiveIntrosEnabled() {
   if (typeof window === 'undefined') return true;
@@ -24,6 +26,21 @@ export function subscribeImmersiveIntroPreference(listener: (value: boolean) => 
   return () => window.removeEventListener(PREF_EVENT, onChange);
 }
 
+export function previewImmersiveCeremony(block: CeremonyBlock) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(PREVIEW_EVENT, { detail: block }));
+}
+
+export function subscribeImmersivePreview(listener: (block: CeremonyBlock) => void) {
+  if (typeof window === 'undefined') return () => undefined;
+  const onPreview = (event: Event) => {
+    const block = (event as CustomEvent<CeremonyBlock>).detail;
+    if (block === 'morning' || block === 'evening' || block === 'night') listener(block);
+  };
+  window.addEventListener(PREVIEW_EVENT, onPreview);
+  return () => window.removeEventListener(PREVIEW_EVENT, onPreview);
+}
+
 export function ceremonyBlockForPhase(phase: string): CeremonyBlock | null {
   if (phase === 'morning') return 'morning';
   if (phase === 'golden' || phase === 'evening') return 'evening';
@@ -38,19 +55,20 @@ function localDateKey(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
-export function ceremonySeenKey(userKey: string, block: CeremonyBlock, date = new Date()) {
+export function ceremonySeenKey(userKey: string, block: CeremonyBlock, dateKey?: string) {
   const safeUser = userKey || 'anonymous';
-  return `crystrack-ceremony-v1:${safeUser}:${localDateKey(date)}:${block}`;
+  const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(dateKey || '') ? dateKey : localDateKey();
+  return `${CEREMONY_VERSION}:${safeUser}:${safeDate}:${block}`;
 }
 
-export function ceremonyWasSeen(userKey: string, block: CeremonyBlock) {
+export function ceremonyWasSeen(userKey: string, block: CeremonyBlock, dateKey?: string) {
   if (typeof window === 'undefined') return true;
-  return window.localStorage.getItem(ceremonySeenKey(userKey, block)) === '1';
+  return window.localStorage.getItem(ceremonySeenKey(userKey, block, dateKey)) === '1';
 }
 
-export function markCeremonySeen(userKey: string, block: CeremonyBlock) {
+export function markCeremonySeen(userKey: string, block: CeremonyBlock, dateKey?: string) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(ceremonySeenKey(userKey, block), '1');
+  window.localStorage.setItem(ceremonySeenKey(userKey, block, dateKey), '1');
 }
 
 type NetworkNavigator = Navigator & {
@@ -63,7 +81,8 @@ export function shouldUseLiteCeremony(reducedMotion: boolean) {
   const nav = navigator as NetworkNavigator;
   const cores = navigator.hardwareConcurrency || 8;
   const memory = nav.deviceMemory || 8;
-  const saveData = Boolean(nav.connection?.saveData);
-  const slowNetwork = ['slow-2g', '2g'].includes(nav.connection?.effectiveType || '');
-  return reducedMotion || saveData || slowNetwork || cores <= 4 || memory <= 4;
+  const verySlowNetwork = ['slow-2g', '2g'].includes(nav.connection?.effectiveType || '');
+  // Four-core / ~4 GB machines can render these CSS ceremonies. The old <=4
+  // threshold incorrectly downgraded a large class of normal PCs to a blink.
+  return reducedMotion || verySlowNetwork || cores <= 2 || memory <= 2;
 }

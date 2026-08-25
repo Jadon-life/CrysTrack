@@ -461,9 +461,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .immersive-ceremony *,
-  .immersive-ceremony *::before,
-  .immersive-ceremony *::after {
+  html[data-crys-reduced-motion='true'] .immersive-ceremony *,
+  html[data-crys-reduced-motion='true'] .immersive-ceremony *::before,
+  html[data-crys-reduced-motion='true'] .immersive-ceremony *::after {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
   }
