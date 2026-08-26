@@ -146,21 +146,16 @@ export interface EnvironmentBackgroundAsset {
 
 const ALL_WEATHER: WeatherKind[] = ['clear', 'cloudy', 'rain', 'storm', 'fog', 'snow', 'unknown'];
 
-// Twelve distinct daily photographs. The early day is nature-led; from afternoon onward
-// the rotation progressively moves into Dubai daylight, golden hour, blue hour and night.
+// Eight user-approved sharp local scenes, ordered by visual mood through the local day.
 export const ENVIRONMENT_BACKGROUND_POOL: EnvironmentBackgroundAsset[] = [
-  { id: 'midnight-dubai-marina', src: '/backgrounds/adaptive/01-midnight-dubai.jpg', srcSet: '', objectPosition: '50% 48%', phases: ['night'], weather: ALL_WEATHER, slotStartMinute: 0, fallbackSrc: '/backgrounds/adaptive/01-midnight-dubai.jpg' },
-  { id: 'predawn-misty-mountain-lake', src: '/backgrounds/adaptive/02-predawn-lake.jpg', srcSet: '', objectPosition: '50% 50%', phases: ['night', 'morning'], weather: ALL_WEATHER, slotStartMinute: 300, fallbackSrc: '/backgrounds/adaptive/02-predawn-lake.jpg' },
-  { id: 'sunrise-mountain-reflection', src: '/backgrounds/adaptive/03-sunrise-lake.jpg', srcSet: '', objectPosition: '50% 48%', phases: ['morning'], weather: ALL_WEATHER, slotStartMinute: 390, fallbackSrc: '/backgrounds/adaptive/03-sunrise-lake.jpg' },
-  { id: 'morning-rocky-mountain-lake', src: '/backgrounds/adaptive/04-morning-mountain-lake.jpg', srcSet: '', objectPosition: '50% 50%', phases: ['morning', 'day'], weather: ALL_WEATHER, slotStartMinute: 510, fallbackSrc: '/backgrounds/adaptive/04-morning-mountain-lake.jpg' },
-  { id: 'late-morning-swiss-lake', src: '/backgrounds/adaptive/05-late-morning-glacier-lake.jpg', srcSet: '', objectPosition: '50% 50%', phases: ['day'], weather: ALL_WEATHER, slotStartMinute: 630, fallbackSrc: '/backgrounds/adaptive/05-late-morning-glacier-lake.jpg' },
-  { id: 'midday-green-highlands', src: '/backgrounds/adaptive/06-midday-green-hills.jpg', srcSet: '', objectPosition: '50% 50%', phases: ['day'], weather: ALL_WEATHER, slotStartMinute: 750, fallbackSrc: '/backgrounds/adaptive/06-midday-green-hills.jpg' },
-  { id: 'afternoon-dubai-business-bay', src: '/backgrounds/adaptive/07-afternoon-dubai.jpg', srcSet: '', objectPosition: '50% 50%', phases: ['day'], weather: ALL_WEATHER, slotStartMinute: 870, fallbackSrc: '/backgrounds/adaptive/07-afternoon-dubai.jpg' },
-  { id: 'late-afternoon-downtown-dubai', src: '/backgrounds/adaptive/08-late-afternoon-dubai.jpg', srcSet: '', objectPosition: '50% 48%', phases: ['day', 'golden'], weather: ALL_WEATHER, slotStartMinute: 960, fallbackSrc: '/backgrounds/adaptive/08-late-afternoon-dubai.jpg' },
-  { id: 'golden-sheikh-zayed-road', src: '/backgrounds/adaptive/09-golden-dubai.jpg', srcSet: '', objectPosition: '50% 50%', phases: ['golden', 'evening'], weather: ALL_WEATHER, slotStartMinute: 1050, fallbackSrc: '/backgrounds/adaptive/09-golden-dubai.jpg' },
-  { id: 'sunset-dubai-skyline', src: '/backgrounds/adaptive/10-sunset-dubai.jpg', srcSet: '', objectPosition: '50% 50%', phases: ['golden', 'evening'], weather: ALL_WEATHER, slotStartMinute: 1140, fallbackSrc: '/backgrounds/adaptive/10-sunset-dubai.jpg' },
-  { id: 'blue-hour-downtown-dubai', src: '/backgrounds/adaptive/11-blue-hour-dubai.jpg', srcSet: '', objectPosition: '50% 48%', phases: ['evening', 'night'], weather: ALL_WEATHER, slotStartMinute: 1230, fallbackSrc: '/backgrounds/adaptive/11-blue-hour-dubai.jpg' },
-  { id: 'night-sheikh-zayed-dubai', src: '/backgrounds/adaptive/12-night-dubai.jpg', srcSet: '', objectPosition: '50% 48%', phases: ['night'], weather: ALL_WEATHER, slotStartMinute: 1350, fallbackSrc: '/backgrounds/adaptive/12-night-dubai.jpg' },
+  { id: 'approved-deep-night-dubai-terrace', src: '/backgrounds/adaptive/01-deep-night-dubai-terrace.png', srcSet: '', objectPosition: '50% 50%', phases: ['night'], weather: ALL_WEATHER, slotStartMinute: 0, fallbackSrc: '/backgrounds/adaptive/01-deep-night-dubai-terrace.png' },
+  { id: 'approved-predawn-blue-dubai', src: '/backgrounds/adaptive/02-predawn-blue-dubai.png', srcSet: '', objectPosition: '50% 50%', phases: ['night', 'morning'], weather: ALL_WEATHER, slotStartMinute: 300, fallbackSrc: '/backgrounds/adaptive/02-predawn-blue-dubai.png' },
+  { id: 'approved-sunrise-mountain-lake', src: '/backgrounds/adaptive/03-sunrise-mountain-lake.png', srcSet: '', objectPosition: '50% 50%', phases: ['morning'], weather: ALL_WEATHER, slotStartMinute: 390, fallbackSrc: '/backgrounds/adaptive/03-sunrise-mountain-lake.png' },
+  { id: 'approved-morning-mountain-lake', src: '/backgrounds/adaptive/04-morning-mountain-lake.png', srcSet: '', objectPosition: '50% 50%', phases: ['morning', 'day'], weather: ALL_WEATHER, slotStartMinute: 540, fallbackSrc: '/backgrounds/adaptive/04-morning-mountain-lake.png' },
+  { id: 'approved-midday-nature-terrace', src: '/backgrounds/adaptive/05-midday-nature-terrace.png', srcSet: '', objectPosition: '50% 50%', phases: ['day'], weather: ALL_WEATHER, slotStartMinute: 750, fallbackSrc: '/backgrounds/adaptive/05-midday-nature-terrace.png' },
+  { id: 'approved-afternoon-dubai', src: '/backgrounds/adaptive/06-afternoon-dubai.png', srcSet: '', objectPosition: '50% 50%', phases: ['day', 'golden'], weather: ALL_WEATHER, slotStartMinute: 960, fallbackSrc: '/backgrounds/adaptive/06-afternoon-dubai.png' },
+  { id: 'approved-golden-hour-dubai', src: '/backgrounds/adaptive/07-golden-hour-dubai.png', srcSet: '', objectPosition: '50% 50%', phases: ['golden', 'evening'], weather: ALL_WEATHER, slotStartMinute: 1110, fallbackSrc: '/backgrounds/adaptive/07-golden-hour-dubai.png' },
+  { id: 'approved-night-dubai-city', src: '/backgrounds/adaptive/08-night-dubai-city.png', srcSet: '', objectPosition: '50% 50%', phases: ['evening', 'night'], weather: ALL_WEATHER, slotStartMinute: 1230, fallbackSrc: '/backgrounds/adaptive/08-night-dubai-city.png' },
 ];
 
 function stableHash(value: string) { let hash = 2166136261; for (let i = 0; i < value.length; i += 1) { hash ^= value.charCodeAt(i); hash = Math.imul(hash, 16777619); } return hash >>> 0; }
@@ -191,7 +186,7 @@ export function millisecondsUntilNextBackgroundSlot(environment: Pick<Environmen
 }
 
 function contextualObjectPosition(asset: EnvironmentBackgroundAsset, environment: Pick<EnvironmentState, 'weather' | 'city'>) {
-  const vertical = asset.objectPosition.split(' ')[1] || '50%'; const horizontalChoices = ['48%', '50%', '52%']; const index = stableHash(`${asset.id}|${environment.city || ''}|${environment.weather}`) % horizontalChoices.length; return `${horizontalChoices[index]} ${vertical}`;
+  const vertical = asset.objectPosition.split(' ')[1] || '50%'; const horizontalChoices = ['49%', '50%', '51%']; const index = stableHash(`${asset.id}|${environment.city || ''}|${environment.weather}`) % horizontalChoices.length; return `${horizontalChoices[index]} ${vertical}`;
 }
 
 export function selectEnvironmentBackground(environment: Pick<EnvironmentState, 'phase' | 'weather' | 'city' | 'countryCode' | 'localTime' | 'timezone'>, now = new Date()): EnvironmentBackgroundAsset {

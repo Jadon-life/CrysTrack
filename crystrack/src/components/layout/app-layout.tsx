@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { TopNavigation } from '@/components/navigation/top-navigation';
 import { EnvironmentBackground } from './environment-background';
-import { ImmersiveCeremony } from './immersive-ceremony';
 import { ThreeBackground } from './three-background';
 import { useTheme } from './theme-provider';
 import { useAuth } from './auth-provider';
@@ -14,7 +13,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAuthPage = pathname === '/auth';
-  const { theme, requestLocation, environment, reducedMotion } = useTheme();
+  const { theme, requestLocation } = useTheme();
   const { user, loading } = useAuth();
 
   React.useEffect(() => {
@@ -70,7 +69,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="relative z-10 min-h-screen pt-[88px] sm:pt-[96px] pb-10">
         <div className="w-full max-w-[1560px] mx-auto px-3 sm:px-5 lg:px-7 xl:px-9">{children}</div>
       </main>
-      <ImmersiveCeremony phase={environment.phase} userKey={user.id} reducedMotion={reducedMotion} dateKey={environment.localTime.slice(0, 10)} />
     </div>
   );
 }

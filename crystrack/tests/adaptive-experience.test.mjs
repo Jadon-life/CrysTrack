@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-
 const root = process.cwd();
 const read = (path) => readFileSync(join(root, path), 'utf8');
 
@@ -15,27 +14,26 @@ test('top navigation follows the approved information architecture', () => {
   assert.match(layout, /<EnvironmentBackground/);
 });
 
-test('adaptive environment uses real weather, solar phases, location and twelve responsive background states', () => {
+test('adaptive environment keeps real weather and uses eight user-approved local scenes', () => {
   const environment = read('src/lib/environment.ts');
   assert.match(environment, /api\.open-meteo\.com/);
   assert.match(environment, /reverse-geocode-client/);
   for (const phase of ['morning', 'day', 'golden', 'evening', 'night']) assert.match(environment, new RegExp(`'${phase}'`));
-  for (const minute of ['0','300','390','510','630','750','870','960','1050','1140','1230','1350']) assert.match(environment, new RegExp(`slotStartMinute: ${minute}`));
-  for (const id of ['afternoon-dubai-business-bay','late-afternoon-downtown-dubai','golden-sheikh-zayed-road','sunset-dubai-skyline','blue-hour-downtown-dubai','night-sheikh-zayed-dubai']) assert.match(environment, new RegExp(id));
-  assert.match(environment, /\/backgrounds\/adaptive\/01-midnight-dubai\.jpg/);
-  assert.match(environment, /\/backgrounds\/adaptive\/12-night-dubai\.jpg/);
+  for (const minute of [0,300,390,540,750,960,1110,1230]) assert.match(environment, new RegExp(`slotStartMinute: ${minute}`));
+  for (const id of ['approved-deep-night-dubai-terrace','approved-sunrise-mountain-lake','approved-midday-nature-terrace','approved-afternoon-dubai','approved-golden-hour-dubai','approved-night-dubai-city']) assert.match(environment, new RegExp(id));
   assert.doesNotMatch(environment, /\/api\/backgrounds\//);
-  assert.doesNotMatch(environment, /3840w/);
   const theme = read('src/lib/theme.ts');
   for (const color of ['#EA6113', '#F88F22', '#FBB931']) assert.match(theme, new RegExp(color));
 });
 
-test('glass surfaces preserve readability instead of blurring the full page', () => {
+test('glass surfaces preserve readability instead of blurring the background image', () => {
   const css = read('src/app/globals.css');
+  const renderer = read('src/components/layout/environment-background.tsx');
   assert.match(css, /\.crys-glass-card/);
   assert.match(css, /backdrop-filter: blur\(16px\)/);
   assert.match(css, /--theme-glass-tint/);
-  assert.doesNotMatch(css, /environment-background__image[^}]*blur\(/s);
+  assert.match(renderer, /filter: 'none'/);
+  assert.match(renderer, /transform: 'none'/);
 });
 
 test('task accountability distinguishes completed, missed and skipped', () => {
