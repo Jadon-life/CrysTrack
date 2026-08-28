@@ -8,7 +8,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 
 test('legacy Phase 2 moving-background renderer has been retired', () => {
   const renderer = read('src/components/layout/environment-background.tsx');
-  assert.match(renderer, /environment-still-image/);
+  assert.match(renderer, /environment-stability-image/);
   assert.doesNotMatch(renderer, /<video/);
   assert.doesNotMatch(renderer, /video\.volume = 0/);
 });

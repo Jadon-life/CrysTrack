@@ -87,7 +87,7 @@ export function environmentLocalIso(timezone: string, date = new Date()) {
     const minute = value('minute');
     if (year && month && day && hour && minute) return `${year}-${month}-${day}T${hour}:${minute}`;
   } catch {
-    // Use device-local time if the saved timezone is temporarily invalid.
+    // Fall back to device-local time if a saved timezone is invalid.
   }
   return deviceLocalIso(date);
 }
@@ -95,42 +95,28 @@ export function environmentLocalIso(timezone: string, date = new Date()) {
 export function fallbackEnvironment(): EnvironmentState {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   const localTime = environmentLocalIso(timezone);
-  return { phase: phaseFromSolarTimes(localTime, null, null), weather: 'unknown', weatherCode: null, temperatureC: null, city: null, countryCode: null, timezone, timezoneAbbreviation: null, sunrise: null, sunset: null, localTime, locationSource: 'device', updatedAt: new Date().toISOString() };
+  return {
+    phase: phaseFromSolarTimes(localTime, null, null),
+    weather: 'unknown',
+    weatherCode: null,
+    temperatureC: null,
+    city: null,
+    countryCode: null,
+    timezone,
+    timezoneAbbreviation: null,
+    sunrise: null,
+    sunset: null,
+    localTime,
+    locationSource: 'device',
+    updatedAt: new Date().toISOString(),
+  };
 }
 
-async function reverseGeocode(coordinates?: Coordinates) {
-  const params = new URLSearchParams({ localityLanguage: 'en' });
-  if (coordinates) { params.set('latitude', String(coordinates.latitude)); params.set('longitude', String(coordinates.longitude)); }
-  const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?${params.toString()}`, { cache: 'no-store' });
-  if (!response.ok) throw new Error('Location lookup failed');
-  return response.json();
-}
-
-async function fetchWeather(coordinates: Coordinates) {
-  const params = new URLSearchParams({ latitude: String(coordinates.latitude), longitude: String(coordinates.longitude), current: 'temperature_2m,weather_code,is_day', daily: 'sunrise,sunset', timezone: 'auto', forecast_days: '1' });
-  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, { cache: 'no-store' });
-  if (!response.ok) throw new Error('Weather lookup failed');
-  return response.json();
-}
-
+// Stability mode: scenery no longer depends on third-party weather/geocoding calls.
+// The signature stays compatible with ThemeProvider/requestLocation call sites.
 export async function loadEnvironment(coordinates?: Coordinates): Promise<EnvironmentState> {
-  const fallback = fallbackEnvironment();
-  if (!coordinates) {
-    try {
-      const place = await reverseGeocode();
-      return { ...fallback, city: place.city || place.locality || place.principalSubdivision || null, countryCode: place.countryCode || null, locationSource: 'ip' };
-    } catch { return fallback; }
-  }
-  const [weatherResult, placeResult] = await Promise.allSettled([fetchWeather(coordinates), reverseGeocode(coordinates)]);
-  if (weatherResult.status !== 'fulfilled') {
-    return { ...fallback, city: placeResult.status === 'fulfilled' ? (placeResult.value.city || placeResult.value.locality || null) : null, countryCode: placeResult.status === 'fulfilled' ? (placeResult.value.countryCode || null) : null, locationSource: 'gps' };
-  }
-  const weather = weatherResult.value;
-  const currentLocal = weather.current?.time || fallback.localTime;
-  const sunrise = weather.daily?.sunrise?.[0] || null;
-  const sunset = weather.daily?.sunset?.[0] || null;
-  const place = placeResult.status === 'fulfilled' ? placeResult.value : null;
-  return { phase: phaseFromSolarTimes(currentLocal, sunrise, sunset), weather: weatherKindFromWmo(weather.current?.weather_code), weatherCode: typeof weather.current?.weather_code === 'number' ? weather.current.weather_code : null, temperatureC: typeof weather.current?.temperature_2m === 'number' ? weather.current.temperature_2m : null, city: place?.city || place?.locality || place?.principalSubdivision || null, countryCode: place?.countryCode || null, timezone: weather.timezone || fallback.timezone, timezoneAbbreviation: weather.timezone_abbreviation || null, sunrise, sunset, localTime: currentLocal, locationSource: 'gps', updatedAt: new Date().toISOString() };
+  const environment = fallbackEnvironment();
+  return coordinates ? { ...environment, locationSource: 'gps' } : environment;
 }
 
 export interface EnvironmentBackgroundAsset {
@@ -146,58 +132,77 @@ export interface EnvironmentBackgroundAsset {
 
 const ALL_WEATHER: WeatherKind[] = ['clear', 'cloudy', 'rain', 'storm', 'fog', 'snow', 'unknown'];
 
-// Eight user-approved sharp local scenes, ordered by visual mood through the local day.
+// Eight approved local scenes, compressed without resizing and ordered by local-time mood.
 export const ENVIRONMENT_BACKGROUND_POOL: EnvironmentBackgroundAsset[] = [
-  { id: 'approved-deep-night-dubai-terrace', src: '/backgrounds/adaptive/01-deep-night-dubai-terrace.png', srcSet: '', objectPosition: '50% 50%', phases: ['night'], weather: ALL_WEATHER, slotStartMinute: 0, fallbackSrc: '/backgrounds/adaptive/01-deep-night-dubai-terrace.png' },
-  { id: 'approved-predawn-blue-dubai', src: '/backgrounds/adaptive/02-predawn-blue-dubai.png', srcSet: '', objectPosition: '50% 50%', phases: ['night', 'morning'], weather: ALL_WEATHER, slotStartMinute: 300, fallbackSrc: '/backgrounds/adaptive/02-predawn-blue-dubai.png' },
-  { id: 'approved-sunrise-mountain-lake', src: '/backgrounds/adaptive/03-sunrise-mountain-lake.png', srcSet: '', objectPosition: '50% 50%', phases: ['morning'], weather: ALL_WEATHER, slotStartMinute: 390, fallbackSrc: '/backgrounds/adaptive/03-sunrise-mountain-lake.png' },
-  { id: 'approved-morning-mountain-lake', src: '/backgrounds/adaptive/04-morning-mountain-lake.png', srcSet: '', objectPosition: '50% 50%', phases: ['morning', 'day'], weather: ALL_WEATHER, slotStartMinute: 540, fallbackSrc: '/backgrounds/adaptive/04-morning-mountain-lake.png' },
-  { id: 'approved-midday-nature-terrace', src: '/backgrounds/adaptive/05-midday-nature-terrace.png', srcSet: '', objectPosition: '50% 50%', phases: ['day'], weather: ALL_WEATHER, slotStartMinute: 750, fallbackSrc: '/backgrounds/adaptive/05-midday-nature-terrace.png' },
-  { id: 'approved-afternoon-dubai', src: '/backgrounds/adaptive/06-afternoon-dubai.png', srcSet: '', objectPosition: '50% 50%', phases: ['day', 'golden'], weather: ALL_WEATHER, slotStartMinute: 960, fallbackSrc: '/backgrounds/adaptive/06-afternoon-dubai.png' },
-  { id: 'approved-golden-hour-dubai', src: '/backgrounds/adaptive/07-golden-hour-dubai.png', srcSet: '', objectPosition: '50% 50%', phases: ['golden', 'evening'], weather: ALL_WEATHER, slotStartMinute: 1110, fallbackSrc: '/backgrounds/adaptive/07-golden-hour-dubai.png' },
-  { id: 'approved-night-dubai-city', src: '/backgrounds/adaptive/08-night-dubai-city.png', srcSet: '', objectPosition: '50% 50%', phases: ['evening', 'night'], weather: ALL_WEATHER, slotStartMinute: 1230, fallbackSrc: '/backgrounds/adaptive/08-night-dubai-city.png' },
+  { id: 'approved-deep-night-dubai-terrace', src: '/backgrounds/adaptive/01-deep-night-dubai-terrace.webp', srcSet: '', objectPosition: '50% 50%', phases: ['night'], weather: ALL_WEATHER, slotStartMinute: 0, fallbackSrc: '/backgrounds/adaptive/01-deep-night-dubai-terrace.webp' },
+  { id: 'approved-predawn-blue-dubai', src: '/backgrounds/adaptive/02-predawn-blue-dubai.webp', srcSet: '', objectPosition: '50% 50%', phases: ['night', 'morning'], weather: ALL_WEATHER, slotStartMinute: 300, fallbackSrc: '/backgrounds/adaptive/02-predawn-blue-dubai.webp' },
+  { id: 'approved-sunrise-mountain-lake', src: '/backgrounds/adaptive/03-sunrise-mountain-lake.webp', srcSet: '', objectPosition: '50% 50%', phases: ['morning'], weather: ALL_WEATHER, slotStartMinute: 390, fallbackSrc: '/backgrounds/adaptive/03-sunrise-mountain-lake.webp' },
+  { id: 'approved-morning-mountain-lake', src: '/backgrounds/adaptive/04-morning-mountain-lake.webp', srcSet: '', objectPosition: '50% 50%', phases: ['morning', 'day'], weather: ALL_WEATHER, slotStartMinute: 540, fallbackSrc: '/backgrounds/adaptive/04-morning-mountain-lake.webp' },
+  { id: 'approved-midday-nature-terrace', src: '/backgrounds/adaptive/05-midday-nature-terrace.webp', srcSet: '', objectPosition: '50% 50%', phases: ['day'], weather: ALL_WEATHER, slotStartMinute: 750, fallbackSrc: '/backgrounds/adaptive/05-midday-nature-terrace.webp' },
+  { id: 'approved-afternoon-dubai', src: '/backgrounds/adaptive/06-afternoon-dubai.webp', srcSet: '', objectPosition: '50% 50%', phases: ['day', 'golden'], weather: ALL_WEATHER, slotStartMinute: 960, fallbackSrc: '/backgrounds/adaptive/06-afternoon-dubai.webp' },
+  { id: 'approved-golden-hour-dubai', src: '/backgrounds/adaptive/07-golden-hour-dubai.webp', srcSet: '', objectPosition: '50% 50%', phases: ['golden', 'evening'], weather: ALL_WEATHER, slotStartMinute: 1110, fallbackSrc: '/backgrounds/adaptive/07-golden-hour-dubai.webp' },
+  { id: 'approved-night-dubai-city', src: '/backgrounds/adaptive/08-night-dubai-city.webp', srcSet: '', objectPosition: '50% 50%', phases: ['evening', 'night'], weather: ALL_WEATHER, slotStartMinute: 1230, fallbackSrc: '/backgrounds/adaptive/08-night-dubai-city.webp' },
 ];
-
-function stableHash(value: string) { let hash = 2166136261; for (let i = 0; i < value.length; i += 1) { hash ^= value.charCodeAt(i); hash = Math.imul(hash, 16777619); } return hash >>> 0; }
 
 function localClockParts(now: Date, timezone: string, fallbackLocalTime: string): { minute: number; dayKey: string } {
   try {
-    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(now);
     const lookup = (type: string) => parts.find((part) => part.type === type)?.value || '';
-    const hour = Number(lookup('hour')); const minute = Number(lookup('minute')); const year = lookup('year'); const month = lookup('month'); const day = lookup('day');
-    if (Number.isFinite(hour) && Number.isFinite(minute) && year && month && day) return { minute: hour * 60 + minute, dayKey: `${year}-${month}-${day}` };
+    const hour = Number(lookup('hour'));
+    const minute = Number(lookup('minute'));
+    const year = lookup('year');
+    const month = lookup('month');
+    const day = lookup('day');
+    if (Number.isFinite(hour) && Number.isFinite(minute) && year && month && day) {
+      return { minute: hour * 60 + minute, dayKey: `${year}-${month}-${day}` };
+    }
   } catch {}
-  const parsedMinute = minuteOfDay(fallbackLocalTime); const dayKey = fallbackLocalTime.slice(0, 10) || now.toISOString().slice(0, 10);
+  const parsedMinute = minuteOfDay(fallbackLocalTime);
+  const dayKey = fallbackLocalTime.slice(0, 10) || now.toISOString().slice(0, 10);
   return { minute: parsedMinute ?? (now.getHours() * 60 + now.getMinutes()), dayKey };
 }
 
 function baseRotationIndex(minute: number) {
   let index = 0;
-  for (let i = 0; i < ENVIRONMENT_BACKGROUND_POOL.length; i += 1) { if (minute >= ENVIRONMENT_BACKGROUND_POOL[i].slotStartMinute) index = i; else break; }
+  for (let i = 0; i < ENVIRONMENT_BACKGROUND_POOL.length; i += 1) {
+    if (minute >= ENVIRONMENT_BACKGROUND_POOL[i].slotStartMinute) index = i;
+    else break;
+  }
   return index;
 }
 
 export function millisecondsUntilNextBackgroundSlot(environment: Pick<EnvironmentState, 'timezone' | 'localTime'>, now = new Date()) {
   const { minute } = localClockParts(now, environment.timezone, environment.localTime);
-  const next = ENVIRONMENT_BACKGROUND_POOL.find((asset) => asset.slotStartMinute > minute)?.slotStartMinute ?? (ENVIRONMENT_BACKGROUND_POOL[0].slotStartMinute + 1440);
+  const next = ENVIRONMENT_BACKGROUND_POOL.find((asset) => asset.slotStartMinute > minute)?.slotStartMinute
+    ?? (ENVIRONMENT_BACKGROUND_POOL[0].slotStartMinute + 1440);
   const deltaMinutes = next - minute;
   const elapsedThisMinute = now.getSeconds() * 1000 + now.getMilliseconds();
   return Math.max(5_000, deltaMinutes * 60_000 - elapsedThisMinute + 750);
 }
 
-function contextualObjectPosition(asset: EnvironmentBackgroundAsset, environment: Pick<EnvironmentState, 'weather' | 'city'>) {
-  const vertical = asset.objectPosition.split(' ')[1] || '50%'; const horizontalChoices = ['49%', '50%', '51%']; const index = stableHash(`${asset.id}|${environment.city || ''}|${environment.weather}`) % horizontalChoices.length; return `${horizontalChoices[index]} ${vertical}`;
-}
-
-export function selectEnvironmentBackground(environment: Pick<EnvironmentState, 'phase' | 'weather' | 'city' | 'countryCode' | 'localTime' | 'timezone'>, now = new Date()): EnvironmentBackgroundAsset {
+export function selectEnvironmentBackground(
+  environment: Pick<EnvironmentState, 'phase' | 'weather' | 'city' | 'countryCode' | 'localTime' | 'timezone'>,
+  now = new Date(),
+): EnvironmentBackgroundAsset {
   const { minute } = localClockParts(now, environment.timezone, environment.localTime);
-  const asset = ENVIRONMENT_BACKGROUND_POOL[baseRotationIndex(minute)];
-  return { ...asset, objectPosition: contextualObjectPosition(asset, environment) };
+  return ENVIRONMENT_BACKGROUND_POOL[baseRotationIndex(minute)];
 }
 
-export function nextEnvironmentBackgrounds(environment: Pick<EnvironmentState, 'phase' | 'weather' | 'city' | 'countryCode' | 'localTime' | 'timezone'>, now = new Date(), count = 3): EnvironmentBackgroundAsset[] {
-  const { minute } = localClockParts(now, environment.timezone, environment.localTime); const baseIndex = baseRotationIndex(minute); const results: EnvironmentBackgroundAsset[] = [];
-  for (let offset = 1; offset <= Math.max(0, count); offset += 1) results.push(ENVIRONMENT_BACKGROUND_POOL[(baseIndex + offset) % ENVIRONMENT_BACKGROUND_POOL.length]);
+// Kept for API compatibility, but the renderer intentionally does not prefetch these in stability mode.
+export function nextEnvironmentBackgrounds(
+  environment: Pick<EnvironmentState, 'phase' | 'weather' | 'city' | 'countryCode' | 'localTime' | 'timezone'>,
+  now = new Date(),
+  count = 3,
+): EnvironmentBackgroundAsset[] {
+  const { minute } = localClockParts(now, environment.timezone, environment.localTime);
+  const baseIndex = baseRotationIndex(minute);
+  const results: EnvironmentBackgroundAsset[] = [];
+  for (let offset = 1; offset <= Math.max(0, count); offset += 1) {
+    results.push(ENVIRONMENT_BACKGROUND_POOL[(baseIndex + offset) % ENVIRONMENT_BACKGROUND_POOL.length]);
+  }
   return results;
 }
 
@@ -205,5 +210,11 @@ export function environmentBackgroundAsset(phase: TimePhase) {
   const fallback = ENVIRONMENT_BACKGROUND_POOL.find((asset) => asset.phases.includes(phase)) || ENVIRONMENT_BACKGROUND_POOL[0];
   return { src: fallback.fallbackSrc, srcSet: '' };
 }
+
 export function environmentBackgroundPath(phase: TimePhase): string { return environmentBackgroundAsset(phase).src; }
-export function weatherLabel(kind: WeatherKind): string { const labels: Record<WeatherKind, string> = { clear: 'Clear skies', cloudy: 'Cloudy', rain: 'Rain', storm: 'Storm', fog: 'Fog', snow: 'Snow', unknown: 'Weather unavailable' }; return labels[kind]; }
+export function weatherLabel(kind: WeatherKind): string {
+  const labels: Record<WeatherKind, string> = {
+    clear: 'Clear skies', cloudy: 'Cloudy', rain: 'Rain', storm: 'Storm', fog: 'Fog', snow: 'Snow', unknown: 'Weather unavailable',
+  };
+  return labels[kind];
+}
