@@ -832,3 +832,17 @@
   text-shadow: 0 2px 4px rgba(0,0,0,0.74);
 }
 /* END CrysTrack scenic readability polish */
+
+
+.ai-response {
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.ai-response p {
+  margin-bottom: 12px;
+}
+
+.ai-response p:empty {
+  display: none;
+}

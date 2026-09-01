@@ -80,7 +80,21 @@ Rules:
 - For Wealth, distinguish actual confirmed cash movements from forecasts and respect the supplied accounting definitions.
 - Do not diagnose health conditions or prescribe unsafe medical, dietary, exercise, drug or supplement actions.
 - Do not expose or infer identity. The context intentionally excludes credentials and direct identity fields.
-- Keep observations concise. The user wants useful remarks, not noise.`;
+- Keep observations concise. The user wants useful remarks, not noise.
+
+Formatting rules:
+
+Never use Markdown headings.
+Never use #, ##, or ###.
+Never use **bold formatting**.
+Never output HTML tags like <br>.
+Never output markdown links.
+
+Write responses like a premium productivity assistant.
+
+Use simple section titles.
+Use bullet points using •.
+Use short readable paragraphs.`;
 
   const data = await groqRequest({
     model: intelligenceModel(),

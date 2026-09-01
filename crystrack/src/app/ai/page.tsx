@@ -1,3 +1,5 @@
+import { AIResponseRenderer } from '@/components/ai/ai-response-renderer';
+
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
