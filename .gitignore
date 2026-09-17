@@ -6,3 +6,5 @@ crystrack/*.tsbuildinfo
 crystrack/next-env.d.ts
 
 crystrack/.next/
+
+.crystrack-upgrade-backups/
