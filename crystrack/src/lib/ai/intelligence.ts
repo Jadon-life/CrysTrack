@@ -48,19 +48,10 @@ const OPENROUTER_ENDPOINT =
   'https://openrouter.ai/api/v1/chat/completions';
 
 const DEFAULT_CHAT_MODEL =
-  'google/gemma-4-26b-a4b-it:free';
+  'openai/gpt-oss-20b';
 
 const DEFAULT_ANALYSIS_MODEL =
-  'nvidia/nemotron-3-super-120b-a12b:free';
-
-const CHAT_FALLBACKS = [
-  'openai/gpt-oss-20b:free',
-  'nvidia/nemotron-3-super-120b-a12b:free',
-];
-
-const ANALYSIS_FALLBACKS = [
-  'openai/gpt-oss-20b:free',
-];
+  'openai/gpt-oss-20b';
 
 type OpenRouterResponse = {
   model?: string;
@@ -84,14 +75,6 @@ function timeoutSignal(milliseconds: number) {
   };
 }
 
-function uniqueModels(
-  primary: string,
-  fallbacks: string[],
-) {
-  return Array.from(
-    new Set([primary, ...fallbacks]),
-  );
-}
 
 export function intelligenceChatModel() {
   return (
@@ -107,19 +90,6 @@ export function intelligenceAnalysisModel() {
   );
 }
 
-function chatModels() {
-  return uniqueModels(
-    intelligenceChatModel(),
-    CHAT_FALLBACKS,
-  );
-}
-
-function analysisModels() {
-  return uniqueModels(
-    intelligenceAnalysisModel(),
-    ANALYSIS_FALLBACKS,
-  );
-}
 
 async function openRouterRequest(
   body: Record<string, unknown>,
@@ -152,7 +122,19 @@ async function openRouterRequest(
       {
         method: 'POST',
         headers,
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...body,
+          provider: {
+            zdr: true,
+            data_collection: 'deny',
+            require_parameters: true,
+            allow_fallbacks: true,
+          },
+          reasoning: {
+            effort: 'low',
+            exclude: true,
+          },
+        }),
         signal: timeout.signal,
         cache: 'no-store',
       },
@@ -252,7 +234,7 @@ Rules:
 
   const data = await openRouterRequest(
     {
-      models: analysisModels(),
+      model: intelligenceAnalysisModel(),
       temperature: 0.2,
       max_tokens: 750,
       messages: [
@@ -349,7 +331,7 @@ Formatting rules:
 
   const data = await openRouterRequest(
     {
-      models: chatModels(),
+      model: intelligenceChatModel(),
       temperature: 0.4,
       max_tokens: 1100,
       messages: [

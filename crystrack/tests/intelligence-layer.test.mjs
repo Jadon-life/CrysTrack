@@ -51,10 +51,21 @@ test('AI chat is read only and conversations are user scoped', () => {
   assert.ok(existsSync(join(root, 'src/app/ai/page.tsx')));
 });
 
-test('AI provider uses OpenRouter with free-model fallbacks', () => {
+test('AI provider enforces verified OpenRouter ZDR routing', () => {
   const ai = read('src/lib/ai/intelligence.ts');
   assert.match(ai, /openrouter\.ai\/api\/v1\/chat\/completions/);
-  assert.match(ai, /:free/);
+  assert.match(ai, /openai\/gpt-oss-20b/);
+  assert.match(ai, /zdr:\s*true/);
+  assert.match(ai, /data_collection:\s*'deny'/);
+  assert.match(ai, /require_parameters:\s*true/);
+  assert.match(ai, /allow_fallbacks:\s*true/);
+  assert.match(ai, /reasoning:\s*\{/);
+  assert.match(ai, /effort:\s*'low'/);
+  assert.match(ai, /exclude:\s*true/);
+  assert.match(ai, /model:\s*intelligenceChatModel\(\)/);
+  assert.match(ai, /model:\s*intelligenceAnalysisModel\(\)/);
+  assert.doesNotMatch(ai, /\bmodels:/);
+  assert.doesNotMatch(ai, /openrouter\/free|:free/);
   assert.doesNotMatch(ai, /api\.openai\.com|anthropic|gemini/i);
 });
 
