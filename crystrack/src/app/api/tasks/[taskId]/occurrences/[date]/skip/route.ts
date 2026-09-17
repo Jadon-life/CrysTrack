@@ -12,7 +12,7 @@ export async function POST(
   const occurrenceDate = new Date(`${params.date}T00:00:00.000Z`);
   if (Number.isNaN(occurrenceDate.getTime())) return NextResponse.json({ error: 'Invalid occurrence date' }, { status: 400 });
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

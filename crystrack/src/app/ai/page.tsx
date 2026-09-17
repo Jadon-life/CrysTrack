@@ -1,18 +1,12 @@
-import { AIResponseRenderer } from '@/components/ai/ai-response-renderer';
-
 'use client';
 
+import { AIResponseRenderer } from '@/components/ai/ai-response-renderer';
 import React, { useEffect, useRef, useState } from 'react';
 import { BrainCircuit, Loader2, MessageSquarePlus, Send, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Button } from '@/components/ui/button';
 import { del, fetcher, post } from '@/lib/api';
 import { cn } from '@/lib/utils';
-
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
-export const instant = false;
-
 interface Conversation {
   id: string;
   title: string;

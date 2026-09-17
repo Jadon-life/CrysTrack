@@ -14,7 +14,7 @@ export async function POST(
   props: { params: Promise<{ taskId: string; date: string }> }
 ) {
   const params = await props.params;
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
