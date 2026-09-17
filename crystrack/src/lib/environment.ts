@@ -16,10 +16,15 @@ export interface EnvironmentState {
   sunset: string | null;
   localTime: string;
   locationSource: LocationSource;
+  locationAccuracyM: number | null;
   updatedAt: string;
 }
 
-export interface Coordinates { latitude: number; longitude: number; }
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+}
 
 function minuteOfDay(isoLike: string | null | undefined): number | null {
   if (!isoLike) return null;
@@ -108,15 +113,202 @@ export function fallbackEnvironment(): EnvironmentState {
     sunset: null,
     localTime,
     locationSource: 'device',
+    locationAccuracyM: null,
     updatedAt: new Date().toISOString(),
   };
 }
 
-// Stability mode: scenery no longer depends on third-party weather/geocoding calls.
-// The signature stays compatible with ThemeProvider/requestLocation call sites.
-export async function loadEnvironment(coordinates?: Coordinates): Promise<EnvironmentState> {
-  const environment = fallbackEnvironment();
-  return coordinates ? { ...environment, locationSource: 'gps' } : environment;
+interface ReverseGeocodeResult {
+  latitude?: number;
+  longitude?: number;
+  lookupSource?: string;
+  city?: string;
+  locality?: string;
+  principalSubdivision?: string;
+  countryCode?: string;
+}
+
+interface WeatherResult {
+  timezone?: string;
+  timezone_abbreviation?: string;
+  current?: {
+    temperature_2m?: number;
+    weather_code?: number;
+  };
+  daily?: {
+    sunrise?: string[];
+    sunset?: string[];
+  };
+}
+
+async function reverseGeocode(
+  coordinates?: Coordinates,
+): Promise<ReverseGeocodeResult | null> {
+  try {
+    const url = new URL(
+      'https://api.bigdatacloud.net/data/reverse-geocode-client',
+    );
+
+    url.searchParams.set('localityLanguage', 'en');
+
+    if (coordinates) {
+      url.searchParams.set(
+        'latitude',
+        String(coordinates.latitude),
+      );
+      url.searchParams.set(
+        'longitude',
+        String(coordinates.longitude),
+      );
+    }
+
+    const response = await fetch(url.toString(), {
+      cache: 'no-store',
+    });
+
+    if (!response.ok) return null;
+
+    return (await response.json()) as ReverseGeocodeResult;
+  } catch {
+    return null;
+  }
+}
+
+async function loadWeather(
+  latitude: number,
+  longitude: number,
+): Promise<WeatherResult | null> {
+  try {
+    const url = new URL(
+      'https://api.open-meteo.com/v1/forecast',
+    );
+
+    url.searchParams.set('latitude', String(latitude));
+    url.searchParams.set('longitude', String(longitude));
+    url.searchParams.set(
+      'current',
+      'temperature_2m,weather_code',
+    );
+    url.searchParams.set(
+      'daily',
+      'sunrise,sunset',
+    );
+    url.searchParams.set('forecast_days', '1');
+    url.searchParams.set('timezone', 'auto');
+
+    const response = await fetch(url.toString(), {
+      cache: 'no-store',
+    });
+
+    if (!response.ok) return null;
+
+    return (await response.json()) as WeatherResult;
+  } catch {
+    return null;
+  }
+}
+
+function readableLocation(
+  geo: ReverseGeocodeResult | null,
+): string | null {
+  if (!geo) return null;
+
+  const locality = geo.locality?.trim();
+  const city = geo.city?.trim();
+  const region = geo.principalSubdivision?.trim();
+
+  if (
+    locality &&
+    city &&
+    locality.toLowerCase() !== city.toLowerCase()
+  ) {
+    return `${locality}, ${city}`;
+  }
+
+  return locality || city || region || null;
+}
+
+export async function loadEnvironment(
+  coordinates?: Coordinates,
+): Promise<EnvironmentState> {
+  const fallback = fallbackEnvironment();
+
+  const geo = await reverseGeocode(coordinates);
+
+  const latitude =
+    coordinates?.latitude ??
+    (Number.isFinite(Number(geo?.latitude))
+      ? Number(geo?.latitude)
+      : null);
+
+  const longitude =
+    coordinates?.longitude ??
+    (Number.isFinite(Number(geo?.longitude))
+      ? Number(geo?.longitude)
+      : null);
+
+  const weather =
+    latitude != null && longitude != null
+      ? await loadWeather(latitude, longitude)
+      : null;
+
+  const timezone =
+    weather?.timezone ||
+    fallback.timezone;
+
+  const localTime =
+    environmentLocalIso(timezone);
+
+  const sunrise =
+    weather?.daily?.sunrise?.[0] || null;
+
+  const sunset =
+    weather?.daily?.sunset?.[0] || null;
+
+  const rawWeatherCode =
+    weather?.current?.weather_code;
+
+  const weatherCode =
+    typeof rawWeatherCode === 'number'
+      ? rawWeatherCode
+      : null;
+
+  const rawTemperature =
+    weather?.current?.temperature_2m;
+
+  const temperatureC =
+    typeof rawTemperature === 'number'
+      ? rawTemperature
+      : null;
+
+  return {
+    phase: phaseFromSolarTimes(
+      localTime,
+      sunrise,
+      sunset,
+    ),
+    weather: weatherKindFromWmo(weatherCode),
+    weatherCode,
+    temperatureC,
+    city: readableLocation(geo),
+    countryCode:
+      geo?.countryCode || null,
+    timezone,
+    timezoneAbbreviation:
+      weather?.timezone_abbreviation || null,
+    sunrise,
+    sunset,
+    localTime,
+    locationSource:
+      coordinates
+        ? 'device'
+        : geo
+          ? 'ip'
+          : 'fallback',
+    locationAccuracyM:
+      coordinates?.accuracy ?? null,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export interface EnvironmentBackgroundAsset {

@@ -29,11 +29,11 @@ const responseSchema = {
   additionalProperties: false,
 };
 
-export async function analyzeWithGroq(input: unknown): Promise<GoalAnalysis | null> {
-  const apiKey = process.env.GROQ_API_KEY;
+export async function analyzeWithOpenRouter(input: unknown): Promise<GoalAnalysis | null> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+  const model = process.env.OPENROUTER_ANALYSIS_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
   const system = `You are CrysTrack's goal-progress analyst. Evaluate the user's evidence against the exact stated goal, deadline, prior check-ins and deterministic metrics supplied by CrysTrack.
 
 Rules:
@@ -46,7 +46,7 @@ Rules:
 - Do not use generic encouragement when the evidence points to risk or stagnation.
 - Treat check-in consistency as supporting evidence, not proof of outcome progress.`;
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,

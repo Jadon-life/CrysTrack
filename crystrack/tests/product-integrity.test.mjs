@@ -54,10 +54,10 @@ test('navigation follows the consolidated product model', () => {
   assert.equal(nav.includes("label: 'Settings'"), false);
 });
 
-test('authenticated app shell no longer runs the 3D background globally', () => {
+test('authenticated app shell fully retires the 3D background', () => {
   const layout = read('src/components/layout/app-layout.tsx');
   const uses = layout.match(/<ThreeBackground \/>/g) || [];
-  assert.equal(uses.length, 1, 'ThreeBackground should be limited to the auth experience');
+  assert.equal(uses.length, 0, 'ThreeBackground should be fully retired from the app shell');
   assert.equal(layout.includes('<EnvironmentBackground />'), true);
 });
 

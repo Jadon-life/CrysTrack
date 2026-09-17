@@ -14,9 +14,10 @@ test('top navigation follows the approved information architecture', () => {
   assert.match(layout, /<EnvironmentBackground/);
 });
 
-test('environment stability mode is local-only and keeps the eight approved scenes', () => {
+test('environment keeps local scenes while live weather and location services remain enabled', () => {
   const environment = read('src/lib/environment.ts');
-  assert.doesNotMatch(environment, /api\.open-meteo\.com|reverse-geocode-client|bigdatacloud/i);
+  assert.match(environment, /api\.open-meteo\.com\/v1\/forecast/);
+  assert.match(environment, /reverse-geocode-client|bigdatacloud/i);
   assert.match(environment, /export async function loadEnvironment/);
   assert.match(environment, /fallbackEnvironment\(\)/);
   for (const phase of ['morning', 'day', 'golden', 'evening', 'night']) assert.match(environment, new RegExp(`'${phase}'`));
@@ -53,9 +54,9 @@ test('reminders remain server-dispatched with delivery safeguards', () => {
 });
 
 test('goal intelligence remains intact', () => {
-  const groq = read('src/lib/ai/groq.ts');
-  assert.match(groq, /json_schema/);
-  assert.match(groq, /insufficient_evidence/);
+  const provider = read('src/lib/ai/goal-openrouter.ts');
+  assert.match(provider, /json_schema/);
+  assert.match(provider, /insufficient_evidence/);
   const analyzer = read('src/lib/goals/analyze-goal.ts');
   assert.match(analyzer, /numericProgress/);
 });

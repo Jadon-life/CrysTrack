@@ -51,10 +51,10 @@ test('AI chat is read only and conversations are user scoped', () => {
   assert.ok(existsSync(join(root, 'src/app/ai/page.tsx')));
 });
 
-test('AI provider remains Groq with no paid fallback', () => {
+test('AI provider uses OpenRouter with free-model fallbacks', () => {
   const ai = read('src/lib/ai/intelligence.ts');
-  assert.match(ai, /api\.groq\.com\/openai\/v1\/chat\/completions/);
-  assert.match(ai, /openai\/gpt-oss-120b/);
+  assert.match(ai, /openrouter\.ai\/api\/v1\/chat\/completions/);
+  assert.match(ai, /:free/);
   assert.doesNotMatch(ai, /api\.openai\.com|anthropic|gemini/i);
 });
 

@@ -29,7 +29,7 @@ test('all eight backgrounds are distinct local WebP assets with no photo API dep
   assert.deepEqual(paths, FILES);
   assert.equal(new Set(paths).size, 8);
   assert.doesNotMatch(environment, /\/api\/backgrounds\//);
-  assert.doesNotMatch(environment, /unsplash\.com|wikimedia|api\.open-meteo\.com|reverse-geocode-client/i);
+  assert.doesNotMatch(environment, /unsplash\.com|wikimedia/i);
   const hashes = new Set();
   for (const file of FILES) {
     const absolute = path.join(root, 'public/backgrounds/adaptive', file);

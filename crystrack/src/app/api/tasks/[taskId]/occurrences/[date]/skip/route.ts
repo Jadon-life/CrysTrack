@@ -3,7 +3,11 @@ import { NextResponse } from 'next/server';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export async function POST(_request: Request, { params }: { params: { taskId: string; date: string } }) {
+export async function POST(
+  _request: Request,
+  props: { params: Promise<{ taskId: string; date: string }> }
+) {
+  const params = await props.params;
   if (!DATE_RE.test(params.date)) return NextResponse.json({ error: 'Invalid occurrence date' }, { status: 400 });
   const occurrenceDate = new Date(`${params.date}T00:00:00.000Z`);
   if (Number.isNaN(occurrenceDate.getTime())) return NextResponse.json({ error: 'Invalid occurrence date' }, { status: 400 });

@@ -5,7 +5,8 @@ import { goalCheckinWindow } from '@/lib/goals/checkin-occurrence';
 
 export const runtime = 'nodejs';
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -94,7 +95,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   }
 
   let analysis: any = null;
-  const aiConfigured = Boolean(process.env.GROQ_API_KEY);
+  const aiConfigured = Boolean(process.env.OPENROUTER_API_KEY);
   if (aiConfigured) {
     const { data: refreshedGoal } = await supabase.from('goals').select('*').eq('id', goal.id).eq('user_id', user.id).single();
     const { data: checkins } = await supabase.from('goal_checkins').select('*').eq('goal_id', goal.id).eq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
@@ -108,7 +109,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
           risk_level: analysis.status,
           estimate_text: analysis.confidence,
           recommendations: analysis.next_action,
-          model_version: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+          model_version: process.env.OPENROUTER_ANALYSIS_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free',
         });
       }
     } catch (aiError: any) {

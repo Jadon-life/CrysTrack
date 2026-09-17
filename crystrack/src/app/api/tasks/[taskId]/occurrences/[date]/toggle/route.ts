@@ -9,7 +9,11 @@ function parseDateKey(value: string) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export async function POST(_request: Request, { params }: { params: { taskId: string; date: string } }) {
+export async function POST(
+  _request: Request,
+  props: { params: Promise<{ taskId: string; date: string }> }
+) {
+  const params = await props.params;
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -144,7 +144,7 @@ export default function GoalsPage() {
     await loadGoals();
     window.dispatchEvent(new Event('crystrack-activity-updated'));
     if ((checkInGoal.progress_mode === 'ai' || checkInGoal.ai_coaching) && result?.aiConfigured === false) {
-      setError('Check-in saved. Goal AI is ready in the code but will remain inactive until a free Groq API key is added to the server environment.');
+      setError('Check-in saved. Goal AI is ready in the code but will remain inactive until an OpenRouter API key is added to the server environment.');
     } else if (result?.analysis?.status === 'unavailable') {
       setError(`Check-in saved. AI analysis could not run: ${result.analysis.summary}`);
     }

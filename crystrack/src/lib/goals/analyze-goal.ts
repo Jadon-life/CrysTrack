@@ -1,4 +1,4 @@
-import { analyzeWithGroq, type GoalAnalysis } from '@/lib/ai/groq';
+import { analyzeWithOpenRouter, type GoalAnalysis } from '@/lib/ai/goal-openrouter';
 
 function daysBetween(from: Date, to: Date) {
   return Math.ceil((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
@@ -56,7 +56,7 @@ export async function analyzeGoal(goal: any, checkins: any[]): Promise<GoalAnaly
       progress_value: checkin.progress_value,
     }));
 
-  return analyzeWithGroq({
+  return analyzeWithOpenRouter({
     goal: {
       title: goal.title,
       description: goal.description,

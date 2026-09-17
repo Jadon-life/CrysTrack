@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { analyzeDomainWithGroq, intelligenceModel } from '@/lib/ai/intelligence';
+import { analyzeDomainWithOpenRouter, intelligenceAnalysisModel } from '@/lib/ai/intelligence';
 import { buildIntelligenceContext, fingerprintContext, type IntelligenceDomain } from '@/lib/ai/context';
 
 export const runtime = 'nodejs';
@@ -18,7 +18,8 @@ async function currentUser() {
   return { supabase, user };
 }
 
-export async function GET(_request: Request, { params }: { params: { domain: string } }) {
+export async function GET(_request: Request, props: { params: Promise<{ domain: string }> }) {
+  const params = await props.params;
   if (!validDomain(params.domain)) return NextResponse.json({ error: 'Unknown AI domain' }, { status: 404 });
   const { supabase, user } = await currentUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -36,13 +37,14 @@ export async function GET(_request: Request, { params }: { params: { domain: str
   return NextResponse.json({
     insight: data?.insight || null,
     generatedAt: data?.generated_at || null,
-    model: data?.model || intelligenceModel(),
-    configured: Boolean(process.env.GROQ_API_KEY),
+    model: data?.model || intelligenceAnalysisModel(),
+    configured: Boolean(process.env.OPENROUTER_API_KEY),
     cached: Boolean(data),
   });
 }
 
-export async function POST(_request: Request, { params }: { params: { domain: string } }) {
+export async function POST(_request: Request, props: { params: Promise<{ domain: string }> }) {
+  const params = await props.params;
   if (!validDomain(params.domain)) return NextResponse.json({ error: 'Unknown AI domain' }, { status: 404 });
   const { supabase, user } = await currentUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -56,11 +58,11 @@ export async function POST(_request: Request, { params }: { params: { domain: st
     .limit(1)
     .maybeSingle();
 
-  if (!process.env.GROQ_API_KEY) {
+  if (!process.env.OPENROUTER_API_KEY) {
     return NextResponse.json({
       insight: latest?.insight || null,
       generatedAt: latest?.generated_at || null,
-      model: latest?.model || intelligenceModel(),
+      model: latest?.model || intelligenceAnalysisModel(),
       configured: false,
       cached: Boolean(latest),
     });
@@ -98,12 +100,12 @@ export async function POST(_request: Request, { params }: { params: { domain: st
       });
     }
 
-    const insight = await analyzeDomainWithGroq(params.domain, context);
+    const insight = await analyzeDomainWithOpenRouter(params.domain, context);
     if (!insight) {
       return NextResponse.json({
         insight: latest?.insight || null,
         generatedAt: latest?.generated_at || null,
-        model: latest?.model || intelligenceModel(),
+        model: latest?.model || intelligenceAnalysisModel(),
         configured: false,
         cached: Boolean(latest),
       });
@@ -116,7 +118,7 @@ export async function POST(_request: Request, { params }: { params: { domain: st
         domain: params.domain,
         data_fingerprint: fingerprint,
         insight,
-        model: intelligenceModel(),
+        model: intelligenceAnalysisModel(),
       })
       .select('insight, generated_at, model')
       .single();
@@ -137,7 +139,7 @@ export async function POST(_request: Request, { params }: { params: { domain: st
     return NextResponse.json({
       insight: stored?.insight || insight,
       generatedAt: stored?.generated_at || new Date().toISOString(),
-      model: stored?.model || intelligenceModel(),
+      model: stored?.model || intelligenceAnalysisModel(),
       configured: true,
       cached: false,
     });

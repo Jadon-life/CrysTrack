@@ -9,6 +9,10 @@ import { ThemeProvider } from '@/components/layout/theme-provider';
 import { AuthProvider } from '@/components/layout/auth-provider';
 import { AppLayout } from '@/components/layout/app-layout';
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 const manrope = Manrope({
   subsets: ['latin'],
   display: 'swap',

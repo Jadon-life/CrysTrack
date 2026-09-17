@@ -112,7 +112,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
-            const next = await loadEnvironment({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+            const next = await loadEnvironment({
+  latitude: position.coords.latitude,
+  longitude: position.coords.longitude,
+  accuracy: position.coords.accuracy,
+});
             setEnvironment(next);
             await saveDetectedLocation(next);
           } finally {
@@ -124,7 +128,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           try { setEnvironment(await loadEnvironment()); }
           finally { setEnvironmentLoading(false); resolve(); }
         },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 15 * 60 * 1000 },
+        {
+  enableHighAccuracy: true,
+  timeout: 20000,
+  maximumAge: 0,
+},
       );
     });
   }, [loadApproximateEnvironment, resolvePermission]);

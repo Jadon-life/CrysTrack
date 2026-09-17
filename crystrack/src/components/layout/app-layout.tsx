@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { TopNavigation } from '@/components/navigation/top-navigation';
 import { EnvironmentBackground } from './environment-background';
-import { ThreeBackground } from './three-background';
 import { useTheme } from './theme-provider';
 import { useAuth } from './auth-provider';
 
@@ -54,7 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (isAuthPage) {
     return (
       <div className="relative min-h-screen flex items-center justify-center" style={{ background: theme.background }}>
-        <ThreeBackground />
+        <EnvironmentBackground />
         <div className="relative z-10 w-full max-w-md px-4">{children}</div>
       </div>
     );

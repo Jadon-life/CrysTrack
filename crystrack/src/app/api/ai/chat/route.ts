@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { buildIntelligenceContext } from '@/lib/ai/context';
-import { chatWithGroq } from '@/lib/ai/intelligence';
+import { chatWithOpenRouter } from '@/lib/ai/intelligence';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const message = String(body?.message || '').trim();
   if (!message) return NextResponse.json({ error: 'Message is required' }, { status: 400 });
   if (message.length > 4000) return NextResponse.json({ error: 'Message is too long' }, { status: 400 });
-  if (!process.env.GROQ_API_KEY) return NextResponse.json({ error: 'CrysTrack AI is not configured' }, { status: 503 });
+  if (!process.env.OPENROUTER_API_KEY) return NextResponse.json({ error: 'CrysTrack AI is not configured' }, { status: 503 });
 
   let conversationId = String(body?.conversationId || '').trim();
   let conversation: any = null;
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
   try {
     const context = await buildIntelligenceContext(supabase, user.id, 'overview');
-    const answer = await chatWithGroq({ context, history, message });
+    const answer = await chatWithOpenRouter({ context, history, message });
     if (!answer) throw new Error('CrysTrack AI is not configured');
 
     const { data: assistantMessage, error: saveAssistantError } = await supabase

@@ -23,11 +23,11 @@ const schema = {
   additionalProperties: false,
 };
 
-export async function analyzeWealthMetricsWithGroq(metrics: unknown): Promise<WealthInsight | null> {
-  const apiKey = process.env.GROQ_API_KEY;
+export async function analyzeWealthMetricsWithOpenRouter(metrics: unknown): Promise<WealthInsight | null> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+  const model = process.env.OPENROUTER_ANALYSIS_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
   const system = `You are CrysTrack's private personal money-pattern analyst.
 
 You receive ONLY sanitized aggregate metrics calculated by CrysTrack. You do not receive names, merchant descriptions, exact balances, exact salaries, exact transaction amounts, debt counterparties, notes or email addresses.
@@ -42,7 +42,7 @@ Rules:
 - next_action should be a simple behaviour or review action derived from the supplied pattern.
 - Numeric metrics supplied by CrysTrack are authoritative.`;
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,

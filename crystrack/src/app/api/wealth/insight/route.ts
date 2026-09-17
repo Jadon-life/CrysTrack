@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { summarizeWealth, sanitizedWealthMetrics } from '@/lib/wealth';
-import { analyzeWealthMetricsWithGroq } from '@/lib/ai/wealth-groq';
+import { analyzeWealthMetricsWithOpenRouter } from '@/lib/ai/wealth-openrouter';
 
 export const runtime = 'nodejs';
 
@@ -27,7 +27,7 @@ export async function POST() {
   const metrics = sanitizedWealthMetrics(summary);
 
   try {
-    const insight = await analyzeWealthMetricsWithGroq(metrics);
+    const insight = await analyzeWealthMetricsWithOpenRouter(metrics);
     if (!insight) {
       return NextResponse.json({
         source: 'deterministic',
