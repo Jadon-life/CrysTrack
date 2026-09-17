@@ -5,7 +5,7 @@ import { AVATAR_BUCKET } from '@/lib/profile-avatar';
 const AVATAR_URL_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 async function withSignedAvatar(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   profile: Record<string, any>,
 ) {
   if (!profile.avatar_url) {

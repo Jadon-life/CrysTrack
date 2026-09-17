@@ -55,7 +55,7 @@ function detectImageMime(bytes: Uint8Array) {
 }
 
 async function signedUrl(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   path: string | null | undefined,
 ) {
   if (!path) return null;
