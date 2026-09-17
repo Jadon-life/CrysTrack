@@ -96,7 +96,7 @@ export async function POST(request: Request) {
 
     const status = Number(error?.status) === 429 ? 429 : 503;
     const publicMessage = status === 429
-      ? 'The free AI quota is temporarily busy. Your message was saved; try again shortly.'
+      ? 'CrysTrack AI is temporarily busy. Your message was saved; try again shortly.'
       : 'CrysTrack AI is temporarily unavailable. Your message was saved and no CrysTrack data was changed.';
     return NextResponse.json({ error: publicMessage, conversationId, userMessage }, { status });
   }

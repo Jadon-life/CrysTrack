@@ -84,3 +84,8 @@ test('domain AI is separate from main page loading', () => {
   assert.match(component, /\/api\/ai\/domain\/\$\{domain\}/);
   assert.match(component, /reuses unchanged analysis/);
 });
+test('paid AI rate-limit messaging does not describe the model as free', () => {
+  const chat = read('src/app/api/ai/chat/route.ts');
+  assert.doesNotMatch(chat, /free AI quota/i);
+  assert.match(chat, /CrysTrack AI is temporarily busy/);
+});
