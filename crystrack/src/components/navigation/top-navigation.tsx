@@ -85,8 +85,14 @@ function NotificationMenu() {
   };
 
   useEffect(() => {
-    setPermission(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
-    void load();
+    queueMicrotask(() => {
+      setPermission(
+        typeof Notification === 'undefined'
+          ? 'unsupported'
+          : Notification.permission,
+      );
+      void load();
+    });
     const interval = window.setInterval(() => void load(), 60_000);
     return () => window.clearInterval(interval);
   }, []);
@@ -185,7 +191,9 @@ function ProfileMenu() {
   }, []);
 
   useEffect(() => {
-    void loadAvatar();
+    queueMicrotask(() => {
+      void loadAvatar();
+    });
 
     const onProfileUpdated = () => {
       void loadAvatar();

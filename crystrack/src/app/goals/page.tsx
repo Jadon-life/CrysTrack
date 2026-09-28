@@ -79,8 +79,18 @@ export default function GoalsPage() {
     }).catch(() => null);
   }, []);
 
-  useEffect(() => { void loadGoals(); }, [loadGoals]);
-  useEffect(() => { if (searchParams.get('create') === 'goal') setShowCreate(true); }, [searchParams]);
+  useEffect(() => {
+    queueMicrotask(() => {
+      void loadGoals();
+    });
+  }, [loadGoals]);
+  useEffect(() => {
+    if (searchParams.get('create') !== 'goal') return;
+
+    queueMicrotask(() => {
+      setShowCreate(true);
+    });
+  }, [searchParams]);
 
   const toggleCheckinDay = (day: number) => setNewGoal((current) => ({
     ...current,

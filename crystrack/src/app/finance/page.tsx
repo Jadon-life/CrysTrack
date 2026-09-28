@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -121,7 +121,7 @@ export default function WealthPage() {
   const [aiInsight, setAiInsight] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const nextData = await fetcher('/api/wealth', { cache: 'no-store' });
@@ -132,11 +132,13 @@ export default function WealthPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void load();
-  }, []);
+    queueMicrotask(() => {
+      void load();
+    });
+  }, [load]);
 
   const money = (value: number, compact = false, sign = false) =>
     formatWealthMoney(Number(value || 0), currency, rate?.usdNgn, { compact, sign });

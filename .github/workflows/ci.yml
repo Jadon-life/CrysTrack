@@ -23,8 +23,8 @@ jobs:
       SUPABASE_SECRET_KEY: ci-placeholder
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
       OPENROUTER_API_KEY: ci-placeholder
-      OPENROUTER_CHAT_MODEL: google/gemma-4-26b-a4b-it:free
-      OPENROUTER_ANALYSIS_MODEL: nvidia/nemotron-3-super-120b-a12b:free
+      OPENROUTER_CHAT_MODEL: openai/gpt-oss-20b
+      OPENROUTER_ANALYSIS_MODEL: openai/gpt-oss-20b
       EXCHANGE_RATE_API_KEY: ci-placeholder
       CRON_SECRET: ci-placeholder
       TELEGRAM_BOT_TOKEN: ci-placeholder
@@ -38,7 +38,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: crystrack/package-lock.json
 

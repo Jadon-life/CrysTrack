@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, Bell, Clock, Loader2, Plus, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
@@ -42,13 +42,13 @@ export default function AssignmentsPage() {
     remindersEnabled: true, reminderChannel: 'push', reminderOffsets: [1440, 120, 0] as number[],
   });
 
-  const loadAssignments = async () => {
+  const loadAssignments = useCallback(async () => {
     setLoading(true);
     setError('');
     try { setAssignments(await fetcher('/api/assignments')); }
     catch (e: any) { setError(e.message || 'Failed to load assignments'); }
     finally { setLoading(false); }
-  };
+  }, []);
 
   useEffect(() => {
     fetcher('/api/preferences').then((prefs: any) => {
@@ -58,8 +58,18 @@ export default function AssignmentsPage() {
     }).catch(() => null);
   }, []);
 
-  useEffect(() => { void loadAssignments(); }, []);
-  useEffect(() => { if (searchParams.get('create') === 'assignment') setShowCreate(true); }, [searchParams]);
+  useEffect(() => {
+    queueMicrotask(() => {
+      void loadAssignments();
+    });
+  }, [loadAssignments]);
+  useEffect(() => {
+    if (searchParams.get('create') !== 'assignment') return;
+
+    queueMicrotask(() => {
+      setShowCreate(true);
+    });
+  }, [searchParams]);
 
   const setPriority = (priority: string) => setNewAssignment((current) => ({
     ...current,

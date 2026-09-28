@@ -50,11 +50,17 @@ export default function TasksPage() {
   }, []);
 
   useEffect(() => {
-    loadTasks();
+    queueMicrotask(() => {
+      void loadTasks();
+    });
   }, [loadTasks]);
 
   useEffect(() => {
-    if (searchParams.get('create') === 'task') setShowCreate(true);
+    if (searchParams.get('create') !== 'task') return;
+
+    queueMicrotask(() => {
+      setShowCreate(true);
+    });
   }, [searchParams]);
 
   const handleCreate = async () => {

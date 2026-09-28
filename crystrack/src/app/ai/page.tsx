@@ -1,7 +1,7 @@
 'use client';
 
 import { AIResponseRenderer } from '@/components/ai/ai-response-renderer';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BrainCircuit, Loader2, MessageSquarePlus, Send, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Button } from '@/components/ui/button';
@@ -31,34 +31,39 @@ export default function AiPage() {
   const [status, setStatus] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
-  const loadConversations = async (selectId?: string | null) => {
+  const loadConversations = useCallback(async (selectId?: string | null) => {
     const rows = await fetcher('/api/ai/conversations', { cache: 'no-store' });
     setConversations(rows);
     const nextId = selectId ?? activeId ?? rows[0]?.id ?? null;
     setActiveId(nextId);
     return nextId;
-  };
+  }, [activeId]);
 
-  const loadMessages = async (id: string) => {
+  const loadMessages = useCallback(async (id: string) => {
     const data = await fetcher(`/api/ai/conversations/${id}`, { cache: 'no-store' });
     setMessages(data.messages || []);
-  };
+  }, []);
 
   useEffect(() => {
-    loadConversations()
-      .catch((error) => setStatus(error?.message || 'Could not load AI conversations'))
-      .finally(() => setLoading(false));
+    queueMicrotask(() => {
+      loadConversations()
+        .catch((error) => setStatus(error?.message || 'Could not load AI conversations'))
+        .finally(() => setLoading(false));
+    });
+
     // Initial load only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!activeId) {
-      setMessages([]);
-      return;
-    }
-    void loadMessages(activeId).catch((error) => setStatus(error?.message || 'Could not load conversation'));
-  }, [activeId]);
+    if (!activeId) return;
+
+    queueMicrotask(() => {
+      void loadMessages(activeId).catch(
+        (error) => setStatus(error?.message || 'Could not load conversation'),
+      );
+    });
+  }, [activeId, loadMessages]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });

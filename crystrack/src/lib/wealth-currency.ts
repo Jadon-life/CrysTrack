@@ -35,9 +35,17 @@ export function useWealthCurrency() {
 
   useEffect(() => {
     const storedCurrency = window.localStorage.getItem(CURRENCY_KEY);
-    if (storedCurrency === 'USD' || storedCurrency === 'NGN') setCurrencyState(storedCurrency);
     const cached = readCachedRate();
-    if (cached) setRate(cached);
+
+    queueMicrotask(() => {
+      if (storedCurrency === 'USD' || storedCurrency === 'NGN') {
+        setCurrencyState(storedCurrency);
+      }
+
+      if (cached) {
+        setRate(cached);
+      }
+    });
 
     fetch('/api/exchange-rate', { cache: 'no-store' })
       .then(async (response) => {

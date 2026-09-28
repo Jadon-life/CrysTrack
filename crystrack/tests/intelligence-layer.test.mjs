@@ -194,3 +194,30 @@ test('routine guidance is optional and never presented as a best move', () => {
     /policy_version/,
   );
 });
+
+test('CI uses supported Node and verified OpenRouter models', () => {
+  const ci = read('../.github/workflows/ci.yml');
+  const pkg = JSON.parse(read('package.json'));
+
+  assert.match(ci, /node-version:\s*22/);
+
+  assert.match(
+    ci,
+    /OPENROUTER_CHAT_MODEL:\s*openai\/gpt-oss-20b/,
+  );
+
+  assert.match(
+    ci,
+    /OPENROUTER_ANALYSIS_MODEL:\s*openai\/gpt-oss-20b/,
+  );
+
+  assert.doesNotMatch(
+    ci,
+    /OPENROUTER_(?:CHAT|ANALYSIS)_MODEL:[^\n]*:free/,
+  );
+
+  assert.equal(
+    pkg.engines?.node,
+    '>=22.0.0',
+  );
+});

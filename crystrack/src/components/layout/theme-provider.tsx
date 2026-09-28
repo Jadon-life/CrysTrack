@@ -153,12 +153,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotionState(media.matches);
+    queueMicrotask(() => {
+      setReducedMotionState(media.matches);
+    });
     const onChange = (event: MediaQueryListEvent) => setReducedMotionState(event.matches);
     media.addEventListener('change', onChange);
 
-    void resolvePermission();
-    void loadApproximateEnvironment();
+    queueMicrotask(() => {
+      void resolvePermission();
+      void loadApproximateEnvironment();
+    });
 
     fetch('/api/preferences')
       .then((response) => response.ok ? response.json() : null)

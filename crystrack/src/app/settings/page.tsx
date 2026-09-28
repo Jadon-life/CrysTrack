@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Bell, Camera, ChevronRight, Database, ExternalLink, Loader2, MapPin, Monitor, Moon, Palette, Send, Shield, Sun, Trash2, User, Zap,
 } from 'lucide-react';
@@ -50,7 +50,7 @@ export default function SettingsPage() {
   const [telegramLinking, setTelegramLinking] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [prefsResponse, profileResponse, telegramResponse] = await Promise.all([
       fetch('/api/preferences', { cache: 'no-store' }),
       fetch('/api/profile', { cache: 'no-store' }),
@@ -59,12 +59,17 @@ export default function SettingsPage() {
     if (prefsResponse.ok) setPrefs({ ...initialPrefs, ...(await prefsResponse.json()) });
     if (profileResponse.ok) setProfile(await profileResponse.json());
     if (telegramResponse.ok) setTelegram(await telegramResponse.json());
-  };
+  }, []);
 
   useEffect(() => {
-    void load();
-    void getPushSetupStatus().then((result) => setPushSetup(result.status));
-  }, []);
+    queueMicrotask(() => {
+      void load();
+    });
+
+    void getPushSetupStatus().then(
+      (result) => setPushSetup(result.status),
+    );
+  }, [load]);
 
   useEffect(() => {
     if (!telegramLinking) return;
