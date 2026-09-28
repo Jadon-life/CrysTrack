@@ -26,6 +26,60 @@ function percent(numerator: number, denominator: number) {
   return denominator > 0 ? Math.round((numerator / denominator) * 1000) / 10 : null;
 }
 
+const WEEKDAY_KEYS = [
+  'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+];
+
+function dateStateInTimezone(
+  date: Date,
+  timezone: string,
+) {
+  const format = (timeZone: string) => {
+    const parts = new Intl.DateTimeFormat(
+      'en-US',
+      {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        weekday: 'short',
+      },
+    ).formatToParts(date);
+
+    const value = (type: string) =>
+      parts.find((part) => part.type === type)?.value || '';
+
+    const weekdayLabel = value('weekday');
+    const weekdayIndex =
+      WEEKDAY_KEYS.indexOf(weekdayLabel);
+
+    return {
+      dateKey:
+        `${value('year')}-${value('month')}-${value('day')}`,
+      weekday:
+        weekdayIndex >= 0
+          ? weekdayIndex
+          : date.getUTCDay(),
+    };
+  };
+
+  try {
+    return format(timezone);
+  } catch {
+    return format('UTC');
+  }
+}
+
+function occurrenceDateKey(value: unknown) {
+  return String(value || '').slice(0, 10);
+}
+
 async function profileTimezone(supabase: any, userId: string) {
   const { data } = await supabase
     .from('profiles')
@@ -35,54 +89,236 @@ async function profileTimezone(supabase: any, userId: string) {
   return data?.current_timezone || data?.timezone || 'UTC';
 }
 
-async function tasksContext(supabase: any, userId: string) {
-  const since = new Date(Date.now() - 60 * DAY_MS).toISOString();
-  const { data: tasks, error: taskError } = await supabase
-    .from('recurring_tasks')
-    .select('id, title, description, category, preferred_time, active, archived_at, task_schedules(weekday)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+async function tasksContext(
+  supabase: any,
+  userId: string,
+  timezone: string,
+  now: Date,
+) {
+  const current = dateStateInTimezone(
+    now,
+    timezone,
+  );
+
+  const historyStart = new Date(
+    `${current.dateKey}T00:00:00.000Z`,
+  );
+
+  historyStart.setUTCDate(
+    historyStart.getUTCDate() - 59,
+  );
+
+  const { data: tasks, error: taskError } =
+    await supabase
+      .from('recurring_tasks')
+      .select(
+        'id, title, description, category, preferred_time, active, archived_at, task_schedules(weekday)',
+      )
+      .eq('user_id', userId)
+      .order('created_at', {
+        ascending: false,
+      });
+
   if (taskError) throw taskError;
 
-  const ids = (tasks || []).map((task: any) => task.id);
+  const ids = (tasks || []).map(
+    (task: any) => task.id,
+  );
+
   let occurrences: any[] = [];
+
   if (ids.length) {
     const { data, error } = await supabase
       .from('task_occurrences')
-      .select('task_id, date, status, completed_at')
+      .select(
+        'task_id, date, status, completed_at',
+      )
       .in('task_id', ids)
-      .gte('date', since)
-      .order('date', { ascending: false });
+      .gte(
+        'date',
+        historyStart.toISOString(),
+      )
+      .order('date', {
+        ascending: false,
+      });
+
     if (error) throw error;
+
     occurrences = data || [];
   }
 
-  const rows = (tasks || []).map((task: any) => {
-    const history = occurrences.filter((item) => item.task_id === task.id);
-    const completed = history.filter((item) => item.status === 'completed').length;
-    const missed = history.filter((item) => item.status === 'missed').length;
-    const skipped = history.filter((item) => item.status === 'skipped').length;
-    const decided = completed + missed + skipped;
-    return {
-      title: cleanText(task.title),
-      description: cleanText(task.description, 240),
-      category: cleanText(task.category, 80),
-      preferred_time: task.preferred_time || null,
-      active: Boolean(task.active && !task.archived_at),
-      weekdays: (task.task_schedules || []).map((item: any) => item.weekday).sort(),
-      last_60_days: {
-        completed,
-        missed,
-        skipped,
-        completion_rate_pct: percent(completed, decided),
-      },
-    };
-  });
+  const rows = (tasks || []).map(
+    (task: any) => {
+      const history = occurrences.filter(
+        (item) =>
+          item.task_id === task.id,
+      );
+
+      const weekdays = (
+        task.task_schedules || []
+      )
+        .map((item: any) =>
+          Number(item.weekday),
+        )
+        .filter(
+          (weekday: number) =>
+            Number.isInteger(weekday) &&
+            weekday >= 0 &&
+            weekday <= 6,
+        )
+        .sort(
+          (a: number, b: number) =>
+            a - b,
+        );
+
+      const active = Boolean(
+        task.active &&
+          !task.archived_at,
+      );
+
+      const todayOccurrence =
+        history.find(
+          (item) =>
+            occurrenceDateKey(
+              item.date,
+            ) === current.dateKey,
+        );
+
+      const scheduledToday =
+        active &&
+        weekdays.includes(
+          current.weekday,
+        );
+
+      const todayStatus =
+        scheduledToday
+          ? String(
+              todayOccurrence?.status ||
+                'pending',
+            )
+          : 'not_scheduled';
+
+      const completed =
+        history.filter(
+          (item) =>
+            item.status === 'completed',
+        ).length;
+
+      const missed =
+        history.filter(
+          (item) =>
+            item.status === 'missed',
+        ).length;
+
+      const skipped =
+        history.filter(
+          (item) =>
+            item.status === 'skipped',
+        ).length;
+
+      const decided =
+        completed +
+        missed +
+        skipped;
+
+      return {
+        title: cleanText(task.title),
+        description: cleanText(
+          task.description,
+          240,
+        ),
+        category: cleanText(
+          task.category,
+          80,
+        ),
+        preferred_time:
+          task.preferred_time || null,
+        active,
+        weekdays,
+
+        current_day: {
+          date: current.dateKey,
+          weekday: current.weekday,
+          scheduled: scheduledToday,
+          status: todayStatus,
+          completed_at:
+            todayOccurrence
+              ?.completed_at || null,
+        },
+
+        last_60_days: {
+          completed,
+          missed,
+          skipped,
+          completion_rate_pct:
+            percent(
+              completed,
+              decided,
+            ),
+        },
+      };
+    },
+  );
+
+  const activeRows =
+    rows.filter(
+      (row: { active: boolean }) =>
+        row.active,
+    );
+
+  const todayRows =
+    activeRows.filter(
+      (row: any) =>
+        row.current_day.scheduled,
+    );
 
   return {
     window_days: 60,
-    active_routines: rows.filter((row: { active: boolean }) => row.active).length,
-    routines: rows.slice(0, 60),
+
+    current_date:
+      current.dateKey,
+
+    current_weekday:
+      current.weekday,
+
+    active_routines:
+      activeRows.length,
+
+    today: {
+      scheduled:
+        todayRows.length,
+
+      completed:
+        todayRows.filter(
+          (row: any) =>
+            row.current_day.status ===
+            'completed',
+        ).length,
+
+      pending:
+        todayRows.filter(
+          (row: any) =>
+            row.current_day.status ===
+            'pending',
+        ).length,
+
+      skipped:
+        todayRows.filter(
+          (row: any) =>
+            row.current_day.status ===
+            'skipped',
+        ).length,
+
+      missed:
+        todayRows.filter(
+          (row: any) =>
+            row.current_day.status ===
+            'missed',
+        ).length,
+    },
+
+    routines:
+      rows.slice(0, 60),
   };
 }
 
@@ -256,22 +492,116 @@ async function wealthContext(supabase: any, userId: string) {
 }
 
 export async function buildIntelligenceContext(supabase: any, userId: string, domain: IntelligenceDomain) {
-  const timezone = await profileTimezone(supabase, userId);
+  const timezone = await profileTimezone(
+    supabase,
+    userId,
+  );
+
   const now = new Date();
-  const base = { generated_at: now.toISOString(), as_of_date: now.toISOString().slice(0, 10), timezone };
 
-  if (domain === 'tasks') return { ...base, tasks: await tasksContext(supabase, userId) };
-  if (domain === 'goals') return { ...base, goals: await goalsContext(supabase, userId, timezone) };
-  if (domain === 'assignments') return { ...base, assignments: await assignmentsContext(supabase, userId) };
-  if (domain === 'wealth') return { ...base, wealth: await wealthContext(supabase, userId) };
+  const current =
+    dateStateInTimezone(
+      now,
+      timezone,
+    );
 
-  const [tasks, goals, assignments, wealth] = await Promise.all([
-    tasksContext(supabase, userId),
-    goalsContext(supabase, userId, timezone),
-    assignmentsContext(supabase, userId),
-    wealthContext(supabase, userId),
+  const base = {
+    generated_at:
+      now.toISOString(),
+
+    as_of_date:
+      current.dateKey,
+
+    as_of_weekday:
+      current.weekday,
+
+    timezone,
+  };
+
+  if (domain === 'tasks') {
+    return {
+      ...base,
+      tasks:
+        await tasksContext(
+          supabase,
+          userId,
+          timezone,
+          now,
+        ),
+    };
+  }
+
+  if (domain === 'goals') {
+    return {
+      ...base,
+      goals:
+        await goalsContext(
+          supabase,
+          userId,
+          timezone,
+        ),
+    };
+  }
+
+  if (domain === 'assignments') {
+    return {
+      ...base,
+      assignments:
+        await assignmentsContext(
+          supabase,
+          userId,
+        ),
+    };
+  }
+
+  if (domain === 'wealth') {
+    return {
+      ...base,
+      wealth:
+        await wealthContext(
+          supabase,
+          userId,
+        ),
+    };
+  }
+
+  const [
+    tasks,
+    goals,
+    assignments,
+    wealth,
+  ] = await Promise.all([
+    tasksContext(
+      supabase,
+      userId,
+      timezone,
+      now,
+    ),
+
+    goalsContext(
+      supabase,
+      userId,
+      timezone,
+    ),
+
+    assignmentsContext(
+      supabase,
+      userId,
+    ),
+
+    wealthContext(
+      supabase,
+      userId,
+    ),
   ]);
-  return { ...base, tasks, goals, assignments, wealth };
+
+  return {
+    ...base,
+    tasks,
+    goals,
+    assignments,
+    wealth,
+  };
 }
 
 export function fingerprintContext(context: unknown) {

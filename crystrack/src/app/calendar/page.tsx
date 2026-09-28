@@ -33,15 +33,35 @@ export default function CalendarPage() {
   }, []);
 
   const cells = useMemo(() => {
-    const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-    const last = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
-    const output: Array<{ date: Date; inMonth: boolean }> = [];
-    for (let offset = first.getDay(); offset > 0; offset -= 1) {
-      output.unshift({ date: new Date(cursor.getFullYear(), cursor.getMonth(), 1 - offset), inMonth: false });
-    }
-    for (let day = 1; day <= last.getDate(); day += 1) output.push({ date: new Date(cursor.getFullYear(), cursor.getMonth(), day), inMonth: true });
-    while (output.length % 7) output.push({ date: new Date(cursor.getFullYear(), cursor.getMonth() + 1, output.length - first.getDay() - last.getDate() + 1), inMonth: false });
-    return output;
+    const first = new Date(
+      cursor.getFullYear(),
+      cursor.getMonth(),
+      1,
+    );
+
+    const gridStart = new Date(first);
+    gridStart.setDate(
+      first.getDate() - first.getDay(),
+    );
+
+    return Array.from(
+      { length: 42 },
+      (_, index) => {
+        const date = new Date(gridStart);
+        date.setDate(
+          gridStart.getDate() + index,
+        );
+
+        return {
+          date,
+          inMonth:
+            date.getFullYear() ===
+              cursor.getFullYear() &&
+            date.getMonth() ===
+              cursor.getMonth(),
+        };
+      },
+    );
   }, [cursor]);
 
   const eventsFor = (date: Date) => {
