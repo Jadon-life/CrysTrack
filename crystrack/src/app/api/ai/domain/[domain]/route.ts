@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import {
   analyzeDomainWithOpenRouter,
   DomainInsightSchema,
+  DOMAIN_INSIGHT_POLICY_VERSION,
   intelligenceAnalysisModel,
 } from '@/lib/ai/intelligence';
 import { buildIntelligenceContext, fingerprintContext, type IntelligenceDomain } from '@/lib/ai/context';
@@ -138,7 +139,11 @@ export async function POST(
       );
 
     const fingerprint =
-      fingerprintContext(context);
+      fingerprintContext({
+        policy_version:
+          DOMAIN_INSIGHT_POLICY_VERSION,
+        context,
+      });
 
     currentDate =
       String(

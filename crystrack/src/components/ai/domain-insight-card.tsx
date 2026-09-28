@@ -411,8 +411,7 @@ export function DomainInsightCard({
                       0 && (
                       <div className="mt-3 border-t border-white/10 pt-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-primary)]">
-                          Best next
-                          move
+                          Suggested focus
                         </p>
 
                         <p className="text-xs text-white mt-1">

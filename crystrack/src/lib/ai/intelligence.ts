@@ -55,6 +55,9 @@ const DEFAULT_CHAT_MODEL =
 const DEFAULT_ANALYSIS_MODEL =
   'openai/gpt-oss-20b';
 
+export const DOMAIN_INSIGHT_POLICY_VERSION =
+  '2026-09-28-human-semantics-v2';
+
 type OpenRouterResponse = {
   model?: string;
   choices?: Array<{
@@ -230,7 +233,10 @@ Rules:
 - Never describe a routine as completed, pending, skipped or missed when that conflicts with current_day.status.
 - A missed scheduled goal check-in means no progress evidence was recorded for that CrysTrack occurrence; do not claim the user literally did nothing outside the app.
 - Be specific when evidence supports specificity; otherwise say evidence is insufficient.
-- Prefer patterns, changes, trade-offs and concrete next actions over generic encouragement.
+- Prefer patterns, changes, trade-offs and evidence-backed interpretation over generic encouragement.
+- Actions are optional. Return an empty actions array when no specific, non-obvious intervention is supported by the supplied evidence.
+- For Tasks/Routines, never restate an obvious current-state fact as an action and never generate advice merely to fill the actions array.
+- When a Tasks/Routines action is genuinely justified, make it a modest evidence-linked suggestion. Do not claim it is the single best move.
 - For Wealth, distinguish actual confirmed cash movements from forecasts and respect the supplied accounting definitions.
 - Do not diagnose health conditions or prescribe unsafe medical, dietary, exercise, drug or supplement actions.
 - Do not expose or infer identity. The context intentionally excludes credentials and direct identity fields.

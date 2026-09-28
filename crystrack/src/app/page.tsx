@@ -22,10 +22,27 @@ import { useTheme } from '@/components/layout/theme-provider';
 import { fetcher } from '@/lib/api';
 import { formatCurrency, getLocalDateKey } from '@/lib/utils';
 
-function greetingForPhase(phase: string) {
-  if (phase === 'morning') return 'Good morning';
-  if (phase === 'day') return 'Good afternoon';
-  if (phase === 'golden' || phase === 'evening') return 'Good evening';
+function greetingForLocalTime(localTime: string) {
+  const hour = Number(
+    localTime.slice(11, 13),
+  );
+
+  if (!Number.isFinite(hour)) {
+    return 'Hello';
+  }
+
+  if (hour >= 5 && hour < 12) {
+    return 'Good morning';
+  }
+
+  if (hour >= 12 && hour < 17) {
+    return 'Good afternoon';
+  }
+
+  if (hour >= 17 && hour < 21) {
+    return 'Good evening';
+  }
+
   return 'Good night';
 }
 
@@ -199,7 +216,7 @@ export default function DashboardPage() {
     <div className="space-y-5 pb-6">
       <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-1 scenic-readable-copy">
         <div>
-          <p className="text-sm text-white/75">{greetingForPhase(environment.phase)},</p>
+          <p className="text-sm text-white/75">{greetingForLocalTime(environment.localTime)},</p>
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-1">
             {displayName} <span aria-hidden="true">👋</span>
           </h1>

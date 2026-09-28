@@ -144,3 +144,53 @@ test('domain insights require observations and cached insights are revalidated',
     /latestInsight/,
   );
 });
+
+test('routine guidance is optional and never presented as a best move', () => {
+  const ai = read('src/lib/ai/intelligence.ts');
+  const component = read(
+    'src/components/ai/domain-insight-card.tsx',
+  );
+  const route = read(
+    'src/app/api/ai/domain/[domain]/route.ts',
+  );
+
+  assert.match(
+    ai,
+    /Actions are optional/,
+  );
+
+  assert.match(
+    ai,
+    /empty actions array/,
+  );
+
+  assert.match(
+    ai,
+    /never restate an obvious current-state fact as an action/,
+  );
+
+  assert.match(
+    ai,
+    /never generate advice merely to fill the actions array/,
+  );
+
+  assert.match(
+    component,
+    /Suggested focus/,
+  );
+
+  assert.doesNotMatch(
+    component,
+    /Best next/,
+  );
+
+  assert.match(
+    route,
+    /DOMAIN_INSIGHT_POLICY_VERSION/,
+  );
+
+  assert.match(
+    route,
+    /policy_version/,
+  );
+});

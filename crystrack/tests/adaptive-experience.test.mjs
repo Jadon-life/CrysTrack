@@ -66,3 +66,42 @@ test('PWA and production configuration remain present', () => {
   assert.ok(existsSync(join(root, 'public/sw.js')));
   assert.ok(existsSync(join(root, 'postcss.config.js')));
 });
+
+test('dashboard greeting follows local clock rather than solar phase', () => {
+  const dashboard = read('src/app/page.tsx');
+
+  assert.match(
+    dashboard,
+    /function greetingForLocalTime\(localTime: string\)/,
+  );
+
+  assert.match(
+    dashboard,
+    /localTime\.slice\(11,\s*13\)/,
+  );
+
+  assert.match(
+    dashboard,
+    /hour >= 5 && hour < 12/,
+  );
+
+  assert.match(
+    dashboard,
+    /hour >= 12 && hour < 17/,
+  );
+
+  assert.match(
+    dashboard,
+    /hour >= 17 && hour < 21/,
+  );
+
+  assert.match(
+    dashboard,
+    /greetingForLocalTime\(environment\.localTime\)/,
+  );
+
+  assert.doesNotMatch(
+    dashboard,
+    /greetingForPhase\(environment\.phase\)/,
+  );
+});
