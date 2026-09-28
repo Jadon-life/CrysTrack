@@ -39,15 +39,30 @@ export default function CalendarPage() {
       1,
     );
 
+    const last = new Date(
+      cursor.getFullYear(),
+      cursor.getMonth() + 1,
+      0,
+    );
+
     const gridStart = new Date(first);
     gridStart.setDate(
       first.getDate() - first.getDay(),
     );
 
+    const cellCount =
+      Math.ceil(
+        (
+          first.getDay() +
+          last.getDate()
+        ) / 7,
+      ) * 7;
+
     return Array.from(
-      { length: 42 },
+      { length: cellCount },
       (_, index) => {
         const date = new Date(gridStart);
+
         date.setDate(
           gridStart.getDate() + index,
         );
@@ -85,7 +100,122 @@ export default function CalendarPage() {
       <div className="grid xl:grid-cols-[1fr_330px] gap-4">
         <GlassCard padding="md" depth="substantial" className="calendar-glass calendar-glass--grid">
           <div className="flex items-center justify-between mb-5"><button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className="glass-button !p-2"><ChevronLeft className="w-4 h-4" /></button><p className="text-sm font-semibold text-white">{monthLabel}</p><button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="glass-button !p-2"><ChevronRight className="w-4 h-4" /></button></div>
-          <div className="grid grid-cols-7 gap-1">{weekdayNames.map((day) => <div key={day} className="text-[10px] uppercase tracking-wide text-center text-[var(--theme-text-muted)] py-2">{day}</div>)}{cells.map(({ date, inMonth }) => { const key = dateKey(date); const events = eventsFor(date); const active = key === selected; const today = key === dateKey(new Date()); return <button key={key} onClick={() => setSelected(key)} className={`calendar-day min-h-24 sm:min-h-28 rounded-xl border p-2 text-left transition-colors ${active ? 'border-[var(--theme-primary)] bg-white/10' : 'border-white/[0.07] bg-black/10 hover:bg-white/[0.04]'} ${inMonth ? '' : 'opacity-35'}`}><div className="flex items-center justify-between"><span className={`text-xs ${today ? 'w-6 h-6 rounded-full grid place-items-center bg-[var(--theme-primary)] text-white font-bold' : 'text-white/80'}`}>{date.getDate()}</span></div><div className="mt-2 space-y-1">{events.slice(0, 3).map((event, i) => <div key={`${event.type}-${i}`} className="flex items-center gap-1.5 min-w-0"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${event.tone}`} /><span className="text-[9px] text-white/70 truncate">{event.title}</span></div>)}{events.length > 3 && <span className="text-[9px] text-[var(--theme-text-muted)]">+{events.length - 3} more</span>}</div></button>; })}</div>
+          <div className="grid grid-cols-7 gap-1">
+            {weekdayNames.map((day) => (
+              <div
+                key={day}
+                className="text-[10px] uppercase tracking-wide text-center text-[var(--theme-text-muted)] py-2"
+              >
+                {day}
+              </div>
+            ))}
+
+            {cells.map(({ date, inMonth }) => {
+              const key = dateKey(date);
+              const events = eventsFor(date);
+              const active = key === selected;
+              const today =
+                key === dateKey(new Date());
+
+              const taskCount =
+                events.filter(
+                  (event) =>
+                    event.type === 'task',
+                ).length;
+
+              const assignmentCount =
+                events.filter(
+                  (event) =>
+                    event.type ===
+                    'assignment',
+                ).length;
+
+              const goalCount =
+                events.filter(
+                  (event) =>
+                    event.type === 'goal',
+                ).length;
+
+              const summaries = [
+                {
+                  type: 'task',
+                  count: taskCount,
+                  singular: 'routine',
+                  plural: 'routines',
+                  tone: 'bg-emerald-400',
+                },
+                {
+                  type: 'assignment',
+                  count: assignmentCount,
+                  singular: 'assignment',
+                  plural: 'assignments',
+                  tone: 'bg-amber-400',
+                },
+                {
+                  type: 'goal',
+                  count: goalCount,
+                  singular: 'goal',
+                  plural: 'goals',
+                  tone: 'bg-violet-400',
+                },
+              ].filter(
+                (item) => item.count > 0,
+              );
+
+              return (
+                <button
+                  key={key}
+                  onClick={() =>
+                    setSelected(key)
+                  }
+                  className={`calendar-day min-h-20 sm:min-h-24 rounded-xl border p-2 text-left transition-colors ${
+                    active
+                      ? 'border-[var(--theme-primary)] bg-white/10'
+                      : 'border-white/[0.07] bg-black/10 hover:bg-white/[0.04]'
+                  } ${
+                    inMonth
+                      ? ''
+                      : 'opacity-35'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-xs ${
+                        today
+                          ? 'w-6 h-6 rounded-full grid place-items-center bg-[var(--theme-primary)] text-white font-bold'
+                          : 'text-white/80'
+                      }`}
+                    >
+                      {date.getDate()}
+                    </span>
+                  </div>
+
+                  {summaries.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {summaries.map(
+                        (item) => (
+                          <div
+                            key={item.type}
+                            className="flex items-center gap-1.5 min-w-0"
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.tone}`}
+                            />
+                            <span className="text-[9px] text-white/65 truncate">
+                              {item.count}{' '}
+                              {item.count === 1
+                                ? item.singular
+                                : item.plural}
+                            </span>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </GlassCard>
         <GlassCard padding="md" depth="substantial" className="calendar-glass h-fit"><p className="text-sm font-semibold text-white">{selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p><p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Scheduled items</p><div className="space-y-2 mt-4">{selectedEvents.length === 0 ? <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">Nothing scheduled for this day.</p> : selectedEvents.map((event, index) => <div key={`${event.type}-${index}`} className="calendar-event-glass rounded-xl border border-white/10 bg-black/10 p-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${event.tone}`} /><span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">{event.type}</span></div><p className="text-xs text-white mt-1.5">{event.title}</p></div>)}</div></GlassCard>
       </div>

@@ -222,6 +222,8 @@ Analyze the supplied ${domain} data and surface only meaningful observations tha
 Rules:
 - Use only supplied CrysTrack facts. Never invent activity, amounts, dates, progress, missed work or causes.
 - Deterministic calculations supplied by CrysTrack are authoritative.
+- For Tasks/Routines, tasks.today and each routine's current_day are the authoritative current state. Start with current_date and today's scheduled/completed/pending/skipped/missed state before using last_60_days history.
+- Never describe a routine as completed, pending, skipped or missed when that conflicts with current_day.status.
 - A missed scheduled goal check-in means no progress evidence was recorded for that CrysTrack occurrence; do not claim the user literally did nothing outside the app.
 - Be specific when evidence supports specificity; otherwise say evidence is insufficient.
 - Prefer patterns, changes, trade-offs and concrete next actions over generic encouragement.
