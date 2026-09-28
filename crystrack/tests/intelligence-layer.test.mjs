@@ -89,3 +89,58 @@ test('paid AI rate-limit messaging does not describe the model as free', () => {
   assert.doesNotMatch(chat, /free AI quota/i);
   assert.match(chat, /CrysTrack AI is temporarily busy/);
 });
+
+test('domain insights require observations and cached insights are revalidated', () => {
+  const ai = read('src/lib/ai/intelligence.ts');
+  const route = read('src/app/api/ai/domain/[domain]/route.ts');
+
+  assert.match(
+    ai,
+    /observations:\s*z\.array\([^;]+\.min\(1\)\.max\(5\)/,
+  );
+
+  assert.match(
+    ai,
+    /minItems:\s*1/,
+  );
+
+  assert.match(
+    ai,
+    /maxItems:\s*5/,
+  );
+
+  assert.match(
+    ai,
+    /Never return an empty observations array/,
+  );
+
+  assert.match(
+    ai,
+    /at least one observation must directly interpret today's deterministic routine state/,
+  );
+
+  assert.match(
+    route,
+    /DomainInsightSchema/,
+  );
+
+  assert.match(
+    route,
+    /function validatedInsight/,
+  );
+
+  assert.match(
+    route,
+    /DomainInsightSchema\.safeParse/,
+  );
+
+  assert.match(
+    route,
+    /sameFingerprintInsight/,
+  );
+
+  assert.match(
+    route,
+    /latestInsight/,
+  );
+});

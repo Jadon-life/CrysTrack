@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const DomainInsightSchema = z.object({
   headline: z.string().min(1).max(180),
   summary: z.string().min(1).max(1500),
-  observations: z.array(z.string().min(1).max(420)).max(5),
+  observations: z.array(z.string().min(1).max(420)).min(1).max(5),
   actions: z.array(z.string().min(1).max(420)).max(4),
   risk_level: z.enum(['low', 'medium', 'high']),
   confidence: z.enum(['low', 'medium', 'high']),
@@ -18,6 +18,8 @@ const domainResponseSchema = {
     summary: { type: 'string' },
     observations: {
       type: 'array',
+      minItems: 1,
+      maxItems: 5,
       items: { type: 'string' },
     },
     actions: {
@@ -222,7 +224,9 @@ Analyze the supplied ${domain} data and surface only meaningful observations tha
 Rules:
 - Use only supplied CrysTrack facts. Never invent activity, amounts, dates, progress, missed work or causes.
 - Deterministic calculations supplied by CrysTrack are authoritative.
+- Return between 1 and 5 evidence-backed observations. Never return an empty observations array. If evidence is limited, state the evidence limitation as an observation instead of inventing facts.
 - For Tasks/Routines, tasks.today and each routine's current_day are the authoritative current state. Start with current_date and today's scheduled/completed/pending/skipped/missed state before using last_60_days history.
+- For Tasks/Routines, at least one observation must directly interpret today's deterministic routine state before discussing historical patterns.
 - Never describe a routine as completed, pending, skipped or missed when that conflicts with current_day.status.
 - A missed scheduled goal check-in means no progress evidence was recorded for that CrysTrack occurrence; do not claim the user literally did nothing outside the app.
 - Be specific when evidence supports specificity; otherwise say evidence is insufficient.

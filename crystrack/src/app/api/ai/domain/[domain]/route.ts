@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { analyzeDomainWithOpenRouter, intelligenceAnalysisModel } from '@/lib/ai/intelligence';
+import {
+  analyzeDomainWithOpenRouter,
+  DomainInsightSchema,
+  intelligenceAnalysisModel,
+} from '@/lib/ai/intelligence';
 import { buildIntelligenceContext, fingerprintContext, type IntelligenceDomain } from '@/lib/ai/context';
 
 export const runtime = 'nodejs';
@@ -10,6 +14,15 @@ const DOMAINS = new Set<IntelligenceDomain>(['tasks', 'goals', 'assignments', 'w
 
 function validDomain(value: string): value is IntelligenceDomain {
   return DOMAINS.has(value as IntelligenceDomain);
+}
+
+function validatedInsight(value: unknown) {
+  const parsed =
+    DomainInsightSchema.safeParse(value);
+
+  return parsed.success
+    ? parsed.data
+    : null;
 }
 
 async function currentUser() {
@@ -34,12 +47,16 @@ export async function GET(_request: Request, props: { params: Promise<{ domain: 
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const insight =
+    validatedInsight(data?.insight);
+
   return NextResponse.json({
-    insight: data?.insight || null,
+    insight,
     generatedAt: data?.generated_at || null,
     model: data?.model || intelligenceAnalysisModel(),
     configured: Boolean(process.env.OPENROUTER_API_KEY),
-    cached: Boolean(data),
+    cached: Boolean(insight),
   });
 }
 
@@ -88,17 +105,22 @@ export async function POST(
       .limit(1)
       .maybeSingle();
 
+  const latestInsight =
+    validatedInsight(
+      latest?.insight,
+    );
+
   if (!process.env.OPENROUTER_API_KEY) {
     return NextResponse.json({
       insight:
-        latest?.insight || null,
+        latestInsight,
       generatedAt:
         latest?.generated_at || null,
       model:
         latest?.model ||
         intelligenceAnalysisModel(),
       configured: false,
-      cached: Boolean(latest),
+      cached: Boolean(latestInsight),
       currentSnapshot: null,
       currentDate: null,
     });
@@ -136,10 +158,10 @@ export async function POST(
       !forceRefresh &&
       latest?.data_fingerprint ===
         fingerprint &&
-      latest?.insight
+      latestInsight
     ) {
       return NextResponse.json({
-        insight: latest.insight,
+        insight: latestInsight,
         generatedAt:
           latest.generated_at,
         model: latest.model,
@@ -169,12 +191,18 @@ export async function POST(
         )
         .maybeSingle();
 
+      const sameFingerprintInsight =
+        validatedInsight(
+          sameFingerprint?.insight,
+        );
+
       if (
-        sameFingerprint?.insight
+        sameFingerprint &&
+        sameFingerprintInsight
       ) {
         return NextResponse.json({
           insight:
-            sameFingerprint.insight,
+            sameFingerprintInsight,
           generatedAt:
             sameFingerprint
               .generated_at,
@@ -197,7 +225,7 @@ export async function POST(
     if (!insight) {
       return NextResponse.json({
         insight:
-          latest?.insight || null,
+          latestInsight,
         generatedAt:
           latest?.generated_at ||
           null,
@@ -205,7 +233,7 @@ export async function POST(
           latest?.model ||
           intelligenceAnalysisModel(),
         configured: false,
-        cached: Boolean(latest),
+        cached: Boolean(latestInsight),
         currentSnapshot,
         currentDate,
       });
@@ -260,9 +288,9 @@ export async function POST(
       currentDate,
     });
   } catch (error: any) {
-    if (latest?.insight) {
+    if (latest && latestInsight) {
       return NextResponse.json({
-        insight: latest.insight,
+        insight: latestInsight,
         generatedAt:
           latest.generated_at,
         model: latest.model,
