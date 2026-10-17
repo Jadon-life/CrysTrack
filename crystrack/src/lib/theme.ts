@@ -154,3 +154,5 @@ export const wealthThemeTokens = {
 };
 
 export const gamificationThemeTokens={...goalThemeTokens,'--xp-gold':'#D9B65D','--xp-bright':'#F0D48A','--xp-muted':'#B7BED1','--xp-ivory':'#F6F1E4'};
+
+export const coachThemeTokens={...goalThemeTokens,'--coach-accent':'#D9B65D','--coach-text':'#F6F1E4','--coach-muted':'#B7BED1','--coach-glass':'rgba(10,22,52,.55)'};

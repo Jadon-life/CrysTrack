@@ -297,3 +297,12 @@ export const wealthSettings = pgTable('wealth_settings', {
 export const gamificationEvents=pgTable('gamification_events',{
  id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),actionKey:text('action_key').notNull(),kind:varchar('kind',{length:20}).notNull(),sourceId:text('source_id').notNull(),day:date('day').notNull(),area:varchar('area',{length:100}),active:boolean('active').notNull().default(true),onTime:boolean('on_time').notNull().default(false),createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
 },t=>({ownerAction:unique('gamification_events_user_id_action_key_key').on(t.userId,t.actionKey),ownerDay:index('gamification_owner_day').on(t.userId,t.day),kindCheck:check('gamification_events_kind_check',sql`${t.kind} IN ('task','goal','expense','morning','evening','weekly','assignment')`)}));
+
+// Piece 9 preview only: apply 0011 exclusively to the isolated staging database.
+export const previewCoachActions=pgTable('preview_coach_actions',{
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),
+ tool:jsonb('tool').$type<import('@/lib/coach-preview/contracts').CoachTool>().notNull(),
+ status:varchar('status',{length:20}).$type<'approved'|'dismissed'>().notNull(),
+ result:jsonb('result').$type<Record<string,unknown>>().notNull().default({}),
+ createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
+},table=>({statusCheck:check('preview_coach_actions_status_check',sql`${table.status} IN ('approved','dismissed')`)}));
