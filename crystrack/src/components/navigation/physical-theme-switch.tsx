@@ -1,27 +1,31 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/components/layout/theme-provider';
-import type { Rocker3D } from '@/lib/three-rocker';
+import type { Rocker3D, RockerPalette } from '@/lib/three-rocker';
 
-/**
- * Real Three.js rocker: ON = Light; OFF = Dark.
- * Adaptive stays in Settings and the button always works without WebGL.
- */
+/** Physical Light/Dark rocker. Adaptive stays in Settings > Appearance. */
 export function PhysicalThemeSwitch() {
-  const { preference, environment, reducedMotion, setPreference } = useTheme();
+  const { theme, preference, environment, reducedMotion, setPreference } = useTheme();
   const isLight = preference === 'light' || (
     preference === 'adaptive' && (environment.phase === 'morning' || environment.phase === 'day')
   );
+  const palette = useMemo<RockerPalette>(() => ({
+    background: theme.background,
+    primary: theme.primary,
+    secondary: theme.secondary,
+  }), [theme.background, theme.primary, theme.secondary]);
+
   const [ready, setReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const modelRef = useRef<Rocker3D | null>(null);
-  const latestRef = useRef({ isLight, reducedMotion });
+  const latestRef = useRef({ isLight, reducedMotion, palette });
 
   useEffect(() => {
-    latestRef.current = { isLight, reducedMotion };
-    modelRef.current?.update(isLight, reducedMotion);
-  }, [isLight, reducedMotion]);
+    latestRef.current = { isLight, reducedMotion, palette };
+    modelRef.current?.update(isLight, reducedMotion, palette);
+  }, [isLight, reducedMotion, palette]);
 
   useEffect(() => {
     let mounted = true;
@@ -29,16 +33,15 @@ export function PhysicalThemeSwitch() {
       const canvas = canvasRef.current;
       if (!canvas) return;
       try {
-        // Three.js and its GPU code are not loaded for server rendering.
         const { mountRocker } = await import('@/lib/three-rocker');
         if (!mounted || !canvas.isConnected) return;
-        const model = mountRocker(canvas, latestRef.current.isLight);
+        const current = latestRef.current;
+        const model = mountRocker(canvas, current.isLight, current.palette);
         if (!mounted) { model.dispose(); return; }
         modelRef.current = model;
-        model.update(latestRef.current.isLight, latestRef.current.reducedMotion);
+        model.update(current.isLight, current.reducedMotion, current.palette);
         setReady(true);
       } catch {
-        // Canvas/WebGL-disabled browser: preserve the semantic CSS switch.
         if (mounted) setReady(false);
       }
     };
@@ -55,14 +58,14 @@ export function PhysicalThemeSwitch() {
       type="button"
       role="switch"
       aria-checked={isLight}
-      aria-label="Light mode"
+      aria-label={isLight ? 'Light appearance active' : 'Dark appearance active'}
       aria-description={preference === 'adaptive'
-        ? 'Automatic time-of-day theme is active. Press to choose a manual mode. Restore Adaptive in Settings, Appearance.'
-        : 'Press to toggle Light and Dark. Adaptive is in Settings, Appearance.'}
+        ? 'Automatic time-of-day appearance is active. Press to choose a manual mode. Adaptive remains in Settings, Appearance.'
+        : 'Press to toggle Light and Dark. Adaptive remains in Settings, Appearance.'}
       title={preference === 'adaptive'
-        ? 'Adaptive active · Switch to ' + (isLight ? 'Dark' : 'Light') + ' · Auto in Settings'
-        : 'Switch to ' + (isLight ? 'Dark' : 'Light') + ' mode'}
-      data-mode={isLight ? 'on' : 'off'}
+        ? 'Adaptive active · Switch to ' + (isLight ? 'Dark' : 'Light')
+        : 'Switch to ' + (isLight ? 'Dark' : 'Light') + ' appearance'}
+      data-mode={isLight ? 'light' : 'dark'}
       data-auto={preference === 'adaptive' ? 'true' : 'false'}
       data-ready={ready ? 'true' : 'false'}
       onClick={() => void setPreference(isLight ? 'dark' : 'light')}
@@ -70,7 +73,10 @@ export function PhysicalThemeSwitch() {
     >
       <canvas ref={canvasRef} className="crys-3d-switch__canvas" aria-hidden="true" />
       <span className="crys-3d-switch__fallback" aria-hidden="true" />
-      <span className="crys-3d-switch__labels" aria-hidden="true"><span>ON</span><span>OFF</span></span>
+      <span className="crys-3d-switch__fallback-icons" aria-hidden="true">
+        <Sun className="h-3.5 w-3.5" />
+        <Moon className="h-3.5 w-3.5" />
+      </span>
       <span className="crys-3d-switch__auto" aria-hidden="true" />
     </button>
   );

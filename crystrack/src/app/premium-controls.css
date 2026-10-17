@@ -31,15 +31,15 @@
 .scrollbar-hide { scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-/* True Three.js miniature hardware rocker — navy, cyan and pearl metal.
-   WebGL draws only on mount/resize and during brief state changes. */
+/* Real Three.js theme rocker. Its fallback uses the same active CrysTrack
+   colour tokens; no white plastic or unrelated purple hardware. */
 .crys-3d-switch {
   display: inline-block;
   position: relative;
   isolation: isolate;
   flex: 0 0 auto;
   width: 100px;
-  height: 40px;
+  height: 42px;
   border: 0;
   padding: 0;
   border-radius: 999px;
@@ -58,43 +58,58 @@
 .crys-3d-switch[data-ready='true'] .crys-3d-switch__canvas { opacity: 1; }
 .crys-3d-switch__fallback {
   position: absolute;
-  inset: 6px 6px 8px;
+  inset: 6px 5px 8px;
   border-radius: 999px;
-  border: 2px solid #2e8ec4;
-  background: linear-gradient(145deg, #f2f9fd, #c0d6e5 42%, #376584 49%, #0b2945);
-  box-shadow: inset 0 2px 2px rgba(255,255,255,.85), inset 0 -2px 2px rgba(6,20,37,.55), 0 3px 0 #0c709f, 0 5px 8px rgba(1,9,23,.5);
-  transform: perspective(240px) rotateY(-9deg);
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 50%, var(--theme-border));
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--theme-primary) 27%, var(--theme-bg)),
+      color-mix(in srgb, var(--theme-secondary) 13%, var(--theme-bg)) 46%,
+      color-mix(in srgb, var(--theme-bg) 90%, black)
+    );
+  box-shadow:
+    inset 0 2px 2px color-mix(in srgb, var(--theme-primary) 17%, transparent),
+    inset 0 -4px 3px rgba(0,0,0,.40),
+    0 4px 0 color-mix(in srgb, var(--theme-primary) 38%, var(--theme-bg)),
+    0 7px 12px rgba(0,0,0,.38);
+  transform: perspective(220px) rotateY(-14deg) rotateX(6deg);
 }
-.crys-3d-switch[data-mode='off'] .crys-3d-switch__fallback {
-  transform: perspective(240px) rotateY(9deg);
+.crys-3d-switch[data-mode='dark'] .crys-3d-switch__fallback {
+  transform: perspective(220px) rotateY(14deg) rotateX(-6deg);
 }
 .crys-3d-switch[data-ready='true'] .crys-3d-switch__fallback { display: none; }
-.crys-3d-switch__labels {
+
+.crys-3d-switch__fallback-icons {
   position: absolute;
   pointer-events: none;
-  inset: 9px 10px 11px;
+  inset: 9px 12px 11px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  align-items: center;
-  color: #21394c;
-  text-shadow: 0 1px rgba(255,255,255,.58);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .03em;
-  text-align: center;
+  place-items: center;
+  color: color-mix(in srgb, var(--theme-primary) 80%, var(--theme-text));
 }
-.crys-3d-switch__labels span + span { border-left: 1px solid rgba(43,89,118,.33); }
-.crys-3d-switch[data-ready='true'] .crys-3d-switch__labels { display: none; }
+.crys-3d-switch__fallback-icons > :last-child {
+  color: color-mix(in srgb, var(--theme-secondary) 75%, var(--theme-text-muted));
+}
+.crys-3d-switch[data-mode='dark'] .crys-3d-switch__fallback-icons > :first-child {
+  opacity: .45;
+}
+.crys-3d-switch[data-mode='light'] .crys-3d-switch__fallback-icons > :last-child {
+  opacity: .45;
+}
+.crys-3d-switch[data-ready='true'] .crys-3d-switch__fallback-icons { display: none; }
+
 .crys-3d-switch__auto {
   display: none;
   position: absolute;
-  right: 9px;
+  right: 8px;
   top: 3px;
   width: 6px;
   height: 6px;
   background: var(--theme-primary);
   border-radius: 50%;
-  border: 1px solid #e7faff;
+  border: 1px solid color-mix(in srgb, var(--theme-text) 65%, transparent);
   box-shadow: 0 0 8px var(--theme-primary);
 }
 .crys-3d-switch[data-auto='true'] .crys-3d-switch__auto { display: block; }
@@ -103,8 +118,8 @@
   outline-offset: 3px;
 }
 @media (max-width: 640px) {
-  .crys-3d-switch { width: 84px; height: 36px; }
-  .crys-3d-switch__labels { inset: 8px 8px 10px; }
+  .crys-3d-switch { width: 86px; height: 38px; }
+  .crys-3d-switch__fallback-icons { inset: 8px 10px 10px; }
 }
 @media (forced-colors: active) {
   .crys-3d-switch__canvas { opacity: 0 !important; }
@@ -115,6 +130,10 @@
     border: 2px solid ButtonText;
     box-shadow: none;
   }
-  .crys-3d-switch__labels { display: grid !important; color: ButtonText; text-shadow: none; }
+  .crys-3d-switch__fallback-icons {
+    display: grid !important;
+    color: ButtonText !important;
+  }
+  .crys-3d-switch__fallback-icons > * { color: ButtonText !important; opacity: 1 !important; }
   .crys-3d-switch:focus-visible { outline-color: Highlight; }
 }

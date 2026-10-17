@@ -1,15 +1,31 @@
 import * as THREE from 'three';
 
+export interface RockerPalette {
+  background: string;
+  primary: string;
+  secondary: string;
+}
+
 export interface Rocker3D {
-  update: (on: boolean, reducedMotion: boolean) => void;
+  update: (light: boolean, reducedMotion: boolean, palette: RockerPalette) => void;
   dispose: () => void;
 }
 
+function color(value: string, fallback: number) {
+  const result = new THREE.Color(fallback);
+  try { result.setStyle(value); } catch { /* retain fallback */ }
+  return result;
+}
+
 /**
- * Builds the Three.js scene ONCE and renders on demand.
- * The scene is presentation-only: an accessible DOM button receives input.
+ * Builds a compact physical rocker once and renders only on demand.
+ * No input is captured here; the accessible DOM button owns interaction.
  */
-export function mountRocker(canvas: HTMLCanvasElement, initialOn: boolean): Rocker3D {
+export function mountRocker(
+  canvas: HTMLCanvasElement,
+  initialLight: boolean,
+  initialPalette: RockerPalette,
+): Rocker3D {
   const renderer = new THREE.WebGLRenderer({
     canvas, antialias: true, alpha: true, powerPreference: 'low-power',
   });
@@ -17,23 +33,21 @@ export function mountRocker(canvas: HTMLCanvasElement, initialOn: boolean): Rock
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.25;
+  renderer.toneMappingExposure = 1.18;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(25, 2.5, 0.1, 20);
-  camera.position.set(0, 0.45, 3.60);
+  const camera = new THREE.PerspectiveCamera(23, 2.5, 0.1, 20);
+  camera.position.set(0, 0.68, 3.72);
   camera.lookAt(0, 0, 0);
 
-  scene.add(new THREE.HemisphereLight(0xe3f7ff, 0x091a32, 3.2));
-  const key = new THREE.DirectionalLight(0xffffff, 5.0);
-  key.position.set(-2, 3.2, 4);
+  const ambient = new THREE.HemisphereLight(0xa7dcf7, 0x061425, 2.6);
+  scene.add(ambient);
+  const key = new THREE.DirectionalLight(0xbfeaff, 3.5);
+  key.position.set(-2.2, 3.2, 4.2);
   scene.add(key);
-  const edge = new THREE.DirectionalLight(0x48caff, 3.6);
-  edge.position.set(2.8, 1.3, -1.7);
-  scene.add(edge);
-  const bounce = new THREE.PointLight(0x95e6ff, 4.4, 7);
-  bounce.position.set(1.2, -1.5, 3);
-  scene.add(bounce);
+  const rim = new THREE.DirectionalLight(0x38a8ff, 4.0);
+  rim.position.set(2.7, 1.0, -1.5);
+  scene.add(rim);
 
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
@@ -52,94 +66,113 @@ export function mountRocker(canvas: HTMLCanvasElement, initialOn: boolean): Rock
     shape.quadraticCurveTo(x, y + height, x, y + height - radius);
     shape.lineTo(x, y + radius);
     shape.quadraticCurveTo(x, y, x + radius, y);
-    const geo = new THREE.ExtrudeGeometry(shape, {
-      depth, steps: 1, bevelEnabled: true, bevelSegments: 4,
-      bevelThickness: .055, bevelSize: .052, curveSegments: 12,
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth, steps: 1, bevelEnabled: true, bevelSegments: 5,
+      bevelThickness: .065, bevelSize: .058, curveSegments: 14,
     });
-    geometries.push(geo);
-    return geo;
+    geometries.push(geometry);
+    return geometry;
   }
 
-  function material(color: number, metalness: number, roughness: number) {
-    const mat = new THREE.MeshPhysicalMaterial({
-      color, metalness, roughness, clearcoat: 0.40,
-      clearcoatRoughness: 0.14, side: THREE.DoubleSide,
+  function physical(initial: number, metalness: number, roughness: number, clearcoat = .32) {
+    const material = new THREE.MeshPhysicalMaterial({
+      color: initial,
+      metalness,
+      roughness,
+      clearcoat,
+      clearcoatRoughness: .16,
+      side: THREE.DoubleSide,
     });
-    materials.push(mat);
-    return mat;
+    materials.push(material);
+    return material;
   }
 
-  function capsule(width: number, height: number, depth: number, color: number, metalness: number, roughness: number) {
-    return new THREE.Mesh(pill(width, height, depth), material(color, metalness, roughness));
+  function capsule(width: number, height: number, depth: number, material: THREE.Material) {
+    return new THREE.Mesh(pill(width, height, depth), material);
   }
+
+  const baseMat = physical(0x0d2941, .46, .34);
+  const pitMat = physical(0x071727, .25, .43, .18);
+  const edgeMat = physical(0x167eae, .56, .25);
+  const faceMat = physical(0x173a55, .38, .27, .48);
+  const seamMat = physical(0x2e7399, .42, .34, .22);
+  const iconMat = new THREE.MeshStandardMaterial({
+    color: 0x64ccff, emissive: 0x155f88, emissiveIntensity: .22,
+    metalness: .18, roughness: .34,
+  });
+  materials.push(iconMat);
+  const inactiveIconMat = new THREE.MeshStandardMaterial({
+    color: 0x7695a9, emissive: 0x0a1e31, emissiveIntensity: .04,
+    metalness: .16, roughness: .42,
+  });
+  materials.push(inactiveIconMat);
 
   const housing = new THREE.Group();
+  housing.rotation.x = -0.04;
   scene.add(housing);
-  const metalBase = capsule(3.05, 0.91, 0.12, 0x21577b, .58, .29);
-  metalBase.position.z = -.26;
-  housing.add(metalBase);
-  const pit = capsule(2.89, .77, .045, 0x092038, .32, .40);
-  pit.position.z = -.115;
-  housing.add(pit);
-  const cyanEdge = capsule(2.84, .76, .07, 0x1377a6, .56, .24);
-  cyanEdge.position.z = -.015;
-  housing.add(cyanEdge);
 
+  const base = capsule(3.08, .94, .19, baseMat);
+  base.position.z = -.34;
+  housing.add(base);
+  const pit = capsule(2.89, .78, .10, pitMat);
+  pit.position.z = -.13;
+  housing.add(pit);
+  const edge = capsule(2.84, .75, .09, edgeMat);
+  edge.position.z = -.035;
+  housing.add(edge);
+
+  // Noticeably thick rocker: when it pivots, one side physically rises and
+  // its opposite wall becomes visible instead of reading as a flat toggle.
   const pivot = new THREE.Group();
-  pivot.position.z = .08;
+  pivot.position.z = .055;
   housing.add(pivot);
-  const face = capsule(2.81, .74, .14, 0xd4e5f2, .22, .23);
+  const face = capsule(2.79, .72, .245, faceMat);
   pivot.add(face);
 
-  // Tiny raised dividing seam catches actual light as the rocker tilts.
-  const seamGeo = new THREE.BoxGeometry(.018, .59, .014);
+  const seamGeo = new THREE.BoxGeometry(.022, .56, .025);
   geometries.push(seamGeo);
-  const seam = new THREE.Mesh(seamGeo, material(0x7896ad, .35, .42));
-  seam.position.z = .205;
+  const seam = new THREE.Mesh(seamGeo, seamMat);
+  seam.position.z = .322;
   pivot.add(seam);
-  const bevelGlintGeo = new THREE.BoxGeometry(2.5, .012, .007);
-  geometries.push(bevelGlintGeo);
-  const glint = new THREE.Mesh(bevelGlintGeo, material(0xf8fdff, .02, .18));
-  glint.position.set(0, .265, .208);
-  pivot.add(glint);
 
-  // ON/OFF are printed on the physical face itself, not stuck on a static
-  // HTML layer. Their perspective follows the rocker and its pivot.
-  const labelCanvas = document.createElement('canvas');
-  labelCanvas.width = 768;
-  labelCanvas.height = 192;
-  const context = labelCanvas.getContext('2d');
-  if (context) {
-    context.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.font = '800 78px Arial, sans-serif';
-    context.fillStyle = '#243b4e';
-    context.fillText('ON', 190, 100);
-    context.fillText('OFF', 576, 100);
+  // Sun: a raised circular centre with eight tiny hardware rays.
+  const sunGroup = new THREE.Group();
+  sunGroup.position.set(-.71, 0, .338);
+  pivot.add(sunGroup);
+  const sunDiscGeo = new THREE.CylinderGeometry(.105, .105, .026, 24);
+  geometries.push(sunDiscGeo);
+  const sunDisc = new THREE.Mesh(sunDiscGeo, iconMat);
+  sunDisc.rotation.x = Math.PI / 2;
+  sunGroup.add(sunDisc);
+  for (let index = 0; index < 8; index += 1) {
+    const rayGeo = new THREE.BoxGeometry(.045, .016, .020);
+    geometries.push(rayGeo);
+    const ray = new THREE.Mesh(rayGeo, iconMat);
+    const angle = index * Math.PI / 4;
+    ray.position.set(Math.cos(angle) * .16, Math.sin(angle) * .16, 0);
+    ray.rotation.z = angle;
+    sunGroup.add(ray);
   }
-  const labelTexture = new THREE.CanvasTexture(labelCanvas);
-  labelTexture.colorSpace = THREE.SRGBColorSpace;
-  labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  const labelGeo = new THREE.PlaneGeometry(2.55, .60);
-  geometries.push(labelGeo);
-  const labelMat = new THREE.MeshBasicMaterial({
-    map: labelTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide,
-  });
-  materials.push(labelMat);
-  const labelMesh = new THREE.Mesh(labelGeo, labelMat);
-  labelMesh.position.z = .216;
-  pivot.add(labelMesh);
+
+  // Moon: a raised C-shaped torus reads as a crescent at navigation size.
+  const moonGeo = new THREE.TorusGeometry(.115, .034, 10, 30, Math.PI * 1.52);
+  geometries.push(moonGeo);
+  const moon = new THREE.Mesh(moonGeo, inactiveIconMat);
+  moon.position.set(.70, .005, .342);
+  moon.rotation.z = .78;
+  pivot.add(moon);
 
   let disposed = false;
-  let raf = 0;
-  let currentAngle = initialOn ? -.19 : .19;
+  let frame = 0;
+  let currentAngle = initialLight ? -.255 : .255;
   pivot.rotation.y = currentAngle;
-  pivot.rotation.x = initialOn ? .075 : -.075;
+  pivot.rotation.x = initialLight ? .105 : -.105;
+
   const draw = () => { if (!disposed) renderer.render(scene, camera); };
   const resize = () => {
+    if (disposed) return;
     const container = canvas.parentElement;
-    if (!container || disposed) return;
+    if (!container) return;
     const width = Math.max(1, container.clientWidth);
     const height = Math.max(1, container.clientHeight);
     renderer.setSize(width, height, false);
@@ -151,30 +184,60 @@ export function mountRocker(canvas: HTMLCanvasElement, initialOn: boolean): Rock
   observer?.observe(canvas.parentElement || canvas);
   window.addEventListener('resize', resize);
 
-  function update(on: boolean, reducedMotion: boolean) {
-    window.cancelAnimationFrame(raf);
-    const target = on ? -.19 : .19;
-    const targetTilt = on ? .075 : -.075;
+  function applyPalette(palette: RockerPalette, light: boolean) {
+    const bg = color(palette.background, 0x081523);
+    const primary = color(palette.primary, 0x38a8ff);
+    const secondary = color(palette.secondary, 0x48d7d0);
+
+    // Every visible hardware surface derives from CrysTrack's active theme.
+    // No white plastic; the face is a brighter/deeper glass-metal shade.
+    baseMat.color.copy(bg).lerp(primary, .18);
+    pitMat.color.copy(bg).multiplyScalar(.62);
+    edgeMat.color.copy(primary).lerp(secondary, .35);
+    faceMat.color.copy(bg).lerp(primary, light ? .30 : .20).lerp(secondary, .08);
+    seamMat.color.copy(primary).lerp(secondary, .22);
+    iconMat.color.copy(light ? secondary : primary);
+    iconMat.emissive.copy(light ? secondary : primary).multiplyScalar(.28);
+    inactiveIconMat.color.copy(primary).lerp(bg, .58);
+    inactiveIconMat.emissive.copy(bg).lerp(primary, .18).multiplyScalar(.10);
+
+    // Selected side gets the brighter embedded symbol.
+    sunGroup.traverse((object) => {
+      if (object instanceof THREE.Mesh) object.material = light ? iconMat : inactiveIconMat;
+    });
+    moon.material = light ? inactiveIconMat : iconMat;
+    rim.color.copy(primary);
+    key.color.copy(secondary).lerp(new THREE.Color(0xb7dcf2), .45);
+  }
+
+  function update(light: boolean, reducedMotion: boolean, palette: RockerPalette) {
+    applyPalette(palette, light);
+    window.cancelAnimationFrame(frame);
+    const target = light ? -.255 : .255;
+    const targetTilt = light ? .105 : -.105;
     const from = currentAngle;
     const tiltFrom = pivot.rotation.x;
-    if (reducedMotion || Math.abs(from - target) < .001) {
+    if (reducedMotion || Math.abs(target - from) < .001) {
       pivot.rotation.y = currentAngle = target;
       pivot.rotation.x = targetTilt;
       draw();
       return;
     }
     const start = performance.now();
+    const duration = 270;
     const tick = (now: number) => {
       if (disposed) return;
-      const t = Math.min(1, (now - start) / 250);
-      const ease = 1 - (1 - t) ** 3;
-      pivot.rotation.y = currentAngle = from + (target - from) * ease;
-      pivot.rotation.x = tiltFrom + (targetTilt - tiltFrom) * ease;
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      pivot.rotation.y = currentAngle = from + (target - from) * eased;
+      pivot.rotation.x = tiltFrom + (targetTilt - tiltFrom) * eased;
       draw();
-      if (t < 1) raf = window.requestAnimationFrame(tick);
+      if (t < 1) frame = window.requestAnimationFrame(tick);
     };
-    raf = window.requestAnimationFrame(tick);
+    frame = window.requestAnimationFrame(tick);
   }
+
+  applyPalette(initialPalette, initialLight);
   resize();
 
   return {
@@ -182,12 +245,11 @@ export function mountRocker(canvas: HTMLCanvasElement, initialOn: boolean): Rock
     dispose: () => {
       if (disposed) return;
       disposed = true;
-      window.cancelAnimationFrame(raf);
+      window.cancelAnimationFrame(frame);
       observer?.disconnect();
       window.removeEventListener('resize', resize);
       geometries.forEach((geometry) => geometry.dispose());
-      materials.forEach((mat) => mat.dispose());
-      labelTexture.dispose();
+      materials.forEach((material) => material.dispose());
       renderer.dispose();
     },
   };

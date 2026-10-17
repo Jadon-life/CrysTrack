@@ -1,24 +1,21 @@
-# Three.js physical rocker preview — Option A
+# Theme-matched 3D rocker — approval candidate
 
-The flat CSS mock-up was rejected. It is now replaced with an actual 3D
-capsule rocker made from beveled extruded shapes, MeshPhysicalMaterial,
-HemisphereLight / DirectionalLight / PointLight and a perspective camera.
-The navy recessed housing, cyan sidewall and silver-blue metallic rocker use
-CrysTrack's original blue/cyan brand rather than a purple theme.
+This pass responds to three explicit corrections:
 
-Three.js 0.167.1 is an exact dependency matching existing @types/three.
-The scene module is imported dynamically on the client, never on the server.
-A semantic ON=Light/OFF=Dark button receives clicks and keyboard input; the
-canvas itself captures no pointer events. Adaptive stays in Settings → Appearance,
-and a tiny indication shows when time-of-day Adaptive mode is active.
+1. **No white switch.** The housing, recess, rocker face, edge, light and icon
+   materials are derived at runtime from CrysTrack's active background,
+   primary and secondary theme colours. It therefore belongs to the current
+   morning/day/night glass environment instead of looking pasted on.
+2. **No ON/OFF words.** The physical rocker has a raised sun on the Light side
+   and a raised crescent on the Dark side. The active side is brighter.
+3. **Visible depth.** The rocker face is materially thicker, the recess is
+   deeper, and the selected state pivots approximately 14.6 degrees. One side
+   visibly rises while the opposite side presses into the housing.
 
-A WebGL-disabled device receives a regular CSS fallback with the same
-accessible theme behavior. The renderer draws only at init, resize and for a
-250ms switch animation, never in a continuous loop. Animations respect
-CrysTrack reduced-motion settings. GPU geometries/materials and observers
-are disposed on unmount.
+The button remains keyboard accessible and Adaptive remains under
+Settings → Appearance. A theme-coloured CSS fallback uses the same sun/moon
+icons if WebGL cannot start. Rendering is event-driven, not continuous.
 
-Rendering quality and responsiveness still need screenshot/browser checking;
-successful automated code checks do not prove a high-quality photograph-like
-result. Keep this upgrade isolated on draft PR #4. Supabase stage isolation
-remains UNKNOWN; no financial writes, database changes or production merges.
+This is an approval candidate only. No further product piece should begin
+until the user approves the visual result. No production merge or database
+changes.
