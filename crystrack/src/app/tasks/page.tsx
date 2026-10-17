@@ -198,7 +198,7 @@ export default function TasksPage() {
           </div>
         </div>
 
-        {loading && <div className="flex justify-center py-10" role="status"><Loader2 className="h-7 w-7 animate-spin text-[var(--theme-primary)]" /><span className="sr-only">Loading today's routines</span></div>}
+        {loading && <div className="flex justify-center py-10" role="status"><Loader2 className="h-7 w-7 animate-spin text-[var(--theme-primary)]" /><span className="sr-only">Loading today&apos;s routines</span></div>}
         {!loading && todayTasks.length === 0 && (
           <GlassCard padding="lg" className="py-8 text-center">
             <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-[var(--theme-primary)]" aria-hidden="true" />
