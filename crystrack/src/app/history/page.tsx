@@ -26,6 +26,14 @@ function taskOutcome(item: HistoryEvent) {
   return null;
 }
 
+function formatRecordedTime(date: Date, timezone: string): string {
+  try {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: timezone });
+  } catch {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+  }
+}
+
 function historyUrl(page: number, filter: Category | null) {
   return '/api/history?page=' + page + (filter ? '&type=' + encodeURIComponent(filter) : '');
 }
@@ -187,7 +195,7 @@ export default function HistoryPage() {
                               </p>
                               <p className="mt-0.5 text-xs capitalize text-[var(--theme-text-muted)]">
                                 {item.entity_type}
-                                {!Number.isNaN(time.getTime()) && ' · Recorded ' + time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: timezone })}
+                                {!Number.isNaN(time.getTime()) && ' · Recorded ' + formatRecordedTime(time, timezone)}
                               </p>
                             </div>
                             {outcome && (

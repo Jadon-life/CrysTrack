@@ -71,10 +71,10 @@ export function groupHistoryByMonth(events: HistoryEvent[], timezone: string): H
   }
 
   return [...months.entries()]
-    .sort(([a], [b]) => b.localeCompare(a))
+    .sort(([a], [b]) => a === 'unknown' ? 1 : b === 'unknown' ? -1 : b.localeCompare(a))
     .map(([key, days]) => {
       const grouped = [...days.entries()]
-        .sort(([a], [b]) => b.localeCompare(a))
+        .sort(([a], [b]) => a === 'unknown' ? 1 : b === 'unknown' ? -1 : b.localeCompare(a))
         .map(([day, items]): HistoryDay => ({
           key: day,
           label: dateLabel(day, { weekday: 'long', month: 'short', day: 'numeric' }),
