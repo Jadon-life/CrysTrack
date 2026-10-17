@@ -1,3 +1,5 @@
+import {academicDeadline} from '@/lib/assignments/time';
+import {savedTimezone} from '@/lib/finance/time';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
@@ -34,6 +36,7 @@ export async function GET() {
     .select('*')
     .eq('user_id', user.id)
     .neq('status', 'completed')
+    .neq('status', 'dropped')
     .order('deadline', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -51,7 +54,9 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const title = String(body.title || '').trim();
-  const deadline = new Date(body.deadline);
+  let deadline: Date;
+  try {deadline=new Date(academicDeadline(body.deadline,await savedTimezone(supabase,user.id)));}
+  catch{return NextResponse.json({error:'A valid deadline is required'},{status:400});}
   const priority = ['low', 'medium', 'high', 'urgent'].includes(body.priority) ? body.priority : 'medium';
   if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
   if (Number.isNaN(deadline.getTime())) return NextResponse.json({ error: 'A valid deadline is required' }, { status: 400 });

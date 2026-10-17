@@ -36,49 +36,54 @@ import { Button } from '@/components/ui/button';
 import { CreateModal } from '@/components/shared/create-modal';
 import { EXPERIENCE_CONFIG } from '@/config/experience';
 import { fetcher, patch, post } from '@/lib/api';
+import { dateKeyForInstant } from '@/lib/reminders';
+import { toKobo, fromKobo, moneyPercent } from '@/lib/money';
 import { cn, formatDate } from '@/lib/utils';
 import { formatWealthMoney, suggestCategory } from '@/lib/wealth';
 import { useWealthCurrency } from '@/lib/wealth-currency';
 
 const emptyData = {
   entries: [] as any[],
+  accounts: [] as any[],
+  timezone: 'UTC',
   targets: [] as any[],
   debts: [] as any[],
   expectedFlows: [] as any[],
   summary: null as any,
 };
 
-function monthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+function monthKey(date: Date, timezone: string) {
+  return dateKeyForInstant(date,timezone).slice(0,7);
 }
 
-function cashflowSeries(entries: any[]) {
-  const now = new Date();
+function cashflowSeries(entries: any[], timezone: string) {
+  const now = new Date(dateKeyForInstant(new Date(),timezone)+'T12:00:00Z');
   const months = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 15));
     return {
-      key: monthKey(date),
+      key: monthKey(date,timezone),
       label: date.toLocaleDateString([], { month: 'short' }),
-      income: 0,
-      expenses: 0,
-      savings: 0,
+      income: BigInt(0),
+      expenses: BigInt(0),
+      savings: BigInt(0),
     };
   });
 
   const byKey = new Map(months.map((month) => [month.key, month]));
   for (const entry of entries) {
     const date = new Date(entry.date);
-    const bucket = byKey.get(monthKey(date));
+    if(dateKeyForInstant(date,timezone)>dateKeyForInstant(now,timezone))continue;
+    const bucket = byKey.get(monthKey(date,timezone));
     if (!bucket) continue;
     const kind = String(entry.flow_kind || entry.type || '');
-    const amount = Number(entry.amount || 0);
+    const amount = toKobo(entry.amount || 0);
     if (kind === 'income') bucket.income += amount;
     if (kind === 'expense') bucket.expenses += amount;
     if (kind === 'saving') bucket.savings += amount;
     if (kind === 'savings_release') bucket.savings -= amount;
   }
 
-  return months;
+  return months.map(m=>({...m,income:Number(fromKobo(m.income)),expenses:Number(fromKobo(m.expenses)),savings:Number(fromKobo(m.savings))}));
 }
 
 export default function WealthPage() {
@@ -102,7 +107,15 @@ export default function WealthPage() {
     category: '',
     note: '',
     targetId: '',
+    accountId: '',
+    destinationAccountId: '',
   });
+  const [entryRecordedAt,setEntryRecordedAt]=useState(()=>new Date().toISOString());
+  const [entryRequestId,setEntryRequestId]=useState(()=>crypto.randomUUID());
+  const [accountName,setAccountName]=useState('');
+  const [accountKind,setAccountKind]=useState('bank');
+  const [accountBusy,setAccountBusy]=useState(false);
+  const [accountError,setAccountError]=useState('');
   const [target, setTarget] = useState({ title: '', targetAmount: '', deadline: '', description: '' });
   const [debt, setDebt] = useState({ kind: 'receivable', counterparty: '', amount: '', dueDate: '', note: '' });
   const [expected, setExpected] = useState({
@@ -140,34 +153,39 @@ export default function WealthPage() {
     });
   }, [load]);
 
-  const money = (value: number, compact = false, sign = false) =>
-    formatWealthMoney(Number(value || 0), currency, rate?.usdNgn, { compact, sign });
+  const money = (value: number | string, compact = false, sign = false) =>
+    formatWealthMoney(value || 0, currency, rate?.usdNgn, { compact, sign });
 
   const summary = data.summary;
-  const series = useMemo(() => cashflowSeries(data.entries), [data.entries]);
+  const series = useMemo(() => cashflowSeries(data.entries,data.timezone||'UTC'), [data.entries,data.timezone]);
   const categoryData = useMemo(
     () => (summary?.categoryPatterns || []).slice(0, 5).map((item: any) => ({ name: item.category, value: item.current })),
     [summary],
   );
 
   const saveEntry = async () => {
-    const amount = Number(entry.amount);
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Amount must be greater than zero');
+    const amount = fromKobo(toKobo(entry.amount));
+    if (toKobo(amount) <= BigInt(0)) throw new Error('Amount must be greater than zero');
 
     await post('/api/finance/entries', {
       ...entry,
+      requestId: entryRequestId,
+      accountId: entry.accountId || undefined,
+      destinationAccountId: entry.flowKind==='transfer' ? entry.destinationAccountId || null : null,
       amount,
       targetId: entry.targetId || null,
-      date: entry.date || new Date().toISOString(),
+      date: entry.date || entryRecordedAt,
     });
-    setEntry({ flowKind: 'expense', amount: '', date: '', source: '', category: '', note: '', targetId: '' });
+    setEntryRequestId(crypto.randomUUID());
+    setEntryRecordedAt(new Date().toISOString());
+    setEntry({ flowKind: 'expense', amount: '', date: '', source: '', category: '', note: '', targetId: '', accountId: '', destinationAccountId: '' });
     await load();
   };
 
   const saveTarget = async () => {
     await post('/api/finance/targets', {
       title: target.title,
-      targetAmount: Number(target.targetAmount),
+      targetAmount: fromKobo(toKobo(target.targetAmount)),
       deadline: target.deadline || null,
       description: target.description,
     });
@@ -178,7 +196,7 @@ export default function WealthPage() {
   const saveDebt = async () => {
     await post('/api/wealth/debts', {
       ...debt,
-      amount: Number(debt.amount),
+      amount: fromKobo(toKobo(debt.amount)),
       dueDate: debt.dueDate || null,
     });
     setDebt({ kind: 'receivable', counterparty: '', amount: '', dueDate: '', note: '' });
@@ -189,7 +207,7 @@ export default function WealthPage() {
     if (!repayingDebt) return;
     await patch('/api/wealth/debts', {
       debtId: repayingDebt.id,
-      amount: Number(repaymentAmount),
+      amount: fromKobo(toKobo(repaymentAmount)),
     });
     setRepayingDebt(null);
     setRepaymentAmount('');
@@ -199,8 +217,8 @@ export default function WealthPage() {
   const saveExpected = async () => {
     await post('/api/wealth/expected', {
       ...expected,
-      amountMin: Number(expected.amountMin),
-      amountMax: expected.amountMax ? Number(expected.amountMax) : null,
+      amountMin: fromKobo(toKobo(expected.amountMin)),
+      amountMax: expected.amountMax ? fromKobo(toKobo(expected.amountMax)) : null,
       expectedOn: expected.expectedOn || null,
     });
     setExpected({
@@ -222,7 +240,7 @@ export default function WealthPage() {
     await patch('/api/wealth/expected', {
       flowId: confirmingFlow.id,
       action: 'confirm',
-      actualAmount: Number(actualAmount),
+      actualAmount: fromKobo(toKobo(actualAmount)),
     });
     setConfirmingFlow(null);
     setActualAmount('');
@@ -517,9 +535,9 @@ export default function WealthPage() {
 
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
           {data.targets.map((item: any) => {
-            const current = Number(item.current_amount || 0);
-            const targetAmount = Number(item.target_amount || 0);
-            const percent = targetAmount > 0 ? Math.max(0, Math.min(100, Math.round((current / targetAmount) * 100))) : 0;
+            const current = item.current_amount || "0";
+            const targetAmount = item.target_amount || "0";
+            const percent = toKobo(targetAmount) > BigInt(0) ? Math.round(moneyPercent(current,targetAmount)) : 0;
             return (
               <GlassCard key={item.id} padding="md">
                 <div className="flex items-start justify-between gap-3">
@@ -582,13 +600,37 @@ export default function WealthPage() {
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Type</label>
-            <select value={entry.flowKind} onChange={(event) => setEntry((current) => ({ ...current, flowKind: event.target.value, category: event.target.value.includes('saving') ? 'Savings' : current.category }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
+            <select value={entry.flowKind} onChange={(event) => setEntry((current) => ({ ...current, flowKind: event.target.value, targetId: event.target.value.includes('saving') ? current.targetId : '', category: event.target.value.includes('saving') ? 'Savings' : current.category }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
               <option value="income" className="bg-slate-950">Income received</option>
               <option value="expense" className="bg-slate-950">Expense</option>
               <option value="saving" className="bg-slate-950">Move to savings</option>
               <option value="savings_release" className="bg-slate-950">Release from savings</option>
+              <option value="transfer" className="bg-slate-950">Transfer between accounts</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="entry-account" className="block text-xs font-semibold text-white/85 mb-1.5">Source account</label>
+            <select id="entry-account" value={entry.accountId} onChange={e=>setEntry(current=>({...current,accountId:e.target.value}))} required={entry.flowKind==='transfer'} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
+              <option value="" className="bg-slate-950">{entry.flowKind==='transfer'?'Choose a source account':'Default account'}</option>
+              {(data.accounts||[]).map(a=><option key={a.id} value={a.id} className="bg-slate-950">{a.name}</option>)}
+            </select>
+          </div>
+          {entry.flowKind==='transfer' && <div>
+            <label htmlFor="entry-destination" className="block text-xs font-semibold text-white/85 mb-1.5">Destination account</label>
+            <select id="entry-destination" value={entry.destinationAccountId} onChange={e=>setEntry(current=>({...current,destinationAccountId:e.target.value}))} required className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
+              <option value="" className="bg-slate-950">Choose a different account</option>
+              {(data.accounts||[]).filter(a=>a.id!==entry.accountId).map(a=><option key={a.id} value={a.id} className="bg-slate-950">{a.name}</option>)}
+            </select>
+          </div>}
+          <details className="text-sm text-white/85">
+            <summary>Add an account</summary>
+            <label className="block mt-3">Account name<input aria-label="New account name" value={accountName} maxLength={100} onChange={e=>setAccountName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" /></label>
+            <select aria-label="New account kind" value={accountKind} onChange={e=>setAccountKind(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white mt-2">
+              <option value="cash" className="bg-slate-950">Cash</option><option value="bank" className="bg-slate-950">Bank</option><option value="savings" className="bg-slate-950">Savings</option><option value="usd_wallet" className="bg-slate-950">USD Wallet (NGN ledger)</option>
+            </select>
+            <Button type="button" variant="ghost" disabled={accountBusy||!accountName.trim()} onClick={async()=>{setAccountBusy(true);setAccountError('');try{const a=await post('/api/finance/accounts',{name:accountName,kind:accountKind});setData(current=>({...current,accounts:[...(current.accounts||[]),a]}));setAccountName('');}catch(e){setAccountError(e instanceof Error?e.message:'Please try again.');}finally{setAccountBusy(false);}}}>Add account</Button>
+            {accountError && <p role="alert">{accountError}</p>}
+          </details>
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Amount (NGN) *</label>
             <input type="number" step="0.01" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
@@ -632,7 +674,7 @@ export default function WealthPage() {
       <CreateModal isOpen={showTarget} onClose={() => setShowTarget(false)} title="Create savings goal" onSubmit={saveTarget}>
         <div className="space-y-4">
           <input value={target.title} onChange={(event) => setTarget((current) => ({ ...current, title: event.target.value }))} placeholder="Goal name" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-          <input type="number" value={target.targetAmount} onChange={(event) => setTarget((current) => ({ ...current, targetAmount: event.target.value }))} placeholder="Target amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" value={target.targetAmount} onChange={(event) => setTarget((current) => ({ ...current, targetAmount: event.target.value }))} placeholder="Target amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <input type="date" value={target.deadline} onChange={(event) => setTarget((current) => ({ ...current, deadline: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           <textarea value={target.description} onChange={(event) => setTarget((current) => ({ ...current, description: event.target.value }))} placeholder="What is this savings goal for?" className="w-full h-20 resize-none bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
         </div>
@@ -645,7 +687,7 @@ export default function WealthPage() {
             <option value="liability" className="bg-slate-950">I owe someone</option>
           </select>
           <input value={debt.counterparty} onChange={(event) => setDebt((current) => ({ ...current, counterparty: event.target.value }))} placeholder="Name" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-          <input type="number" value={debt.amount} onChange={(event) => setDebt((current) => ({ ...current, amount: event.target.value }))} placeholder="Amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" value={debt.amount} onChange={(event) => setDebt((current) => ({ ...current, amount: event.target.value }))} placeholder="Amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <input type="date" value={debt.dueDate} onChange={(event) => setDebt((current) => ({ ...current, dueDate: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           <textarea value={debt.note} onChange={(event) => setDebt((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note" className="w-full h-20 resize-none bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
         </div>
@@ -654,7 +696,7 @@ export default function WealthPage() {
       <CreateModal isOpen={Boolean(repayingDebt)} onClose={() => setRepayingDebt(null)} title={repayingDebt?.kind === 'receivable' ? 'Record repayment received' : 'Record debt repayment'} onSubmit={repayDebt}>
         <div className="space-y-3">
           <p className="text-xs text-[var(--theme-text-muted)]">Outstanding: {repayingDebt ? money(Number(repayingDebt.outstanding_amount)) : '—'}</p>
-          <input type="number" value={repaymentAmount} onChange={(event) => setRepaymentAmount(event.target.value)} placeholder="Actual repayment amount" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" value={repaymentAmount} onChange={(event) => setRepaymentAmount(event.target.value)} placeholder="Actual repayment amount" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
         </div>
       </CreateModal>
 
@@ -666,8 +708,8 @@ export default function WealthPage() {
           </select>
           <input value={expected.title} onChange={(event) => setExpected((current) => ({ ...current, title: event.target.value }))} placeholder="e.g. Salary, Rent, Freelance payment" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <div className="grid grid-cols-2 gap-3">
-            <input type="number" value={expected.amountMin} onChange={(event) => setExpected((current) => ({ ...current, amountMin: event.target.value }))} placeholder="Minimum NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-            <input type="number" value={expected.amountMax} onChange={(event) => setExpected((current) => ({ ...current, amountMax: event.target.value }))} placeholder="Maximum NGN (optional)" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
+            <input type="number" step="0.01" value={expected.amountMin} onChange={(event) => setExpected((current) => ({ ...current, amountMin: event.target.value }))} placeholder="Minimum NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <input type="number" step="0.01" value={expected.amountMax} onChange={(event) => setExpected((current) => ({ ...current, amountMax: event.target.value }))} placeholder="Maximum NGN (optional)" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           </div>
           <select value={expected.frequency} onChange={(event) => setExpected((current) => ({ ...current, frequency: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
             <option value="one_off" className="bg-slate-950">One off</option>
@@ -693,7 +735,7 @@ export default function WealthPage() {
             {confirmingFlow?.amount_max && Number(confirmingFlow.amount_max) !== Number(confirmingFlow.amount_min) ? ` – ${money(Number(confirmingFlow.amount_max))}` : ''}
           </p>
           <p className="text-[11px] text-white/70">The actual amount can be below or above the forecast range. CrysTrack records what really happened.</p>
-          <input type="number" value={actualAmount} onChange={(event) => setActualAmount(event.target.value)} placeholder="Actual amount received / paid" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" value={actualAmount} onChange={(event) => setActualAmount(event.target.value)} placeholder="Actual amount received / paid" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
         </div>
       </CreateModal>
     </div>

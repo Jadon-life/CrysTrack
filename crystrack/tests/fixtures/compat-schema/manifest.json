@@ -1,0 +1,11 @@
+{
+  "source_commit": "3863438552812197aae3b907bb60de914b1e0547",
+  "purpose": "Immutable test snapshots only; never install through the historical migration runner",
+  "sha256": {
+    "0006_goal_alignment.sql": "b1c8988fc8850ff8790bca9d6b99452f939b4968b37a2340354d3c354d77b29c",
+    "0007_academic_assignments.sql": "99a2ed6b76a7cd872aabcba7c66fcc3b97d433cb387efc1331f86d0208fe9570",
+    "0008_daily_rhythm.sql": "9bb014efdf48e50228cddeec09ed4d48e1a681dd91b2180b08be65afb0b5bf68",
+    "0009_wealth_suite.sql": "ba25a70f4b4bd0a006afc0f55b5420e8353eefb6eecdd64c1639d1b073871d7c",
+    "0010_gamification.sql": "6fbd2c83741e4a264d4c5b65a0448c280db32b0f2e1d8d6f43b161a80b8cbade"
+  }
+}

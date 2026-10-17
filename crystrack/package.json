@@ -15,7 +15,9 @@
     "check": "npm run test && npm run typecheck && npm run lint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "test:september:db": "node --test tests/september-compat.database.integration.mjs",
+    "test:september:browser": "node tests/september-compat.browser.cjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.11",
