@@ -115,6 +115,6 @@
     border: 2px solid ButtonText;
     box-shadow: none;
   }
-  .crys-3d-switch__labels { color: ButtonText; text-shadow: none; }
+  .crys-3d-switch__labels { display: grid !important; color: ButtonText; text-shadow: none; }
   .crys-3d-switch:focus-visible { outline-color: Highlight; }
 }
