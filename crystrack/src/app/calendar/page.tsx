@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { fetcher } from '@/lib/api';
@@ -96,10 +97,14 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">Plan · Time</p><h1 className="text-2xl font-bold text-white mt-1">Calendar</h1><p className="text-sm text-[var(--theme-text-muted)] mt-1">See recurring routines, goal dates and assignment deadlines in one place.</p></div>
+      <header className="scenic-readable-strip max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">Plan · Time</p>
+        <h1 className="text-2xl font-bold text-white mt-1">Calendar</h1>
+        <p className="text-sm text-white/85 mt-1">See recurring routines, goal dates and assignment deadlines in one place.</p>
+      </header>
       <div className="grid xl:grid-cols-[1fr_330px] gap-4">
         <GlassCard padding="md" depth="substantial" className="calendar-glass calendar-glass--grid">
-          <div className="flex items-center justify-between mb-5"><button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className="glass-button !p-2"><ChevronLeft className="w-4 h-4" /></button><p className="text-sm font-semibold text-white">{monthLabel}</p><button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="glass-button !p-2"><ChevronRight className="w-4 h-4" /></button></div>
+          <div className="flex items-center justify-between mb-5"><button type="button" aria-label="Previous month" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className="glass-button !p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"><ChevronLeft className="w-4 h-4" /></button><p className="text-sm font-semibold text-white">{monthLabel}</p><button type="button" aria-label="Next month" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="glass-button !p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"><ChevronRight className="w-4 h-4" /></button></div>
           <div className="grid grid-cols-7 gap-1">
             {weekdayNames.map((day) => (
               <div
@@ -165,10 +170,13 @@ export default function CalendarPage() {
               return (
                 <button
                   key={key}
+                  type="button"
+                  aria-pressed={active}
+                  aria-label={`${date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}, ${events.length} scheduled ${events.length === 1 ? 'item' : 'items'}`}
                   onClick={() =>
                     setSelected(key)
                   }
-                  className={`calendar-day min-h-20 sm:min-h-24 rounded-xl border p-2 text-left transition-colors ${
+                  className={`calendar-day min-h-20 sm:min-h-24 rounded-xl border p-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 ${
                     active
                       ? 'border-[var(--theme-primary)] bg-white/10'
                       : 'border-white/[0.07] bg-black/10 hover:bg-white/[0.04]'
@@ -201,7 +209,7 @@ export default function CalendarPage() {
                             <span
                               className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.tone}`}
                             />
-                            <span className="text-[9px] text-white/65 truncate">
+                            <span className="text-[10px] text-white/85 truncate">
                               {item.count}{' '}
                               {item.count === 1
                                 ? item.singular
@@ -217,7 +225,7 @@ export default function CalendarPage() {
             })}
           </div>
         </GlassCard>
-        <GlassCard padding="md" depth="substantial" className="calendar-glass h-fit"><p className="text-sm font-semibold text-white">{selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p><p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Scheduled items</p><div className="space-y-2 mt-4">{selectedEvents.length === 0 ? <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">Nothing scheduled for this day.</p> : selectedEvents.map((event, index) => <div key={`${event.type}-${index}`} className="calendar-event-glass rounded-xl border border-white/10 bg-black/10 p-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${event.tone}`} /><span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">{event.type}</span></div><p className="text-xs text-white mt-1.5">{event.title}</p></div>)}</div></GlassCard>
+        <GlassCard padding="md" depth="substantial" className="calendar-glass h-fit"><p className="text-sm font-semibold text-white">{selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p><p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Scheduled items</p><div className="space-y-2 mt-4">{selectedEvents.length === 0 ? <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-5 text-center"><p className="text-sm font-medium text-white">Nothing scheduled for this day</p><p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">A clear day. Add a routine, goal or assignment whenever you need one.</p><Link href="/plan" className="mt-3 inline-flex min-h-9 items-center text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">Open Plan</Link></div> : selectedEvents.map((event, index) => <div key={`${event.type}-${index}`} className="calendar-event-glass rounded-xl border border-white/10 bg-black/10 p-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${event.tone}`} /><span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">{event.type}</span></div><p className="text-xs text-white mt-1.5">{event.title}</p></div>)}</div></GlassCard>
       </div>
     </div>
   );

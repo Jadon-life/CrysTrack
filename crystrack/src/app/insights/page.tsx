@@ -35,13 +35,13 @@ export default function InsightsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col items-start sm:flex-row sm:items-center justify-between gap-4 scenic-readable-copy">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400">Insights</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">Insights</p>
           <h1 className="text-2xl font-bold text-white mt-1">What your activity is showing</h1>
-          <p className="text-sm text-slate-400 mt-1">Summaries are calculated from your recorded CrysTrack data—no demo claims.</p>
+          <p className="text-sm text-[var(--theme-text-muted)] mt-1">Summaries are calculated from your recorded CrysTrack data—no demo claims.</p>
         </div>
-        <Link href="/history" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-slate-300 hover:text-white hover:bg-white/[0.06]">
+        <Link href="/history" className="inline-flex min-h-10 items-center gap-2 px-3 py-2 rounded-lg border border-white/20 bg-white/10 text-sm text-white hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
           <History className="w-4 h-4" /> History
         </Link>
       </div>
@@ -52,9 +52,15 @@ export default function InsightsPage() {
       {loading && <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-blue-400 animate-spin" /></div>}
 
       {!loading && insights.length === 0 && (
-        <GlassCard padding="lg" className="text-center py-12">
-          <BrainCircuit className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400">Not enough recorded activity yet. Complete tasks, check in on goals, or add financial entries.</p>
+        <GlassCard padding="lg" className="text-center py-8">
+          <BrainCircuit className="w-9 h-9 text-[var(--theme-primary)] mx-auto mb-3" aria-hidden="true" />
+          <p className="text-base font-semibold text-white">Your insights are taking shape</p>
+          <p className="mx-auto max-w-lg text-sm leading-relaxed text-[var(--theme-text-muted)] mt-2">
+            Complete routines or check in on goals to give CrysTrack real progress to analyze.
+          </p>
+          <Link href="/plan" className="mt-4 inline-flex min-h-10 items-center rounded-lg border border-[var(--theme-border)] bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
+            Explore Plan
+          </Link>
         </GlassCard>
       )}
 
@@ -66,17 +72,17 @@ export default function InsightsPage() {
                 {typeIcons[insight.type as keyof typeof typeIcons] || typeIcons.summary}
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold text-white truncate">{insight.title}</h3>
-                  <p className="text-xs text-slate-500">Updated {new Date(insight.generatedAt).toLocaleString()}</p>
+                  <p className="text-xs text-[var(--theme-text-muted)]">Updated {new Date(insight.generatedAt).toLocaleString()}</p>
                 </div>
               </div>
               {insight.riskLevel && <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize shrink-0 ${riskColors[insight.riskLevel as keyof typeof riskColors] || riskColors.low}`}>{insight.riskLevel} risk</span>}
             </div>
-            <p className="text-sm text-slate-300 leading-relaxed">{insight.summary}</p>
+            <p className="text-sm text-[var(--theme-text-muted)] leading-relaxed">{insight.summary}</p>
             {Array.isArray(insight.recommendations) && insight.recommendations.length > 0 && (
               <div className="bg-white/[0.025] border border-white/[0.06] rounded-lg p-3 mt-4">
                 <div className="flex items-center gap-2 mb-2"><Lightbulb className="w-4 h-4 text-amber-400" /><span className="text-xs font-semibold text-amber-300">Next actions</span></div>
                 <ul className="space-y-1.5">
-                  {insight.recommendations.map((recommendation: string, i: number) => <li key={i} className="text-sm text-slate-400 flex items-start gap-2"><span className="text-blue-400 mt-1.5">•</span>{recommendation}</li>)}
+                  {insight.recommendations.map((recommendation: string, i: number) => <li key={i} className="text-sm leading-relaxed text-[var(--theme-text-muted)] flex items-start gap-2"><span className="text-blue-400 mt-1.5">•</span>{recommendation}</li>)}
                 </ul>
               </div>
             )}
