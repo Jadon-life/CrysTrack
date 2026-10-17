@@ -262,7 +262,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm font-semibold text-white">Today&apos;s plan</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)]">
+              <p className="text-xs text-[var(--theme-text-muted)]">
                 Execution matters more than the exact time.
               </p>
             </div>
@@ -311,13 +311,13 @@ export default function DashboardPage() {
                     >
                       {task.title}
                     </p>
-                    <p className="text-[10px] text-[var(--theme-text-muted)]">
+                    <p className="text-xs text-[var(--theme-text-muted)]">
                       {task.preferred_time || 'Any time today'}
                       {task.category ? ` · ${task.category}` : ''}
                     </p>
                   </div>
 
-                  <span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">
+                  <span className="text-xs uppercase tracking-wide text-[var(--theme-text-muted)]">
                     {task.today_status}
                   </span>
                 </div>
@@ -372,7 +372,7 @@ export default function DashboardPage() {
                           <p className="text-xs font-semibold text-white truncate">
                             {goal.title}
                           </p>
-                          <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
+                          <p className="text-xs text-[var(--theme-text-muted)] mt-1">
                             {checkInDue(goal)
                               ? 'Check-in due today'
                               : 'Check-in up to date'}
@@ -396,7 +396,7 @@ export default function DashboardPage() {
                       )}
 
                       {latest && (
-                        <p className="text-[10px] text-white/65 mt-2 line-clamp-2">
+                        <p className="text-xs text-white/65 mt-2 line-clamp-2">
                           AI: {latest.summary}
                         </p>
                       )}
@@ -411,7 +411,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-sm font-semibold text-white">Wealth Overview</p>
-                <p className="text-[10px] text-[var(--theme-text-muted)] mt-0.5">
+                <p className="text-xs text-[var(--theme-text-muted)] mt-0.5">
                   Actual Naira ledger
                 </p>
               </div>
@@ -422,21 +422,21 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <p className="text-[10px] text-[var(--theme-text-muted)]">Available</p>
+                <p className="text-xs text-[var(--theme-text-muted)]">Available</p>
                 <p className="wealth-number text-sm font-semibold text-emerald-300 mt-1">
                   {formatCurrency(Number(wealthSummary.availableBalance || 0))}
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <p className="text-[10px] text-[var(--theme-text-muted)]">Safe to spend</p>
+                <p className="text-xs text-[var(--theme-text-muted)]">Safe to spend</p>
                 <p className="wealth-number text-sm font-semibold text-amber-300 mt-1">
                   {formatCurrency(Number(wealthSummary.safeToSpend || 0))}
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <p className="text-[10px] text-[var(--theme-text-muted)]">Net position</p>
+                <p className="text-xs text-[var(--theme-text-muted)]">Net position</p>
                 <p className="wealth-number text-sm font-semibold text-sky-300 mt-1">
                   {formatCurrency(Number(wealthSummary.netPosition || 0))}
                 </p>
@@ -445,14 +445,14 @@ export default function DashboardPage() {
 
             <div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-white/85">Spending pattern</p>
-                <p className="text-[10px] text-[var(--theme-text-muted)] capitalize">
+                <p className="text-xs text-white/85">Spending pattern</p>
+                <p className="text-xs text-[var(--theme-text-muted)] capitalize">
                   {wealthSummary.spendingVelocity || 'learning'}
                 </p>
               </div>
 
               {(wealthSummary.categoryPatterns || []).length === 0 ? (
-                <p className="text-[10px] text-[var(--theme-text-muted)] mt-2">
+                <p className="text-xs text-[var(--theme-text-muted)] mt-2">
                   Add expenses to begin learning your pattern.
                 </p>
               ) : (
@@ -461,7 +461,7 @@ export default function DashboardPage() {
                     .slice(0, 3)
                     .map((item: any) => (
                       <div key={item.category}>
-                        <div className="flex items-center justify-between text-[9px]">
+                        <div className="flex items-center justify-between text-xs">
                           <span className="text-[var(--theme-text-muted)]">
                             {item.category}
                           </span>
@@ -519,7 +519,7 @@ export default function DashboardPage() {
                       <AlertTriangle className="w-3.5 h-3.5 text-red-300 shrink-0" />
                     )}
                   </div>
-                  <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">
                     {new Date(assignment.deadline).toLocaleString([], {
                       weekday: 'short',
                       hour: '2-digit',
@@ -541,7 +541,7 @@ export default function DashboardPage() {
 
             {reminders.length > 0 && (
               <div className="mt-3 pt-3 border-t border-white/10">
-                <div className="flex items-center gap-2 text-[11px] text-[var(--theme-text-muted)]">
+                <div className="flex items-center gap-2 text-xs text-[var(--theme-text-muted)]">
                   <Bell className="w-3.5 h-3.5 text-[var(--theme-primary)]" />
                   {reminders.length} reminder event
                   {reminders.length === 1 ? '' : 's'} visible
@@ -587,7 +587,7 @@ export default function DashboardPage() {
                     item.type?.replaceAll('_', ' ') ||
                     'Activity'}
                 </p>
-                <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
+                <p className="text-xs text-[var(--theme-text-muted)] mt-1">
                   {new Date(item.created_at).toLocaleString([], {
                     weekday: 'short',
                     hour: '2-digit',

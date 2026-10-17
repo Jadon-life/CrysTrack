@@ -109,7 +109,7 @@ export default function CalendarPage() {
             {weekdayNames.map((day) => (
               <div
                 key={day}
-                className="text-[10px] uppercase tracking-wide text-center text-[var(--theme-text-muted)] py-2"
+                className="text-xs uppercase tracking-wide text-center text-[var(--theme-text-muted)] py-2"
               >
                 {day}
               </div>
@@ -209,7 +209,7 @@ export default function CalendarPage() {
                             <span
                               className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.tone}`}
                             />
-                            <span className="text-[10px] text-white/85 truncate">
+                            <span className="text-xs text-white/85 truncate">
                               {item.count}{' '}
                               {item.count === 1
                                 ? item.singular
@@ -225,7 +225,7 @@ export default function CalendarPage() {
             })}
           </div>
         </GlassCard>
-        <GlassCard padding="md" depth="substantial" className="calendar-glass h-fit"><p className="text-sm font-semibold text-white">{selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p><p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Scheduled items</p><div className="space-y-2 mt-4">{selectedEvents.length === 0 ? <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-5 text-center"><p className="text-sm font-medium text-white">Nothing scheduled for this day</p><p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">A clear day. Add a routine, goal or assignment whenever you need one.</p><Link href="/plan" className="mt-3 inline-flex min-h-9 items-center text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">Open Plan</Link></div> : selectedEvents.map((event, index) => <div key={`${event.type}-${index}`} className="calendar-event-glass rounded-xl border border-white/10 bg-black/10 p-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${event.tone}`} /><span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">{event.type}</span></div><p className="text-xs text-white mt-1.5">{event.title}</p></div>)}</div></GlassCard>
+        <GlassCard padding="md" depth="substantial" className="calendar-glass h-fit"><p className="text-sm font-semibold text-white">{selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">Scheduled items</p><div className="space-y-2 mt-4">{selectedEvents.length === 0 ? <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-5 text-center"><p className="text-sm font-medium text-white">Nothing scheduled for this day</p><p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">A clear day. Add a routine, goal or assignment whenever you need one.</p><Link href="/plan" className="mt-3 inline-flex min-h-9 items-center text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">Open Plan</Link></div> : selectedEvents.map((event, index) => <div key={`${event.type}-${index}`} className="calendar-event-glass rounded-xl border border-white/10 bg-black/10 p-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${event.tone}`} /><span className="text-xs uppercase tracking-wide text-[var(--theme-text-muted)]">{event.type}</span></div><p className="text-xs text-white mt-1.5">{event.title}</p></div>)}</div></GlassCard>
       </div>
     </div>
   );

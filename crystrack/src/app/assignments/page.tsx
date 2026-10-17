@@ -212,7 +212,7 @@ export default function AssignmentsPage() {
             {newAssignment.remindersEnabled && <>
               <div><label className="block text-xs text-slate-400 mb-1.5">Delivery channel</label><select value={newAssignment.reminderChannel} onChange={(e) => setNewAssignment({ ...newAssignment, reminderChannel: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"><option value="push" className="bg-slate-950">Web Push</option><option value="telegram" className="bg-slate-950">Telegram</option><option value="both" className="bg-slate-950">Web Push + Telegram</option></select></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{proposedOffsets(newAssignment.priority).map((offset) => <label key={offset} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300"><input type="checkbox" checked={newAssignment.reminderOffsets.includes(offset)} onChange={() => toggleOffset(offset)} /> {offsetLabel(offset)}</label>)}</div>
-              {newAssignment.priority === 'urgent' && <p className="text-[11px] text-amber-300">Urgent assignments may bypass Do Not Disturb at critical reminder times.</p>}
+              {newAssignment.priority === 'urgent' && <p className="text-xs text-amber-300">Urgent assignments may bypass Do Not Disturb at critical reminder times.</p>}
             </>}
           </div>
         </div>

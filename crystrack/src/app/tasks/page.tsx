@@ -220,8 +220,8 @@ export default function TasksPage() {
                       task.today_status === 'skipped' && 'text-slate-400',
                       task.today_status !== 'completed' && task.today_status !== 'skipped' && 'text-white',
                     )}>{task.title}</span>
-                    {task.today_status === 'skipped' && <span className="text-[10px] uppercase tracking-wide text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Skipped</span>}
-                    {task.category && <span className="hidden sm:inline text-[11px] text-slate-500">{task.category}</span>}
+                    {task.today_status === 'skipped' && <span className="text-xs uppercase tracking-wide text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Skipped</span>}
+                    {task.category && <span className="hidden sm:inline text-xs text-slate-500">{task.category}</span>}
                   </div>
                   {task.description && <p className="text-xs text-[var(--theme-text-muted)] truncate mt-0.5">{task.description}</p>}
                 </div>
@@ -231,7 +231,7 @@ export default function TasksPage() {
                     <Flame className="w-3.5 h-3.5" /> {task.streak || 0}
                   </div>
                   {task.today_status !== 'completed' && (
-                    <button type="button" onClick={() => toggleTaskSkip(task.id)} className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-amber-300 transition-colors">
+                    <button type="button" onClick={() => toggleTaskSkip(task.id)} className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-amber-300 transition-colors">
                       <SkipForward className="w-3.5 h-3.5" /> {task.today_status === 'skipped' ? 'Undo skip' : 'Skip today'}
                     </button>
                   )}
