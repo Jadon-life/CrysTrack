@@ -273,7 +273,7 @@ export default function TasksPage() {
                     <div className="flex items-center gap-4 mt-3 flex-wrap text-xs text-slate-500">
                       <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{schedules.map((day: number) => weekdays[day]).join(', ')}</span></div>
                       {task.preferred_time && <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /><span>{task.preferred_time}</span></div>}
-                      <div className="flex items-center gap-1.5 text-amber-400"><Flame className="w-3.5 h-3.5" /><span>{task.streak || 0} streak</span></div>
+                      <div className="flex items-center gap-1.5 text-amber-400"><Flame className="w-3.5 h-3.5" /><span>{task.streak || 0} streak · {task.focus_minutes || 0} focused min</span></div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

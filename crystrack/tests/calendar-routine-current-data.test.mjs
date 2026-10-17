@@ -16,63 +16,10 @@ function read(path) {
   );
 }
 
-test(
-  'calendar grid stays aligned and uses only required month weeks',
-  () => {
-    const calendar = read(
-      'src/app/calendar/page.tsx',
-    );
-
-    assert.match(
-      calendar,
-      /const cellCount/,
-    );
-
-    assert.match(
-      calendar,
-      /first\.getDay\(\) \+\s*last\.getDate\(\)/,
-    );
-
-    assert.match(
-      calendar,
-      /\{ length: cellCount \}/,
-    );
-
-    assert.doesNotMatch(
-      calendar,
-      /\{ length: 42 \}/,
-    );
-  },
-);
-
-test(
-  'calendar collapses day-cell items into compact counts',
-  () => {
-    const calendar = read(
-      'src/app/calendar/page.tsx',
-    );
-
-    assert.match(
-      calendar,
-      /const taskCount/,
-    );
-
-    assert.match(
-      calendar,
-      /const assignmentCount/,
-    );
-
-    assert.match(
-      calendar,
-      /const goalCount/,
-    );
-
-    assert.doesNotMatch(
-      calendar,
-      /events\.slice\(0, 3\)/,
-    );
-  },
-);
+test('calendar uses the shared calendar-day grid and unified event model', () => {
+ const calendar=read('src/app/calendar/page.tsx');
+ assert.match(calendar,/monthCells/);assert.match(calendar,/Timeboxed Calendar/);assert.match(calendar,/onDrop/);assert.match(calendar,/Place selected task/);
+});
 
 test(
   'routine intelligence includes timezone-aligned current-day state',
@@ -175,104 +122,6 @@ test(
   },
 );
 
-test(
-  'September 2026 uses five rows and stops at October 3',
-  () => {
-    function grid(
-      year,
-      month,
-    ) {
-      const first =
-        new Date(
-          year,
-          month,
-          1,
-        );
-
-      const last =
-        new Date(
-          year,
-          month + 1,
-          0,
-        );
-
-      const start =
-        new Date(first);
-
-      start.setDate(
-        first.getDate() -
-          first.getDay(),
-      );
-
-      const cellCount =
-        Math.ceil(
-          (
-            first.getDay() +
-            last.getDate()
-          ) / 7,
-        ) * 7;
-
-      return Array.from(
-        {
-          length:
-            cellCount,
-        },
-        (_, index) => {
-          const date =
-            new Date(start);
-
-          date.setDate(
-            start.getDate() +
-              index,
-          );
-
-          return date;
-        },
-      );
-    }
-
-    const september =
-      grid(2026, 8);
-
-    assert.equal(
-      september.length,
-      35,
-    );
-
-    const last =
-      september[
-        september.length - 1
-      ];
-
-    assert.equal(
-      last.getFullYear(),
-      2026,
-    );
-
-    assert.equal(
-      last.getMonth(),
-      9,
-    );
-
-    assert.equal(
-      last.getDate(),
-      3,
-    );
-
-    const sep30 =
-      september.find(
-        (date) =>
-          date.getFullYear() ===
-            2026 &&
-          date.getMonth() === 8 &&
-          date.getDate() === 30,
-      );
-
-    assert.ok(sep30);
-
-    assert.equal(
-      sep30.getDay(),
-      3,
-    );
-  },
-);
+test('September 2026 uses five rows and stops at October 3',async()=>{
+ const {loadTs}=await import('./load-ts.mjs');const {monthCells}=loadTs('src/lib/rhythm/logic.ts');const days=monthCells('2026-09-01');assert.equal(days.length,35);assert.equal(days.at(-1),'2026-10-03');assert.ok(days.includes('2026-09-30'));
+});

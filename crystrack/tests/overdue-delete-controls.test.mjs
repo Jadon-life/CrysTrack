@@ -6,23 +6,26 @@ import path from 'node:path';
 const root = process.cwd();
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 
-test('overdue goals are greyed and cannot be checked in', () => {
+test('overdue goals retain recovery controls and cannot be checked in', () => {
   const page = read('src/app/goals/page.tsx');
   const route = read('src/app/api/goals/[id]/checkins/route.ts');
 
   assert.match(page, /goalIsOverdue/);
   assert.match(page, /Deadline passed — check-ins closed/);
-  assert.match(page, /!goalIsOverdue\(goal\) && checkInState\(goal\)\.due/);
+  assert.match(page, /!goalIsOverdue\(goal\)\s*&&\s*checkInState\(goal\)\.due/);
   assert.match(route, /Goal deadline has passed; check-ins are closed/);
 });
 
-test('overdue assignments have no completion checkbox', () => {
+test('overdue assignments expose a finish action and one-tap resolution controls', () => {
   const page = read('src/app/assignments/page.tsx');
+  const card = read('src/components/assignments/assignment-card.tsx');
   const complete = read('src/app/api/assignments/[id]/complete/route.ts');
-
-  assert.match(page, /const overdue = assignment\.computed_status === 'overdue'/);
-  assert.match(page, /Deadline passed — completion closed/);
-  assert.match(complete, /Assignment deadline has passed; completion is closed/);
+  assert.match(page, /Finish Late/);
+  assert.match(page, /Reschedule/);
+  assert.match(page, /Drop/);
+  assert.match(card, /onChange=\{onFinish\}/);
+  assert.match(complete, /finish_academic_assignment/);
+  assert.doesNotMatch(complete, /completion is closed/);
 });
 
 test('task, goal and assignment permanent delete routes exist', () => {
@@ -40,5 +43,5 @@ test('task, goal and assignment permanent delete routes exist', () => {
 
   assert.match(read('src/app/tasks/page.tsx'), /Delete task permanently/);
   assert.match(read('src/app/goals/page.tsx'), /Delete goal permanently/);
-  assert.match(read('src/app/assignments/page.tsx'), /Delete assignment permanently/);
+  assert.match(read('src/components/assignments/assignment-card.tsx'), /Delete assignment permanently/);
 });

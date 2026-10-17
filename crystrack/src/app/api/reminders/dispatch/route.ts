@@ -352,7 +352,8 @@ export async function POST(request: Request) {
       .from('assignments')
       .select('id, title, deadline, priority, reminder_config')
       .eq('user_id', userId)
-      .neq('status', 'completed');
+      .neq('status', 'completed')
+      .neq('status', 'dropped');
 
     for (const assignment of assignments || []) {
       const config = assignment.reminder_config || { enabled: true, channels: defaultChannels, offsetMinutes: [1440, 120, 0] };
@@ -372,7 +373,7 @@ export async function POST(request: Request) {
           userId,
           entityType: 'assignment',
           entityId: assignment.id,
-          deliveryKey: `assignment:${assignment.id}:offset:${offset}`,
+          deliveryKey: `assignment:${assignment.id}:${assignment.deadline}:offset:${offset}`,
           scheduledFor: now.toISOString(),
           channels,
           payload: { title: assignment.title, body: `Assignment ${label}.`, url: '/assignments', tag: `assignment-${assignment.id}-${offset}` },

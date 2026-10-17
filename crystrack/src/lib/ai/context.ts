@@ -1,6 +1,8 @@
+import { dateKeyForInstant } from '@/lib/reminders';
+import { toKobo,fromKobo } from '@/lib/money';
 import { createHash } from 'crypto';
 import { goalCheckinAccountability, goalCheckinState } from '@/lib/goals/checkin-occurrence';
-import { summarizeWealth } from '@/lib/wealth';
+import { summaryWithAccounts } from '@/lib/finance/data';
 
 export type IntelligenceDomain = 'tasks' | 'goals' | 'assignments' | 'wealth' | 'overview';
 
@@ -389,12 +391,13 @@ async function assignmentsContext(supabase: any, userId: string) {
     priority: item.priority,
     status: item.status,
     completed_at: item.completed_at,
-    overdue_now: item.status !== 'completed' && new Date(item.deadline).getTime() < now,
+    overdue_now: !['completed', 'dropped'].includes(item.status) && new Date(item.deadline).getTime() < now,
   }));
 
   return {
     total_loaded: rows.length,
-    active: rows.filter((row: { status: string }) => row.status !== 'completed').length,
+    active: rows.filter((row: { status: string }) => !['completed', 'dropped'].includes(row.status)).length,
+    dropped: rows.filter((row: { status: string }) => row.status === 'dropped').length,
     overdue: rows.filter((row: { overdue_now: boolean }) => row.overdue_now).length,
     completed: rows.filter((row: { status: string }) => row.status === 'completed').length,
     assignments: rows.slice(0, 80),
@@ -409,6 +412,7 @@ async function loadMoneyEntries(supabase: any, userId: string) {
     const { data, error } = await supabase
       .from('money_entries')
       .select('type, flow_kind, amount, date, source, category, debt_id, expected_flow_id')
+      .is('deleted_at',null)
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .range(from, from + pageSize - 1);
@@ -420,40 +424,41 @@ async function loadMoneyEntries(supabase: any, userId: string) {
   return { rows, truncated: true };
 }
 
-function monthlyLedger(entries: any[]) {
-  const months = new Map<string, Record<string, number>>();
+function monthlyLedger(entries: any[], timezone: string) {
+  const months = new Map<string, Record<string, bigint>>();
   for (const entry of entries) {
-    const month = String(entry.date || '').slice(0, 7);
+    const month = dateKeyForInstant(new Date(entry.date),timezone).slice(0,7);
     if (!/^\d{4}-\d{2}$/.test(month)) continue;
     const kind = String(entry.flow_kind || entry.type || 'other');
     const bucket = months.get(month) || {};
-    bucket[kind] = (bucket[kind] || 0) + number(entry.amount);
+    bucket[kind] = (bucket[kind] || BigInt(0)) + toKobo(entry.amount);
     months.set(month, bucket);
   }
-  return Array.from(months.entries()).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 18).map(([month, totals]) => ({ month, totals }));
+  return Array.from(months.entries()).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 18).map(([month, totals]) => ({ month, totals:Object.fromEntries(Object.entries(totals).map(([k,v])=>[k,fromKobo(v)])) }));
 }
 
 async function wealthContext(supabase: any, userId: string) {
-  const [entriesResult, targetsResult, debtsResult, expectedResult] = await Promise.all([
+  const [entriesResult, targetsResult, debtsResult, expectedResult,accountsResult] = await Promise.all([
     loadMoneyEntries(supabase, userId),
     supabase.from('finance_targets').select('title, target_amount, current_amount, deadline, status').eq('user_id', userId).order('created_at', { ascending: false }),
     supabase.from('wealth_debts').select('kind, original_amount, outstanding_amount, due_date, status').eq('user_id', userId).order('created_at', { ascending: false }),
     supabase.from('wealth_expected_flows').select('direction, title, category, amount_min, amount_max, frequency, expected_on, timing_hint, status, last_actual_amount, last_confirmed_at').eq('user_id', userId).order('created_at', { ascending: false }),
+    supabase.from('wealth_accounts').select('*').eq('user_id',userId),
   ]);
 
-  const firstError = targetsResult.error || debtsResult.error || expectedResult.error;
+  const firstError = targetsResult.error || debtsResult.error || expectedResult.error||accountsResult.error;
   if (firstError) throw firstError;
 
   const entries = entriesResult.rows;
   const debts = debtsResult.data || [];
   const expected = expectedResult.data || [];
-  const summary = summarizeWealth(entries as any, debts as any, expected as any);
+  const summary = summaryWithAccounts(entries as any, debts as any, expected as any,accountsResult.data||[],await profileTimezone(supabase,userId));
 
   return {
     ledger_rows_processed: entries.length,
     ledger_truncated_for_safety: entriesResult.truncated,
     accounting_summary: summary,
-    monthly_ledger: monthlyLedger(entries),
+    monthly_ledger: monthlyLedger(entries,await profileTimezone(supabase,userId)),
     recent_transactions: entries.slice(0, 120).map((entry: any) => ({
       date: String(entry.date || '').slice(0, 10),
       kind: entry.flow_kind || entry.type,

@@ -1,3 +1,4 @@
+import { goalError as goalOperationError } from '@/lib/goals/service';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { analyzeGoal } from '@/lib/goals/analyze-goal';
@@ -12,7 +13,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
-  const [{ data: goal, error: goalError }, { data: profile }] = await Promise.all([
+  const [{ data: goal, error: goalError }, { data: profile, error: profileError }] = await Promise.all([
     supabase
       .from('goals')
       .select('*')
@@ -26,6 +27,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       .eq('user_id', user.id)
       .maybeSingle(),
   ]);
+  if (profileError) return goalOperationError(profileError);
   if (goalError || !goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
   if (goal.deadline && new Date(goal.deadline).getTime() < Date.now()) {
     return NextResponse.json({ error: 'Goal deadline has passed; check-ins are closed' }, { status: 409 });
@@ -44,12 +46,12 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     .eq('user_id', user.id)
     .eq('occurrence_key', window.occurrenceKey)
     .maybeSingle();
-  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+  if (existingError) return goalOperationError(existingError);
   if (existing) return NextResponse.json({ error: 'This goal occurrence has already been checked in' }, { status: 409 });
 
   let progressValue: number | null = null;
   let progressPercent: number | null = null;
-  if ((goal.progress_mode === 'percentage' || goal.measurable) && body.progressValue !== '' && body.progressValue != null) {
+  if ((goal.progress_source || 'manual') === 'manual' && (goal.progress_mode === 'percentage' || goal.measurable) && body.progressValue !== '' && body.progressValue != null) {
     progressValue = Number(body.progressValue);
     if (!Number.isFinite(progressValue)) return NextResponse.json({ error: 'Progress value is invalid' }, { status: 400 });
 
@@ -83,20 +85,11 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     .single();
 
   if (error?.code === '23505') return NextResponse.json({ error: 'This goal occurrence has already been checked in' }, { status: 409 });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  if (progressValue != null) {
-    const { error: progressError } = await supabase
-      .from('goals')
-      .update({ progress_value: progressValue })
-      .eq('id', goal.id)
-      .eq('user_id', user.id);
-    if (progressError) console.error('Goal progress update failed after saved check-in:', progressError);
-  }
+  if (error) return goalOperationError(error);
 
   let analysis: any = null;
   const aiConfigured = Boolean(process.env.OPENROUTER_API_KEY);
-  if (aiConfigured) {
+  if (aiConfigured && (goal.progress_mode === 'ai' || goal.ai_coaching)) {
     const { data: refreshedGoal } = await supabase.from('goals').select('*').eq('id', goal.id).eq('user_id', user.id).single();
     const { data: checkins } = await supabase.from('goal_checkins').select('*').eq('goal_id', goal.id).eq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
     try {

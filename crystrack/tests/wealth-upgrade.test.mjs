@@ -35,7 +35,8 @@ test('routine schedule area keeps dedicated readability treatment', () => {
 
 test('Wealth backend remains real, not hardcoded', () => {
   const dashboard = read('src/app/page.tsx');
-  assert.match(dashboard, /fetcher\('\/api\/wealth'\)/);
+  assert.match(dashboard, /useRhythm/);
+  assert.match(read('src/lib/rhythm/service.ts'), /summarizeWealth/);
   assert.match(dashboard, /wealthSummary\.availableBalance/);
   assert.doesNotMatch(dashboard, /availableBalance:\s*0/);
 });

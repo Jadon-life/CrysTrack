@@ -1,55 +1,61 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-
+import { z } from "zod";
+import { positiveMoney, day } from "@/lib/finance/validation";
+import {
+  financeSession,
+  financeError,
+  financeSaved,
+  entryPayload,
+  unauthorized,
+  invalid,
+} from "@/lib/finance/server";
+const fields = z
+  .object({
+    kind: z.enum(["receivable", "liability"]),
+    counterparty: z.string().trim().min(1).max(255),
+    amount: positiveMoney,
+    dueDate: day.nullable().optional(),
+    note: z.string().max(4000).optional(),
+  })
+  .strict();
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const kind = String(body.kind || '');
-  const counterparty = String(body.counterparty || '').trim();
-  const amount = Number(body.amount);
-
-  if (!['receivable', 'liability'].includes(kind)) {
-    return NextResponse.json({ error: 'Debt kind must be receivable or liability' }, { status: 400 });
+  const { db, user } = await financeSession();
+  if (!user) return unauthorized();
+  const parsed = fields.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return invalid();
+  try {
+    const p = parsed.data,
+      d = p.dueDate
+        ? await entryPayload(db, user.id, { date: p.dueDate })
+        : null;
+    const { data, error } = await db.rpc("create_wealth_debt", {
+      p_kind: p.kind,
+      p_counterparty: p.counterparty,
+      p_amount: p.amount,
+      p_due_date: d?.date || null,
+      p_note: p.note || null,
+    });
+    if (error) throw error;
+    return financeSaved(user.id, data, 201);
+  } catch (e) {
+    return financeError(e);
   }
-  if (!counterparty) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ error: 'Amount must be greater than zero' }, { status: 400 });
-  }
-
-  const { data, error } = await supabase.rpc('create_wealth_debt', {
-    p_kind: kind,
-    p_counterparty: counterparty,
-    p_amount: amount,
-    p_due_date: body.dueDate || null,
-    p_note: body.note || null,
-  });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
 }
-
 export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const debtId = String(body.debtId || '');
-  const amount = Number(body.amount);
-
-  if (!debtId) return NextResponse.json({ error: 'Debt id is required' }, { status: 400 });
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ error: 'Repayment amount must be greater than zero' }, { status: 400 });
+  const { db, user } = await financeSession();
+  if (!user) return unauthorized();
+  const parsed = z
+    .object({ debtId: z.string().uuid(), amount: positiveMoney })
+    .strict()
+    .safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return invalid();
+  try {
+    const { data, error } = await db.rpc("repay_wealth_debt", {
+      p_debt_id: parsed.data.debtId,
+      p_amount: parsed.data.amount,
+    });
+    if (error) throw error;
+    return financeSaved(user.id, data);
+  } catch (e) {
+    return financeError(e);
   }
-
-  const { data, error } = await supabase.rpc('repay_wealth_debt', {
-    p_debt_id: debtId,
-    p_amount: amount,
-  });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
 }

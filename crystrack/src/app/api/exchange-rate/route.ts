@@ -12,7 +12,8 @@ export async function GET() {
 
   try {
     const response = await fetch(endpoint, {
-      cache: 'no-store',
+      next: {revalidate:3600},
+      signal: AbortSignal.timeout(8000),
       headers: { Accept: 'application/json' },
     });
 
@@ -40,7 +41,8 @@ export async function GET() {
       provider: EXPERIENCE_CONFIG.wealth.exchangeRate.provider,
       openAccess: !apiKey,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Exchange-rate lookup failed' }, { status: 502 });
+  } catch {
+    console.error('Exchange-rate lookup failed');
+    return NextResponse.json({ error: 'The reference rate is temporarily unavailable. Your NGN ledger is safe.' }, { status: 502 });
   }
 }

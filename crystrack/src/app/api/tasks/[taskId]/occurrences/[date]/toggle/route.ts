@@ -32,7 +32,9 @@ export async function POST(
 
   const weekday = occurrenceDate.getUTCDay();
   if (!(task.task_schedules || []).some((schedule: any) => schedule.weekday === weekday)) {
-    return NextResponse.json({ error: 'Task is not scheduled for this day' }, { status: 409 });
+    const {data:box}=await supabase.from('task_timeboxes').select('id').eq('user_id',user.id).eq('task_id',task.id).eq('occurrence_day',params.date).maybeSingle();
+    const {data:carried}=await supabase.from('daily_rituals').select('day').eq('user_id',user.id).eq('deferred_to',params.date).contains('deferred',[{type:'task',id:task.id}]).limit(1);
+    if(!box&&!carried?.length)return NextResponse.json({ error: 'Task is not scheduled for this day' }, { status: 409 });
   }
 
   const dateIso = occurrenceDate.toISOString();

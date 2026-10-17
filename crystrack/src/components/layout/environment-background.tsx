@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { millisecondsUntilNextBackgroundSlot, selectEnvironmentBackground } from '@/lib/environment';
 import { useTheme } from './theme-provider';
 
@@ -31,11 +32,11 @@ export function EnvironmentBackground() {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [environment.timezone, environment.localTime]);
+  }, [environment]);
 
   const asset = React.useMemo(
     () => selectEnvironmentBackground(environment, new Date(clock)),
-    [environment.phase, environment.weather, environment.city, environment.countryCode, environment.localTime, environment.timezone, clock],
+    [environment, clock],
   );
 
   return (
@@ -47,7 +48,11 @@ export function EnvironmentBackground() {
       aria-hidden="true"
       style={{ animation: 'none', transition: 'none', transform: 'none', filter: 'none' }}
     >
-      <img
+      <Image
+        width={1920}
+        height={1080}
+        unoptimized
+        loading="eager"
         key={asset.id}
         className="environment-stability-image"
         src={asset.src}

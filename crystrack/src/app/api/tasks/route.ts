@@ -101,16 +101,25 @@ export async function GET(request: Request) {
     byTask.set(occurrence.task_id, list);
   }
 
+  const [{data:focusSessions,error:focusError},{data:timeboxes,error:boxError},{data:rhythmDays,error:ritualError}] = await Promise.all([
+    supabase.from('task_focus_totals').select('task_id,minutes').eq('user_id',user.id),
+    supabase.from('task_timeboxes').select('task_id').eq('user_id',user.id).eq('occurrence_day',todayKey),
+    supabase.from('daily_rituals').select('day,deferred,deferred_to').eq('user_id',user.id).or(`day.eq.${todayKey},deferred_to.eq.${todayKey}`),
+  ]);
+  if(focusError||boxError||ritualError){console.error('Task rhythm analytics failed',focusError||boxError||ritualError);return NextResponse.json({error:'Task analytics could not load. Try again.'},{status:500});}
   return NextResponse.json(tasks.map((task: any) => {
     const taskOccurrences = byTask.get(task.id) || [];
     const weekdays = (task.task_schedules || []).map((schedule: any) => schedule.weekday);
     const todayOccurrence = taskOccurrences.find((occurrence: any) => occurrenceDateKey(occurrence.date) === todayKey);
-    const scheduledToday = weekdays.includes(todayWeekday);
+    const deferredAway=(rhythmDays||[]).some(r=>r.day===todayKey&&(r.deferred as any[]||[]).some(ref=>ref.type==='task'&&ref.id===task.id));
+    const arriving=(rhythmDays||[]).some(r=>r.deferred_to===todayKey&&(r.deferred as any[]||[]).some(ref=>ref.type==='task'&&ref.id===task.id));
+    const scheduledToday = !deferredAway&&(weekdays.includes(todayWeekday)||(timeboxes||[]).some(b=>b.task_id===task.id)||arriving);
     return {
       ...task,
       scheduled_today: scheduledToday,
       today_status: scheduledToday ? (todayOccurrence?.status || 'pending') : 'not_scheduled',
       today_occurrence_id: todayOccurrence?.id || null,
+      focus_minutes: (focusSessions||[]).filter(s=>s.task_id===task.id).reduce((n,s)=>n+Number(s.minutes),0),
       streak: calculateStreak(weekdays, taskOccurrences, todayKey),
     };
   }));

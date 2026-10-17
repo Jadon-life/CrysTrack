@@ -112,7 +112,7 @@ export function goalCheckinState(
     scheduledToday: window.scheduledToday,
     completed,
     available: window.available && !completed,
-    due: window.available && !completed,
+    due: window.scheduledToday && window.available && !completed,
     status: completed ? 'completed' : window.available ? 'due' : 'not_scheduled',
   } as const;
 }

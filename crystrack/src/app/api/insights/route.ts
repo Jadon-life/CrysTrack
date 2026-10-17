@@ -1,13 +1,20 @@
+import { readLedger } from '@/lib/finance/data';
+import { periodTotals } from '@/lib/finance/logic';
+import { formatMinor } from '@/lib/money';
+import { savedTimezone } from '@/lib/goals/service';
+import { dateKeyForInstant } from '@/lib/reminders';
+import { financeError } from '@/lib/finance/server';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
+ try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const timezone=await savedTimezone(supabase,user.id);
 
   const [tasksResult, goalsResult, assignmentsResult, financeResult] = await Promise.all([
     supabase.from('recurring_tasks').select('id').eq('user_id', user.id).is('archived_at', null),
@@ -20,16 +27,13 @@ export async function GET() {
       .from('assignments')
       .select('id, title, deadline, status')
       .eq('user_id', user.id)
-      .neq('status', 'completed'),
-    supabase
-      .from('money_entries')
-      .select('type, amount, date')
-      .eq('user_id', user.id)
-      .gte('date', thirtyDaysAgo),
+      .neq('status', 'completed')
+      .neq('status', 'dropped'),
+    readLedger(supabase,user.id).then(data=>({data,error:null})),
   ]);
 
   const firstError = tasksResult.error || goalsResult.error || assignmentsResult.error || financeResult.error;
-  if (firstError) return NextResponse.json({ error: firstError.message }, { status: 500 });
+  if (firstError) return financeError(firstError);
 
   const taskIds = (tasksResult.data || []).map((task: any) => task.id);
   const taskResult = taskIds.length
@@ -41,7 +45,7 @@ export async function GET() {
         .gte('completed_at', sevenDaysAgo)
     : { data: [], error: null };
 
-  if (taskResult.error) return NextResponse.json({ error: taskResult.error.message }, { status: 500 });
+  if (taskResult.error) return financeError(taskResult.error);
 
   const taskCompletions = taskResult.data?.length || 0;
   const goals = goalsResult.data || [];
@@ -58,19 +62,10 @@ export async function GET() {
     count + (goal.goal_checkins || []).filter((checkin: any) => checkin.created_at >= sevenDaysAgo).length
   ), 0);
 
-  const totals = entries.reduce(
-    (acc: { income: number; expense: number; saving: number }, entry: any) => {
-      const amount = Number(entry.amount) || 0;
-      if (entry.type === 'income') acc.income += amount;
-      if (entry.type === 'expense') acc.expense += amount;
-      if (entry.type === 'saving') acc.saving += amount;
-      return acc;
-    },
-    { income: 0, expense: 0, saving: 0 },
-  );
+  const totals=periodTotals(entries,dateKeyForInstant(new Date(),timezone),timezone);
 
   const recommendations: string[] = [];
-  if (overdue > 0) recommendations.push(`Resolve ${overdue} overdue assignment${overdue === 1 ? '' : 's'} before taking on new deadlines.`);
+  if (overdue > 0) recommendations.push(`Ready to pick up ${overdue} earlier assignment${overdue === 1 ? '' : 's'}? Choose one small next step.`);
   if (dueSoon > 0) recommendations.push(`Protect time for ${dueSoon} assignment${dueSoon === 1 ? '' : 's'} due within three days.`);
   if (goals.length > 0 && goalCheckinsThisWeek < goals.length) recommendations.push('Check in on active goals that have not been reviewed this week.');
   if (taskCompletions === 0) recommendations.push('Complete one scheduled routine today to establish a measurable baseline.');
@@ -92,7 +87,7 @@ export async function GET() {
       id: 'money-summary',
       type: 'finance',
       title: '30-Day Money Snapshot',
-      summary: `Recorded income: $${totals.income.toFixed(2)} · expenses: $${totals.expense.toFixed(2)} · savings: $${totals.saving.toFixed(2)}.`,
+      summary: `Recorded income: ${formatMinor(totals.income)} · expenses: ${formatMinor(totals.expense)} · savings: ${formatMinor(totals.saving)}.`,
       riskLevel: totals.expense > totals.income && totals.income > 0 ? 'medium' : 'low',
       recommendations: totals.saving > 0
         ? ['Review whether recorded savings are linked to active targets so target progress stays accurate.']
@@ -102,4 +97,5 @@ export async function GET() {
   ];
 
   return NextResponse.json(insights);
+ }catch(error){return financeError(error);}
 }

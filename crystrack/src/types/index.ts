@@ -73,7 +73,15 @@ export interface AssignmentWithUrgency {
   description?: string;
   deadline: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'upcoming' | 'due_soon' | 'due_today' | 'overdue' | 'completed';
+  status: 'upcoming' | 'due_soon' | 'due_today' | 'overdue' | 'completed' | 'dropped';
+  courseCode?: string;
+  academicKind?: import('./assignments').AcademicKind;
+  pointWeight?: string;
+  estimatedMinutes?: number;
+  workStartAt?: string;
+  subtasks?: import('./assignments').AssignmentSubtask[];
+  finishedLate?: boolean;
+  revision?: number;
   category?: string;
   daysUntil: number;
 }
@@ -92,7 +100,7 @@ export interface FinanceTargetWithProgress {
 export interface MoneyEntry {
   id: string;
   type: 'income' | 'expense' | 'saving' | 'transfer';
-  amount: number;
+  amount: string | number;
   date: string;
   source?: string;
   category?: string;
@@ -117,3 +125,11 @@ export interface AIInsight {
   recommendations: string[];
   generatedAt: string;
 }
+
+export type { GoalPlan, GoalMilestone, GoalLifecycle, GoalProgressSource } from './goals';
+
+export type { AcademicAssignment, AssignmentSubtask, AcademicWorkload } from './assignments';
+
+export type { TodayData,Timebox,DailyRitual,FocusSession,CalendarEvent } from './rhythm';
+
+export type { WealthAccount, LedgerEntry, BudgetCap, RecurringBill, SavingsCircle, CircleContribution, WealthSettings, WealthSuite } from './finance';

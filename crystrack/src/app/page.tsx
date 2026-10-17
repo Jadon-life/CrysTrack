@@ -15,7 +15,10 @@ import {
   Plus,
   Target,
 } from 'lucide-react';
+import { useRhythm } from '@/components/rhythm/rhythm-provider';
+import { RitualHub } from '@/components/rhythm/ritual-hub';
 import { GlassCard } from '@/components/shared/glass-card';
+import { WorkloadRadar } from '@/components/dashboard/workload-radar';
 import { MiniCalendar } from '@/components/dashboard/mini-calendar';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
@@ -46,23 +49,10 @@ function greetingForLocalTime(localTime: string) {
   return 'Good night';
 }
 
-function checkInDue(goal: any) {
-  const config = goal.checkin_config || {};
-  const frequency = config.frequency || 'weekly';
-  const weekday = new Date().getDay();
-  const scheduled =
-    frequency === 'daily' ||
-    (Array.isArray(config.days) && config.days.map(Number).includes(weekday));
-
-  if (!scheduled) return false;
-
-  return !(goal.goal_checkins || []).some(
-    (item: any) =>
-      new Date(item.created_at).toDateString() === new Date().toDateString(),
-  );
-}
+function checkInDue(goal:any) { return goal.checkin_state?.due === true; }
 
 function goalPercent(goal: any) {
+  if (goal.effort_percent != null) return goal.effort_percent;
   if (goal.progress_mode !== 'percentage' && !goal.measurable) return null;
 
   const start = goal.starting_value == null ? 0 : Number(goal.starting_value);
@@ -81,60 +71,8 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { environment } = useTheme();
 
-  const [loading, setLoading] = useState(true);
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [goals, setGoals] = useState<any[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [wealth, setWealth] = useState<any>({
-    summary: null,
-    entries: [],
-    targets: [],
-    debts: [],
-    expectedFlows: [],
-  });
-  const [history, setHistory] = useState<any[]>([]);
-  const [reminders, setReminders] = useState<any[]>([]);
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-
-      const weekday = new Date().getDay();
-      const date = getLocalDateKey();
-
-      const [
-        taskData,
-        goalData,
-        assignmentData,
-        wealthData,
-        historyData,
-        reminderData,
-      ] = await Promise.all([
-        fetcher(`/api/tasks?date=${date}&weekday=${weekday}`).catch(() => []),
-        fetcher('/api/goals').catch(() => []),
-        fetcher('/api/assignments').catch(() => []),
-        fetcher('/api/wealth').catch(() => ({
-          summary: null,
-          entries: [],
-          targets: [],
-          debts: [],
-          expectedFlows: [],
-        })),
-        fetcher('/api/history').catch(() => []),
-        fetcher('/api/reminders?limit=6').catch(() => []),
-      ]);
-
-      setTasks(taskData);
-      setGoals(goalData);
-      setAssignments(assignmentData);
-      setWealth(wealthData);
-      setHistory(historyData);
-      setReminders(reminderData);
-      setLoading(false);
-    };
-
-    void load();
-  }, []);
+  const {data,loading,error,refresh}=useRhythm();
+  const tasks=useMemo(()=>data?.tasks||[],[data?.tasks]);const goals=data?.goals||[],assignments=data?.assignments||[],wealth=data?.wealth||{},history=data?.history||[],reminders=data?.reminders||[];
 
   const displayName =
     user?.user_metadata?.full_name ||
@@ -204,6 +142,8 @@ export default function DashboardPage() {
     },
   ];
 
+  if(error&&!data)return <GlassCard><h1>Ready to pick your day back up?</h1><p role="alert">{error}</p><button onClick={()=>void refresh()}>Try again</button></GlassCard>;
+
   if (loading) {
     return (
       <div className="min-h-[55vh] flex items-center justify-center">
@@ -256,6 +196,10 @@ export default function DashboardPage() {
           </GlassCard>
         ))}
       </section>
+
+      {error&&<p role="alert">{error} <button onClick={()=>void refresh()}>Try again</button></p>}
+      <RitualHub/>
+      <WorkloadRadar snapshot={data||undefined} />
 
       <section className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         <GlassCard padding="md" className="xl:col-span-5">
@@ -477,7 +421,7 @@ export default function DashboardPage() {
         <div className="xl:col-span-3 space-y-4">
           <GlassCard padding="md">
             <MiniCalendar
-              eventDates={assignments
+              todayDay={data?.day} timezone={data?.timezone} eventDates={assignments
                 .map((item) => item.deadline)
                 .filter(Boolean)}
             />

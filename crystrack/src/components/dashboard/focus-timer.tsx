@@ -1,134 +1,193 @@
 'use client';
-
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pause, Play, RotateCcw } from 'lucide-react';
-import { getLocalDateKey } from '@/lib/utils';
-
-type Mode = 'focus' | 'short' | 'long';
-
-const MODES: Record<Mode, { label: string; minutes: number }> = {
-  focus: { label: 'Focus', minutes: 25 },
-  short: { label: 'Short Break', minutes: 5 },
-  long: { label: 'Long Break', minutes: 15 },
-};
-
-function storageKey() {
-  return `crystrack-focus-seconds:${getLocalDateKey()}`;
-}
-
+import { useEffect, useRef, useState } from 'react';
+import { post } from '@/lib/api';
+import { useRhythm } from '@/components/rhythm/rhythm-provider';
+import type { FocusSession } from '@/types/rhythm';
 export function FocusTimer({ compact = false }: { compact?: boolean }) {
-  const [mode, setMode] = useState<Mode>('focus');
-  const [remaining, setRemaining] = useState(MODES.focus.minutes * 60);
-  const [running, setRunning] = useState(false);
-  const focusSecondsRef = useRef(0);
-
+  const { data, refresh } = useRhythm();
+  const [task, setTask] = useState(''),
+    [minutes, setMinutes] = useState(25),
+    [session, setSession] = useState<FocusSession | null>(null),
+    [remaining, setRemaining] = useState(0),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false),
+    [notice, setNotice] = useState('');
+  const attempted = useRef(''),
+    lock = useRef(false),
+    actionRef = useRef<(action: string) => Promise<void>>(async () => {});
+  const serverSession = data?.focus;
   useEffect(() => {
-    focusSecondsRef.current = Number(window.localStorage.getItem(storageKey()) || 0);
-  }, []);
-
-  useEffect(() => {
-    if (!running) return;
-    const interval = window.setInterval(() => {
-      setRemaining((current) => {
-        if (current <= 1) {
-          setRunning(false);
-          return 0;
-        }
-        return current - 1;
-      });
-
-      if (mode === 'focus') {
-        focusSecondsRef.current += 1;
-        if (focusSecondsRef.current % 5 === 0) {
-          window.localStorage.setItem(storageKey(), String(focusSecondsRef.current));
-          window.dispatchEvent(new CustomEvent('crystrack:focus-update', { detail: { seconds: focusSecondsRef.current } }));
-        }
+    if (serverSession) queueMicrotask(() => setSession(serverSession));
+    else if (data)
+      queueMicrotask(() =>
+        setSession((current) =>
+          current && ['running', 'paused'].includes(current.status)
+            ? null
+            : current,
+        ),
+      );
+  }, [serverSession, data]);
+  const action = async (kind: string) => {
+    if (lock.current || !data) return;
+    lock.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await post(
+        '/api/rhythm/focus',
+        kind === 'start'
+          ? { action: 'start', id: crypto.randomUUID(), taskId: task, minutes }
+          : { action: kind, id: session?.id },
+      );
+      setSession(result);
+      if (kind === 'complete' && result.status === 'completed') {
+        setNotice(
+          `${result.planned_minutes} focused minutes saved to your task.`,
+        );
       }
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [running, mode]);
-
-  const total = MODES[mode].minutes * 60;
-  const progress = Math.max(0, Math.min(100, ((total - remaining) / total) * 100));
-  const time = useMemo(() => {
-    const minutes = Math.floor(remaining / 60);
-    const seconds = remaining % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }, [remaining]);
-
-  const changeMode = (next: Mode) => {
-    setMode(next);
-    setRunning(false);
-    setRemaining(MODES[next].minutes * 60);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Your focus is safe to retry.');
+      await refresh();
+    } finally {
+      lock.current = false;
+      setBusy(false);
+    }
   };
-
-  const reset = () => {
-    setRunning(false);
-    setRemaining(MODES[mode].minutes * 60);
-  };
-
+  useEffect(() => {
+    actionRef.current = action;
+  });
+  useEffect(() => {
+    if (!session || !['running', 'paused'].includes(session.status)) {
+      queueMicrotask(() => setRemaining(0));
+      return;
+    }
+    const elapsed =
+      session.elapsed_seconds +
+      (session.status === 'running' && session.resumed_at
+        ? Math.max(
+            0,
+            (Date.parse(session.as_of || data?.asOf || session.resumed_at) -
+              Date.parse(session.resumed_at)) /
+              1000,
+          )
+        : 0);
+    const initial = Math.max(0, session.planned_minutes * 60 - elapsed),
+      anchor = performance.now();
+    let finishTimeout: ReturnType<typeof setTimeout> | undefined;
+    const tick = () => {
+      const left = Math.max(
+        0,
+        Math.ceil(
+          initial -
+            (session.status === 'running'
+              ? (performance.now() - anchor) / 1000
+              : 0),
+        ),
+      );
+      setRemaining(left);
+      if (
+        !left &&
+        session.status === 'running' &&
+        attempted.current !== session.id &&
+        !finishTimeout
+      ) {
+        finishTimeout = setTimeout(() => {
+          attempted.current = session.id;
+          void actionRef.current('complete');
+        }, 1000);
+      }
+    };
+    queueMicrotask(tick);
+    const interval = setInterval(tick, 250);
+    return () => {
+      clearInterval(interval);
+      if (finishTimeout) clearTimeout(finishTimeout);
+    };
+  }, [session, data?.asOf]);
+  const active = session && ['running', 'paused'].includes(session.status);
+  const taskTitle =
+    data?.tasks.find((t) => t.id === session?.task_id)?.title || 'Your task';
   return (
-    <div className={compact ? 'space-y-3' : 'grid md:grid-cols-[180px_1fr] gap-5 items-center'}>
-      <div className="relative aspect-square max-w-[180px] mx-auto w-full">
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: `conic-gradient(var(--theme-accent) ${progress}%, rgba(255,255,255,.1) ${progress}% 100%)`,
-          }}
-        />
-        <div className="absolute inset-[7px] rounded-full bg-[color-mix(in_srgb,var(--theme-surface-strong)_96%,transparent)] grid place-items-center border border-white/10">
-          <div className="text-center">
-            <p className="dashboard-metric-value text-3xl font-semibold text-white">{time}</p>
-            <p className="text-xs text-[var(--theme-text-muted)] mt-1">{MODES[mode].label}</p>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <select
-          value={mode}
-          onChange={(event) => changeMode(event.target.value as Mode)}
-          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white"
-        >
-          <option value="focus" className="bg-slate-950">Pomodoro · 25 min</option>
-          <option value="short" className="bg-slate-950">Short break · 5 min</option>
-          <option value="long" className="bg-slate-950">Long break · 15 min</option>
-        </select>
-
-        <div className="mt-3 space-y-2 text-[11px] text-[var(--theme-text-muted)]">
-          {(Object.keys(MODES) as Mode[]).map((key) => (
-            <button
-              type="button"
-              key={key}
-              onClick={() => changeMode(key)}
-              className="w-full flex items-center gap-2 text-left hover:text-white"
-            >
-              <span className={`w-2 h-2 rounded-full ${mode === key ? 'bg-[var(--theme-accent)]' : 'bg-white/35'}`} />
-              {MODES[key].label}
+    <div
+      className={compact ? 'rhythm-focus rhythm-focus-compact' : 'rhythm-focus'}
+    >
+      {active ? (
+        <>
+          <strong>{taskTitle}</strong>
+          <output aria-label="Focus time remaining">
+            {String(Math.floor(remaining / 60)).padStart(2, '0')}:
+            {String(remaining % 60).padStart(2, '0')}
+          </output>
+          <button
+            disabled={busy}
+            onClick={() =>
+              void action(session.status === 'running' ? 'pause' : 'resume')
+            }
+          >
+            {session.status === 'running' ? 'Pause' : 'Resume'}
+          </button>
+          <button disabled={busy} onClick={() => void action('cancel')}>
+            End
+          </button>
+          {remaining === 0 && (
+            <button disabled={busy} onClick={() => void action('complete')}>
+              Save focus
             </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 mt-4">
+          )}
+        </>
+      ) : (
+        <>
+          <label>
+            Focus task
+            <select
+              aria-label="Focus task"
+              value={task}
+              disabled={busy}
+              onChange={(e) => setTask(e.target.value)}
+            >
+              <option value="">Choose a task</option>
+              {data?.tasks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Pomodoro / custom minutes
+            <input
+              aria-label="Focus minutes"
+              type="number"
+              min="1"
+              max="180"
+              value={minutes}
+              onChange={(e) => setMinutes(Number(e.target.value))}
+            />
+          </label>
           <button
-            type="button"
-            onClick={() => setRunning((value) => !value)}
-            className="w-11 h-11 rounded-full grid place-items-center bg-[var(--theme-accent)] text-white shadow-lg shadow-black/20"
-            aria-label={running ? 'Pause focus timer' : 'Start focus timer'}
+            disabled={
+              busy ||
+              !task ||
+              !Number.isInteger(minutes) ||
+              minutes < 1 ||
+              minutes > 180
+            }
+            onClick={() => void action('start')}
           >
-            {running ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+            Focus
           </button>
-          <button
-            type="button"
-            onClick={reset}
-            className="w-10 h-10 rounded-full grid place-items-center border border-white/10 bg-black/15 text-[var(--theme-text-muted)] hover:text-white"
-            aria-label="Reset focus timer"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+        </>
+      )}
+      {error && <span role="alert">{error}</span>}
+      {notice && (
+        <button
+          aria-label="Dismiss focus notification"
+          onClick={() => setNotice('')}
+        >
+          {notice} ×
+        </button>
+      )}
     </div>
   );
 }

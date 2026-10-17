@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Progress } from '@/components/ui/progress';
 import { BrainCircuit, PiggyBank, Target } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatMoney as formatCurrency, moneyPercent } from '@/lib/money';
 
 interface RightRailProps {
   goals?: any[];
@@ -62,9 +62,9 @@ export function RightRail({ goals = [], targets = [], insight }: RightRailProps)
         ) : (
           <div className="space-y-3">
             {visibleTargets.map((target) => {
-              const current = Number(target.current_amount || 0);
-              const goal = Number(target.target_amount || 0);
-              const percent = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
+              const current = target.current_amount || 0;
+              const goal = target.target_amount || 0;
+              const percent = moneyPercent(current,goal);
               return (
                 <div key={target.id}>
                   <div className="flex justify-between gap-3 text-xs mb-1">

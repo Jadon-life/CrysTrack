@@ -53,13 +53,14 @@ export function useWealthCurrency() {
         return response.json();
       })
       .then((data) => {
+        if(!Number.isFinite(Number(data.usdNgn))||Number(data.usdNgn)<=0)throw new Error('Rate unavailable');
         const snapshot: ExchangeRateSnapshot = {
           usdNgn: Number(data.usdNgn),
           ngnUsd: Number(data.ngnUsd),
           updatedAt: data.updatedAt || null,
           nextUpdateAt: data.nextUpdateAt || null,
           provider: data.provider || 'ExchangeRate-API',
-          stale: false,
+          stale: !data.updatedAt || Date.now()-Date.parse(data.updatedAt)>STALE_AFTER_MS,
         };
         setRate(snapshot);
         window.localStorage.setItem(RATE_KEY, JSON.stringify({ ...snapshot, cachedAt: Date.now() }));

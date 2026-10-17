@@ -1,87 +1,98 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-
-const DIRECTIONS = new Set(['income', 'expense']);
-const FREQUENCIES = new Set(['one_off', 'weekly', 'monthly', 'quarterly', 'yearly', 'irregular']);
-
+import { z } from "zod";
+import { toKobo } from "@/lib/money";
+import { positiveMoney, day } from "@/lib/finance/validation";
+import {
+  financeSession,
+  financeError,
+  financeSaved,
+  entryPayload,
+  unauthorized,
+  invalid,
+} from "@/lib/finance/server";
+const fields = z
+  .object({
+    title: z.string().trim().min(1).max(150),
+    direction: z.enum(["income", "expense"]),
+    amountMin: positiveMoney,
+    amountMax: positiveMoney.nullable(),
+    frequency: z.enum([
+      "one_off",
+      "weekly",
+      "monthly",
+      "quarterly",
+      "yearly",
+      "irregular",
+    ]),
+    expectedOn: day.nullable(),
+    category: z.string().max(100),
+    timingHint: z.string().max(500),
+    note: z.string().max(4000),
+  })
+  .strict()
+  .refine((p) => !p.amountMax || toKobo(p.amountMax) >= toKobo(p.amountMin));
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const title = String(body.title || '').trim();
-  const direction = String(body.direction || '');
-  const frequency = String(body.frequency || 'monthly');
-  const amountMin = Number(body.amountMin);
-  const amountMax = body.amountMax === '' || body.amountMax == null ? null : Number(body.amountMax);
-
-  if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-  if (!DIRECTIONS.has(direction)) return NextResponse.json({ error: 'Direction must be income or expense' }, { status: 400 });
-  if (!FREQUENCIES.has(frequency)) return NextResponse.json({ error: 'Invalid frequency' }, { status: 400 });
-  if (!Number.isFinite(amountMin) || amountMin <= 0) return NextResponse.json({ error: 'Minimum amount must be greater than zero' }, { status: 400 });
-  if (amountMax != null && (!Number.isFinite(amountMax) || amountMax < amountMin)) {
-    return NextResponse.json({ error: 'Maximum amount must be at least the minimum amount' }, { status: 400 });
-  }
-
-  const { data, error } = await supabase
-    .from('wealth_expected_flows')
-    .insert({
-      user_id: user.id,
-      direction,
-      title,
-      category: body.category || null,
-      amount_min: amountMin,
-      amount_max: amountMax,
-      frequency,
-      expected_on: body.expectedOn || null,
-      timing_hint: body.timingHint || null,
-      note: body.note || null,
-    })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
-}
-
-export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const flowId = String(body.flowId || '');
-  const action = String(body.action || 'confirm');
-
-  if (!flowId) return NextResponse.json({ error: 'Expected-flow id is required' }, { status: 400 });
-
-  if (action === 'confirm') {
-    const actualAmount = Number(body.actualAmount);
-    if (!Number.isFinite(actualAmount) || actualAmount <= 0) {
-      return NextResponse.json({ error: 'Actual amount must be greater than zero' }, { status: 400 });
-    }
-
-    const { data, error } = await supabase.rpc('confirm_expected_flow', {
-      p_flow_id: flowId,
-      p_actual_amount: actualAmount,
-    });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
-  }
-
-  if (action === 'pause' || action === 'resume') {
-    const { data, error } = await supabase
-      .from('wealth_expected_flows')
-      .update({ status: action === 'pause' ? 'paused' : 'active' })
-      .eq('id', flowId)
-      .eq('user_id', user.id)
+  const { db, user } = await financeSession();
+  if (!user) return unauthorized();
+  const parsed = fields.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return invalid();
+  try {
+    const p = parsed.data,
+      d = p.expectedOn
+        ? await entryPayload(db, user.id, { date: p.expectedOn })
+        : null;
+    const { data, error } = await db
+      .from("wealth_expected_flows")
+      .insert({
+        user_id: user.id,
+        title: p.title,
+        direction: p.direction,
+        amount_min: p.amountMin,
+        amount_max: p.amountMax,
+        frequency: p.frequency,
+        expected_on: d?.date || null,
+        category: p.category,
+        timing_hint: p.timingHint,
+        note: p.note,
+      })
       .select()
       .single();
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+    if (error) throw error;
+    return financeSaved(user.id, data, 201);
+  } catch (e) {
+    return financeError(e);
   }
-
-  return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
+}
+const update = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("confirm"),
+    flowId: z.string().uuid(),
+    actualAmount: positiveMoney,
+  }),
+  z.object({ action: z.enum(["pause", "resume"]), flowId: z.string().uuid() }),
+]);
+export async function PATCH(request: Request) {
+  const { db, user } = await financeSession();
+  if (!user) return unauthorized();
+  const parsed = update.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return invalid();
+  try {
+    const p = parsed.data,
+      result =
+        p.action === "confirm"
+          ? await db.rpc("confirm_expected_flow", {
+              p_flow_id: p.flowId,
+              p_actual_amount: p.actualAmount,
+            })
+          : await db
+              .from("wealth_expected_flows")
+              .update({ status: p.action === "pause" ? "paused" : "active" })
+              .eq("id", p.flowId)
+              .eq("user_id", user.id)
+              .select()
+              .single();
+    if (result.error) throw result.error;
+    return financeSaved(user.id, result.data);
+  } catch (e) {
+    return financeError(e);
+  }
 }

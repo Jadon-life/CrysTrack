@@ -25,6 +25,8 @@ function setGlassPointer(element: HTMLElement, clientX: number, clientY: number)
   element.style.setProperty('--glass-pointer-y', `${(y * 100).toFixed(2)}%`);
   element.style.setProperty('--glass-fluid-x', `${((x - 0.5) * 5).toFixed(2)}px`);
   element.style.setProperty('--glass-fluid-y', `${((y - 0.5) * 3.5).toFixed(2)}px`);
+  element.style.setProperty('--glass-tilt-x', `${((0.5-y)*2).toFixed(2)}deg`);
+  element.style.setProperty('--glass-tilt-y', `${((x-0.5)*2).toFixed(2)}deg`);
 }
 
 export function GlassCard({
@@ -44,7 +46,7 @@ export function GlassCard({
   }, []);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (event.pointerType === 'touch') return;
+    if (event.pointerType === 'touch' || window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.crysReducedMotion === 'true') return;
     setGlassPointer(event.currentTarget, event.clientX, event.clientY);
   };
 
@@ -54,9 +56,12 @@ export function GlassCard({
     element.style.setProperty('--glass-pointer-y', '45%');
     element.style.setProperty('--glass-fluid-x', '0px');
     element.style.setProperty('--glass-fluid-y', '0px');
+    element.style.setProperty('--glass-tilt-x', '0deg');
+    element.style.setProperty('--glass-tilt-y', '0deg');
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.crysReducedMotion === 'true') return;
     const element = event.currentTarget;
     setGlassPointer(element, event.clientX, event.clientY);
 

@@ -1,32 +1,47 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
-
+import { z } from "zod";
+import { positiveMoney, day } from "@/lib/finance/validation";
+import {
+  financeSession,
+  financeError,
+  financeSaved,
+  entryPayload,
+  unauthorized,
+  invalid,
+} from "@/lib/finance/server";
+const fields = z
+  .object({
+    title: z.string().trim().min(1).max(255),
+    targetAmount: positiveMoney,
+    deadline: day.nullable().optional(),
+    description: z.string().max(4000).optional(),
+    lockedUntil: day.nullable().optional(),
+  })
+  .strict();
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const title = String(body.title || '').trim();
-  const targetAmount = Number(body.targetAmount);
-
-  if (!title) return NextResponse.json({ error: 'Target name is required' }, { status: 400 });
-  if (!Number.isFinite(targetAmount) || targetAmount <= 0) {
-    return NextResponse.json({ error: 'Target amount must be greater than zero' }, { status: 400 });
+  const { db, user } = await financeSession();
+  if (!user) return unauthorized();
+  const parsed = fields.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return invalid();
+  try {
+    const p = parsed.data,
+      d = p.deadline
+        ? await entryPayload(db, user.id, { date: p.deadline })
+        : null;
+    const { data, error } = await db
+      .from("finance_targets")
+      .insert({
+        user_id: user.id,
+        title: p.title,
+        target_amount: p.targetAmount,
+        deadline: d?.date || null,
+        description: p.description || null,
+        locked_until: p.lockedUntil || null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return financeSaved(user.id, data, 201);
+  } catch (e) {
+    return financeError(e);
   }
-
-  const { data: target, error } = await supabase
-    .from('finance_targets')
-    .insert({
-      user_id: user.id,
-      title,
-      target_amount: targetAmount,
-      deadline: body.deadline || null,
-      description: body.description || null,
-    })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(target, { status: 201 });
 }
