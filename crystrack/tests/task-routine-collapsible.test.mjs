@@ -23,3 +23,16 @@ test('archive, delete, and day filters remain in the expanded management area', 
   assert.match(contents, /void deleteTask\(task\)/);
   assert.match(source, /<Button variant="primary" onClick=\{\(\) => setShowCreate\(true\)\}/);
 });
+
+test('Tasks uses the compact Today checklist and keeps scheduling separate', () => {
+  const source = fs.readFileSync('src/app/tasks/page.tsx', 'utf8');
+  assert.match(source, /groupTodayTasks\(todayTasks\)/);
+  assert.match(source, /summarizeToday\(tasks\)/);
+  assert.match(source, /todayGroups\.map/);
+  assert.match(source, /max-h-\[34rem\]/);
+  assert.match(source, /All scheduled routines are complete/);
+  assert.match(source, /toggleTaskCompletion\(task\.id\)/);
+  assert.match(source, /toggleTaskSkip\(task\.id\)/);
+  assert.match(source, /task\.streak/);
+  assert.match(source, /aria-label=\{task\.today_status/);
+});
