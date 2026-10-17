@@ -4,9 +4,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 const root = process.cwd(); const read = (path) => readFileSync(join(root, path), 'utf8');
 
-test('dashboard remains the compact production dashboard', () => {
+test('Today retains September dashboard panels alongside the actionable checklist', () => {
   const dashboard = read('src/app/page.tsx');
-  for (const marker of ["Today&apos;s plan",'Goal check-ins','Wealth Overview','Assignments & reminders','Today note','Recent activity','MiniCalendar']) assert.match(dashboard, new RegExp(marker));
+  for (const marker of ["Today&apos;s tasks",'Goal check-ins','Wealth Overview','Assignments & reminders','Daily reminder','Recent activity','MiniCalendar']) assert.match(dashboard, new RegExp(marker));
+  assert.match(dashboard, /todayGroups\.map/);
+  assert.match(dashboard, /changeTask\(task, 'toggle'\)/);
   assert.doesNotMatch(dashboard, /dashboard-bottom-rail/);
 });
 
