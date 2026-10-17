@@ -21,7 +21,8 @@
     "test:rhythm:db": "node --test tests/rhythm-database.integration.mjs",
     "test:wealth:db": "node --test tests/wealth-database.integration.mjs",
     "test:gamification:db": "node --test tests/gamification-database.integration.mjs",
-    "test:coach-preview:db": "node --test tests/coach-preview-database.integration.mjs"
+    "test:coach-preview:db": "node --test tests/coach-preview-database.integration.mjs",
+    "test:workspace:browser": "node tests/workspace-browser.integration.cjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.11",

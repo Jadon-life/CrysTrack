@@ -14,7 +14,8 @@ test('final environment is still-image-only in stability mode', () => {
 test('authenticated app layout no longer mounts immersive ceremonies', () => {
   const layout = read('src/components/layout/app-layout.tsx');
   assert.match(layout, /<EnvironmentBackground \/>/);
-  assert.match(layout, /<TopNavigation \/>/);
+  assert.match(layout, /<FloatingAppShell/);
+  assert.match(read('src/components/workspace/floating-app-shell.tsx'), /<TopNavigation/);
   assert.doesNotMatch(layout, /ImmersiveCeremony|immersive-ceremony/);
 });
 

@@ -113,9 +113,15 @@ export const themes: Record<TimePhase, ThemeColors> = {
   },
 };
 
-export function getThemeForPhase(phase: TimePhase, preference: ThemePreference = 'adaptive'): ThemeColors {
+export function getThemeForPhase(
+  phase: TimePhase,
+  preference: ThemePreference = 'adaptive',
+): ThemeColors {
   if (preference === 'light') return themes.morning;
-  if (preference === 'dark') return phase === 'golden' || phase === 'evening' ? themes.evening : themes.night;
+  if (preference === 'dark')
+    return phase === 'golden' || phase === 'evening'
+      ? themes.evening
+      : themes.night;
   return themes[phase];
 }
 
@@ -136,23 +142,75 @@ export function getCurrentTheme(): ThemeColors {
 /** Scoped Piece 4 surfaces. Existing scene palettes and navigation remain intact. */
 export const goalThemeTokens = {
   '--goal-gold': '#D9B65D',
-  '--goal-ivory': '#F6F1E4',
-  '--goal-muted': '#B7BED1',
-  '--goal-glass': 'rgba(10,22,52,.55)',
-  '--goal-shade': 'rgba(3,5,11,.70)',
-  '--goal-border': 'linear-gradient(135deg,rgba(217,182,93,.4),rgba(255,255,255,.08))',
+  '--goal-ivory': 'var(--workspace-text,#F6F1E4)',
+  '--goal-muted': 'var(--workspace-muted,#B7BED1)',
+  '--goal-glass': 'var(--glass-card,rgba(10,22,52,.55))',
+  '--goal-shade': 'var(--glass-reading,rgba(3,5,11,.70))',
+  '--goal-border':
+    'linear-gradient(135deg,rgba(217,182,93,.4),rgba(255,255,255,.08))',
 };
 
 /** Wealth keeps the shared glass shell and uses opaque inner surfaces for data. */
 export const wealthThemeTokens = {
- ...goalThemeTokens,
- '--wealth-data': '#0A1634',
- '--wealth-raised': '#13244F',
- '--wealth-gold': '#D9B65D',
- '--wealth-ivory': '#F6F1E4',
- '--wealth-muted': '#B7BED1',
+  ...goalThemeTokens,
+  '--wealth-data': 'var(--glass-reading,#0A1634)',
+  '--wealth-raised': 'var(--workspace-hover,#13244F)',
+  '--wealth-gold': '#D9B65D',
+  '--wealth-ivory': 'var(--workspace-text,#F6F1E4)',
+  '--wealth-muted': 'var(--workspace-muted,#B7BED1)',
 };
 
-export const gamificationThemeTokens={...goalThemeTokens,'--xp-gold':'#D9B65D','--xp-bright':'#F0D48A','--xp-muted':'#B7BED1','--xp-ivory':'#F6F1E4'};
+export const gamificationThemeTokens = {
+  ...goalThemeTokens,
+  '--xp-gold': '#D9B65D',
+  '--xp-bright': '#F0D48A',
+  '--xp-muted': 'var(--workspace-muted,#B7BED1)',
+  '--xp-ivory': 'var(--workspace-text,#F6F1E4)',
+};
 
-export const coachThemeTokens={...goalThemeTokens,'--coach-accent':'#D9B65D','--coach-text':'#F6F1E4','--coach-muted':'#B7BED1','--coach-glass':'rgba(10,22,52,.55)'};
+export const coachThemeTokens = {
+  ...goalThemeTokens,
+  '--coach-accent': '#D9B65D',
+  '--coach-text': 'var(--workspace-text,#F6F1E4)',
+  '--coach-muted': 'var(--workspace-muted,#B7BED1)',
+  '--coach-glass': 'var(--glass-card,rgba(10,22,52,.55))',
+};
+
+/** CrysTrack 2.0: one coordinated surface system for photos, overlays and page modules. */
+export function workspaceThemeTokens(
+  mode: 'light' | 'dark',
+): Record<string, string> {
+  const light = mode === 'light';
+  return {
+    '--glass-blur': '20px',
+    '--glass-saturation': '180%',
+    '--glass-shell': light ? 'rgba(241,247,255,.62)' : 'rgba(10,19,36,.42)',
+    '--glass-sidebar': light ? 'rgba(237,245,255,.54)' : 'rgba(8,17,34,.46)',
+    '--glass-card': light ? 'rgba(255,255,255,.56)' : 'rgba(10,20,40,.48)',
+    '--glass-elevated': light ? 'rgba(247,250,255,.96)' : 'rgba(8,17,35,.94)',
+    '--glass-reading': light ? 'rgba(243,248,255,.74)' : 'rgba(8,17,35,.68)',
+    '--glass-border': light ? 'rgba(255,255,255,.70)' : 'rgba(255,255,255,.19)',
+    '--glass-highlight': 'rgba(255,255,255,.10)',
+    '--workspace-text': light ? '#17263B' : '#F6F1E4',
+    '--workspace-muted': light ? '#394B64' : '#D2DAE6',
+    '--workspace-subtle': light ? '#394B64' : '#CBD4E1',
+    '--workspace-shadow': light ? 'rgba(8,18,36,.18)' : 'rgba(0,0,0,.30)',
+    '--workspace-control': light
+      ? 'rgba(255,255,255,.36)'
+      : 'rgba(255,255,255,.06)',
+    '--workspace-hover': light
+      ? 'rgba(255,255,255,.62)'
+      : 'rgba(255,255,255,.09)',
+    '--workspace-blue-text': light ? '#1358B8' : '#91BEFF',
+    '--workspace-green-text': light ? '#096344' : '#65E5BA',
+    '--workspace-gold-text': light ? '#795210' : '#EFD18B',
+    '--action-blue': '#1C64D7',
+    '--action-blue-hover': '#216DE0',
+    '--accent-blue': '#3284ff',
+    '--accent-cyan': '#28c8ef',
+    '--accent-emerald': '#24d49b',
+    '--accent-gold': '#e2ba62',
+    '--glass-shell-radius': '30px',
+    '--glass-card-radius': '20px',
+  };
+}

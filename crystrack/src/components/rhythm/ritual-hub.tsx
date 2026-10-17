@@ -45,6 +45,18 @@ export function RitualHub() {
         </GlassCard>
       )}
 
+      {!data.priorities?.length && (
+        <GlassCard className="rhythm-priorities" hover>
+          <h2>Your Top 3</h2>
+          <p>
+            A little direction makes room for focus. Choose up to three
+            priorities for today.
+          </p>
+          <button onClick={() => setFlow('morning')}>
+            Choose your priorities →
+          </button>
+        </GlassCard>
+      )}
       <div className="rhythm-ritual-actions">
         <button onClick={() => setFlow('morning')}>
           Morning Plan · 1 min {data.ritual?.morning_at ? '✓' : ''}

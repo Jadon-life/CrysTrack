@@ -4,16 +4,17 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 const root = process.cwd(); const read = (path) => readFileSync(join(root, path), 'utf8');
 
-test('dashboard remains the compact production dashboard', () => {
-  const dashboard = read('src/app/page.tsx');
-  for (const marker of ["Today&apos;s plan",'Goal check-ins','Wealth Overview','Assignments & reminders','Today note','Recent activity','MiniCalendar']) assert.match(dashboard, new RegExp(marker));
-  assert.doesNotMatch(dashboard, /dashboard-bottom-rail/);
+test('Today uses the CrysTrack 2.0 bento composition and existing data provider', () => {
+  const dashboard=read('src/app/page.tsx');
+  for(const marker of ['Your day, in focus.','Goals in Motion','Wealth Snapshot','Quick Reflection','Recent Activity','FocusTimer','WorkloadRadar','useRhythm'])assert.ok(dashboard.includes(marker));
+  assert.match(dashboard,/occurrences\/\$\{data.day\}\/toggle/);
 });
 
-test('previous CrysTrack logo remains restored', () => {
-  const navigation = read('src/components/navigation/top-navigation.tsx');
-  assert.match(navigation, /Diamond/);
-  assert.match(navigation, /topnav-brandmark/);
+test('branding displays the supplied official marks without the generic diamond', () => {
+  const navigation=read('src/components/navigation/top-navigation.tsx');
+  const brand=read('src/components/workspace/brand-logo.tsx');
+  assert.doesNotMatch(navigation,/Diamond/);assert.match(brand,/brandAssetForTheme/);
+  assert.match(brand,/official-reference\.jpg/);assert.match(brand,/<image/);
 });
 
 test('adaptive background uses the static eight-scene stability renderer', () => {

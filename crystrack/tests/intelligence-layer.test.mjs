@@ -6,12 +6,12 @@ import { join } from 'node:path';
 const root = process.cwd();
 const read = (relative) => readFileSync(join(root, relative), 'utf8');
 
-test('AI navigation is between Insights and Calendar', () => {
+test('AI navigation follows Insights while Calendar remains an independent workspace', () => {
   const nav = read('src/components/navigation/nav-items.tsx');
   const insights = nav.indexOf("href: '/insights'");
   const ai = nav.indexOf("href: '/ai'");
   const calendar = nav.indexOf("href: '/calendar'");
-  assert.ok(insights >= 0 && ai > insights && calendar > ai);
+  assert.ok(calendar >= 0 && insights > calendar && ai > insights);
 });
 
 test('goal check-ins use database-backed occurrence keys', () => {

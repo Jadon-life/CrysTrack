@@ -1,5 +1,6 @@
 'use client';
 
+import { ActivityOverview } from '@/components/workspace/activity-overview';
 import { AchievementCabinet } from '@/components/gamification/elements';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -39,7 +40,7 @@ export default function InsightsPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400">Insights</p>
-          <h1 className="text-2xl font-bold text-white mt-1">What your activity is showing</h1>
+          <h1 className="text-2xl font-bold text-white mt-1">See the patterns that matter.</h1>
           <p className="text-sm text-slate-400 mt-1">Summaries are calculated from your recorded CrysTrack data—no demo claims.</p>
         </div>
         <Link href="/history" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-slate-300 hover:text-white hover:bg-white/[0.06]">
@@ -47,7 +48,7 @@ export default function InsightsPage() {
         </Link>
       </div>
 
-      <AchievementCabinet/>
+      <ActivityOverview/>
       <DomainInsightCard domain="overview" />
 
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
@@ -85,6 +86,7 @@ export default function InsightsPage() {
           </GlassCard>
         ))}
       </div>
+      <AchievementCabinet/>
     </div>
   );
 }

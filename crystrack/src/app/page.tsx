@@ -1,539 +1,604 @@
 'use client';
-
-import { StreakEncouragement } from '@/components/gamification/elements';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  AlertTriangle,
-  ArrowRight,
-  Bell,
-  CalendarClock,
+  ArrowUpRight,
   Check,
   CheckCircle2,
-  CircleDollarSign,
-  Loader2,
-  MessageSquareText,
+  CalendarDays,
+  Flame,
   Plus,
   Target,
+  Timer,
+  ArrowRight,
+  Wallet,
+  Sun,
+  PenLine,
 } from 'lucide-react';
 import { useRhythm } from '@/components/rhythm/rhythm-provider';
-import { RitualHub } from '@/components/rhythm/ritual-hub';
+import { useGamification } from '@/components/gamification/provider';
+import { RitualFlow } from '@/components/rhythm/ritual-flow';
 import { GlassCard } from '@/components/shared/glass-card';
 import { WorkloadRadar } from '@/components/dashboard/workload-radar';
-import { MiniCalendar } from '@/components/dashboard/mini-calendar';
+import { FocusTimer } from '@/components/dashboard/focus-timer';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
-import { fetcher } from '@/lib/api';
-import { formatCurrency, getLocalDateKey } from '@/lib/utils';
-
+import { WorkspaceOverlay } from '@/components/workspace/overlay';
+import { post } from '@/lib/api';
+import { localClock } from '@/lib/reminders';
+import { formatMoney } from '@/lib/money';
 function greetingForLocalTime(localTime: string) {
-  const hour = Number(
-    localTime.slice(11, 13),
-  );
-
-  if (!Number.isFinite(hour)) {
-    return 'Hello';
-  }
-
-  if (hour >= 5 && hour < 12) {
-    return 'Good morning';
-  }
-
-  if (hour >= 12 && hour < 17) {
-    return 'Good afternoon';
-  }
-
-  if (hour >= 17 && hour < 21) {
-    return 'Good evening';
-  }
-
+  const hour = Number(localTime.slice(11, 13));
+  if (!Number.isFinite(hour)) return 'Hello';
+  if (hour >= 5 && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  if (hour >= 17 && hour < 21) return 'Good evening';
   return 'Good night';
 }
-
-function checkInDue(goal:any) { return goal.checkin_state?.due === true; }
-
-function goalPercent(goal: any) {
-  if (goal.effort_percent != null) return goal.effort_percent;
-  if (goal.progress_mode !== 'percentage' && !goal.measurable) return null;
-
-  const start = goal.starting_value == null ? 0 : Number(goal.starting_value);
-  const current = Number(goal.progress_value ?? start);
-  const target = Number(goal.target_value);
-
-  if (!Number.isFinite(target) || target === start) return null;
-
-  return Math.max(
-    0,
-    Math.min(100, Math.round(((current - start) / (target - start)) * 100)),
+function GoalProgress({ percent }: { percent: number }) {
+  return (
+    <div
+      className="today-progress"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      aria-label="Goal progress"
+    >
+      <span style={{ width: percent + '%' }} />
+    </div>
   );
 }
-
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const { environment } = useTheme();
-
-  const {data,loading,error,refresh}=useRhythm();
-  const tasks=useMemo(()=>data?.tasks||[],[data?.tasks]);const goals=data?.goals||[],assignments=data?.assignments||[],wealth=data?.wealth||{},history=data?.history||[],reminders=data?.reminders||[];
-
-  const displayName =
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
-    user?.email?.split('@')[0] ||
-    'there';
-
-  const todayTasks = useMemo(
+  const { user } = useAuth(),
+    { environment } = useTheme(),
+    { data, loading, error, refresh } = useRhythm(),
+    { hidden: quiet } = useGamification();
+  const [planFilter, setPlanFilter] = useState<'today' | 'completed'>('today');
+  const [capture, setCapture] = useState(false),
+    [ritual, setRitual] = useState<'morning' | 'evening' | 'weekly' | null>(
+      null,
+    ),
+    [saving, setSaving] = useState<string | null>(null),
+    [actionError, setActionError] = useState('');
+  const locks = useRef(new Set<string>());
+  const tasks = useMemo(
     () =>
-      tasks
-        .filter((task) => task.scheduled_today)
+      [...(data?.tasks || [])]
+        .filter((t) => t.scheduled_today)
         .sort((a, b) =>
           (a.preferred_time || '99:99').localeCompare(
             b.preferred_time || '99:99',
           ),
         ),
-    [tasks],
+    [data?.tasks],
   );
-
-  const completedTasks = todayTasks.filter(
-    (task) => task.today_status === 'completed',
-  ).length;
-
-  const dueGoals = goals.filter(checkInDue);
-
-  const urgentAssignments = assignments.filter(
-    (item) =>
-      item.computed_status === 'overdue' ||
-      item.computed_status === 'due_today',
-  ).length;
-
-  const wealthSummary = wealth.summary || {};
-  const totalSavings = Number(wealthSummary.savedBalance || 0);
-
-  const summary = [
+  const completedTasks = tasks.filter(
+      (t) => t.today_status === 'completed',
+    ).length,
+    goals = data?.goals || [],
+    history = data?.history || [];
+  const checkins = goals.filter(
+      (g) =>
+        g.checkin_state?.due ||
+        g.checkin_state?.available ||
+        g.checkin_state?.completed,
+    ),
+    completedCheckins = checkins.filter(
+      (g) => g.checkin_state?.completed,
+    ).length;
+  const wealthSummary = data?.wealth?.summary || {},
+    streak =
+      !quiet && data?.gamification?.ready
+        ? data.gamification.streak.streak
+        : null;
+  const name = String(
+    user?.user_metadata?.full_name ||
+      user?.user_metadata?.name ||
+      user?.email?.split('@')[0] ||
+      'there',
+  ).split(' ')[0];
+  const zone = data?.timezone || environment.timezone,
+    day = data?.day || environment.localTime.slice(0, 10);
+  const dateLabel = day
+    ? new Intl.DateTimeFormat('en', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(day + 'T12:00:00Z'))
+    : '';
+  const metrics = [
     {
-      label: 'Tasks today',
-      value: `${completedTasks}/${todayTasks.length}`,
-      note: todayTasks.length
-        ? `${Math.round((completedTasks / todayTasks.length) * 100)}% complete`
-        : 'Nothing scheduled',
+      label: 'Tasks completed',
+      value: `${completedTasks}/${tasks.length}`,
+      note: tasks.length
+        ? 'One small win at a time'
+        : 'A little room in your day',
       icon: CheckCircle2,
-      tone: 'text-emerald-300',
+      tone: 'emerald',
+      percent: tasks.length ? (completedTasks * 100) / tasks.length : 0,
     },
     {
       label: 'Goal check-ins',
-      value: String(dueGoals.length),
-      note: dueGoals.length ? 'need attention today' : 'all caught up',
+      value: `${completedCheckins}/${checkins.length}`,
+      note:
+        checkins.length - completedCheckins
+          ? `${checkins.length - completedCheckins} ready for a little attention`
+          : 'Your next chapter is yours',
       icon: Target,
-      tone: 'text-violet-300',
+      tone: 'blue',
+      percent: checkins.length
+        ? (completedCheckins * 100) / checkins.length
+        : 0,
     },
     {
-      label: 'Assignments',
-      value: String(assignments.length),
-      note: urgentAssignments
-        ? `${urgentAssignments} urgent today`
-        : 'no immediate deadline',
-      icon: CalendarClock,
-      tone: 'text-amber-300',
+      label: 'Upcoming assignments',
+      value: String(data?.workload.count || 0),
+      note: 'Across your next seven days',
+      icon: CalendarDays,
+      tone: 'gold',
+      percent: null,
     },
     {
-      label: 'Savings logged',
-      value: formatCurrency(totalSavings),
-      note: 'from recorded saving entries',
-      icon: CircleDollarSign,
-      tone: 'text-sky-300',
+      label: streak === null ? 'Focused minutes' : 'Current streak',
+      value: streak === null ? String(data?.focusMinutes || 0) : String(streak),
+      note:
+        streak === null
+          ? 'Recorded today'
+          : streak === 1
+            ? 'One active day'
+            : `${streak} active days · keep it gentle`,
+      icon: streak === null ? Timer : Flame,
+      tone: 'cyan',
+      percent: null,
     },
   ];
-
-  if(error&&!data)return <GlassCard><h1>Ready to pick your day back up?</h1><p role="alert">{error}</p><button onClick={()=>void refresh()}>Try again</button></GlassCard>;
-
-  if (loading) {
+  const money = (key: string) =>
+    formatMoney(wealthSummary.exact?.[key] ?? wealthSummary[key] ?? '0');
+  const eventTime = (value: string) =>
+    new Intl.DateTimeFormat('en', {
+      timeZone: zone,
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(value));
+  const toggle = async (id: string) => {
+    if (!data || locks.current.has(id)) return;
+    locks.current.add(id);
+    setSaving(id);
+    setActionError('');
+    try {
+      await post(`/api/tasks/${id}/occurrences/${data.day}/toggle`, {});
+      await refresh();
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
+    } catch (e) {
+      setActionError(
+        e instanceof Error
+          ? e.message
+          : 'This task could not update. Please try again.',
+      );
+    } finally {
+      locks.current.delete(id);
+      setSaving(null);
+    }
+  };
+  if (loading)
     return (
-      <div className="min-h-[55vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--theme-primary)]" />
+      <div
+        className="today-skeleton"
+        role="status"
+        aria-label="Loading your day"
+      >
+        <div />
+        <section>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} />
+          ))}
+        </section>
+        <div />
       </div>
     );
-  }
-
+  if (error && !data)
+    return (
+      <GlassCard>
+        <h1>Ready to pick your day back up?</h1>
+        <p role="alert">{error}</p>
+        <button className="glass-button" onClick={() => void refresh()}>
+          Try again
+        </button>
+      </GlassCard>
+    );
   return (
-    <div className="space-y-5 pb-6">
-      <StreakEncouragement/>
-      <StreakEncouragement/>
-      <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-1 scenic-readable-copy">
+    <div className="today-workspace">
+      <header className="today-heading">
         <div>
-          <p className="text-sm text-white/75">{greetingForLocalTime(environment.localTime)},</p>
-          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-1">
-            {displayName} <span aria-hidden="true">👋</span>
-          </h1>
-          <p className="text-sm text-[var(--theme-text-muted)] mt-2">
-            See what needs attention, act on it, and keep moving.
+          <p className="today-eyebrow">
+            {greetingForLocalTime(
+              data
+                ? data.day +
+                    'T' +
+                    String(localClock(new Date(), data.timezone).hour).padStart(
+                      2,
+                      '0',
+                    ) +
+                    ':00'
+                : environment.localTime,
+            )}
+            , {name}
           </p>
+          <h1>Your day, in focus.</h1>
+          <p>A little direction. Meaningful progress. Space to be you.</p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-[var(--theme-border)] bg-black/20 px-3 py-1.5 text-xs text-[var(--theme-text-muted)]">
-            {environment.city || 'Local'} ·{' '}
-            {environment.temperatureC == null
-              ? '--'
-              : `${Math.round(environment.temperatureC)}°C`}
+        <div className="today-heading-actions">
+          <span className="today-date">
+            <CalendarDays size={15} />
+            {dateLabel}
           </span>
-          <Link
-            href="/plan"
-            className="glass-button-primary inline-flex items-center gap-2"
+          <button
+            className="glass-button-primary"
+            onClick={() => setCapture(true)}
           >
-            <Plus className="w-4 h-4" />
-            Quick add
-          </Link>
+            <Plus size={17} /> Quick capture
+          </button>
         </div>
-      </section>
-
-      <section className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {summary.map(({ label, value, note, icon: Icon, tone }) => (
-          <GlassCard key={label} padding="md">
-            <div className="flex items-center justify-between">
-              <div className={tone}>
-                <Icon className="w-5 h-5" />
-              </div>
+      </header>
+      <section className="today-metrics" aria-label="Your daily overview">
+        {metrics.map(({ label, value, note, icon: Icon, tone, percent }) => (
+          <GlassCard
+            key={label}
+            className={'today-metric today-tone-' + tone}
+            hover
+          >
+            <div className="today-metric-top">
+              <span className="today-metric-icon">
+                <Icon size={18} />
+              </span>
+              <span className="today-metric-label">{label}</span>
             </div>
-            <p className="text-xs text-[var(--theme-text-muted)] mt-4">{label}</p>
-            <p className="text-2xl font-semibold text-white mt-1 truncate">{value}</p>
-            <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">{note}</p>
+            <div className="today-metric-bottom">
+              <strong>{value}</strong>
+              {percent !== null && (
+                <svg
+                  viewBox="0 0 40 40"
+                  width="40"
+                  height="40"
+                  aria-hidden="true"
+                >
+                  <circle cx="20" cy="20" r="16" />
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="16"
+                    pathLength="100"
+                    strokeDasharray={`${percent} 100`}
+                    transform="rotate(-90 20 20)"
+                  />
+                </svg>
+              )}
+            </div>
+            <p>{note}</p>
           </GlassCard>
         ))}
       </section>
-
-      {error&&<p role="alert">{error} <button onClick={()=>void refresh()}>Try again</button></p>}
-      <RitualHub/>
-      <WorkloadRadar snapshot={data||undefined} />
-
-      <section className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <GlassCard padding="md" className="xl:col-span-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-semibold text-white">Today&apos;s plan</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)]">
-                Execution matters more than the exact time.
-              </p>
+      {(error || actionError) && (
+        <p className="workspace-form-error" role="alert">
+          {actionError || error}{' '}
+          <button onClick={() => void refresh()}>Try again</button>
+        </p>
+      )}
+      <div className="today-bento">
+        <div className="today-main-column">
+          <GlassCard className="today-plan" hover>
+            <div className="today-section-heading">
+              <div>
+                <p className="today-eyebrow">A little intention</p>
+                <h2>Today’s Plan</h2>
+              </div>
+              <button
+                className="today-subtle-action"
+                onClick={() => setRitual('morning')}
+              >
+                <Sun size={15} /> Plan your day
+              </button>
             </div>
-            <Link href="/tasks" className="text-xs text-[var(--theme-primary)]">
-              View all
-            </Link>
-          </div>
-
-          <div className="space-y-1.5">
-            {todayTasks.length === 0 ? (
-              <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">
-                No routines scheduled today.
-              </p>
-            ) : (
-              todayTasks.slice(0, 7).map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 hover:bg-white/[0.04]"
-                >
-                  <span
-                    className={
-                      task.today_status === 'completed'
-                        ? 'w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-300 grid place-items-center'
-                        : task.today_status === 'skipped'
-                          ? 'w-6 h-6 rounded-full bg-amber-500/10 text-amber-300 grid place-items-center'
-                          : 'w-6 h-6 rounded-full border border-white/20 grid place-items-center text-transparent'
-                    }
-                  >
-                    {task.today_status === 'completed' ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : (
-                      '•'
-                    )}
-                  </span>
-
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-xs font-medium truncate ${
-                        task.today_status === 'completed'
-                          ? 'text-white/45 line-through'
-                          : 'text-white'
-                      }`}
-                    >
-                      {task.title}
-                    </p>
-                    <p className="text-[10px] text-[var(--theme-text-muted)]">
-                      {task.preferred_time || 'Any time today'}
-                      {task.category ? ` · ${task.category}` : ''}
-                    </p>
-                  </div>
-
-                  <span className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">
-                    {task.today_status}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-
-          <div className="pt-3 mt-3 border-t border-white/10">
-            <Link
-              href="/tasks"
-              className="text-xs text-[var(--theme-primary)] inline-flex items-center gap-1"
-            >
-              Manage routines <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </GlassCard>
-
-        <div className="xl:col-span-4 space-y-4">
-          <GlassCard padding="md">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-white">Goal check-ins</p>
-              <Link href="/goals" className="text-xs text-[var(--theme-primary)]">
-                View all
+            <div className="today-plan-summary">
+              <span>
+                {completedTasks} of {tasks.length} completed
+              </span>
+              <Link href="/tasks">
+                View tasks <ArrowUpRight size={14} />
               </Link>
             </div>
-
-            <div className="space-y-3">
-              {goals.length === 0 ? (
-                <p className="text-xs text-[var(--theme-text-muted)] py-4">
-                  No active goals.
-                </p>
-              ) : (
-                goals.slice(0, 3).map((goal) => {
-                  const percent = goalPercent(goal);
-                  const latest = (goal.goal_checkins || []).find(
-                    (item: any) => item.ai_analysis,
-                  )?.ai_analysis;
-
-                  return (
-                    <div
-                      key={goal.id}
-                      className="rounded-xl border border-white/10 bg-black/10 p-3"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-white truncate">
-                            {goal.title}
-                          </p>
-                          <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
-                            {checkInDue(goal)
-                              ? 'Check-in due today'
-                              : 'Check-in up to date'}
-                          </p>
-                        </div>
-
-                        {percent != null && (
-                          <span className="text-xs font-semibold text-[var(--theme-primary)]">
-                            {percent}%
-                          </span>
+            <div className="today-plan-tabs" aria-label="Plan view">
+              <button
+                aria-pressed={planFilter === 'today'}
+                onClick={() => setPlanFilter('today')}
+              >
+                Today
+              </button>
+              <Link href="/calendar">Upcoming</Link>
+              <button
+                aria-pressed={planFilter === 'completed'}
+                onClick={() => setPlanFilter('completed')}
+              >
+                Completed
+              </button>
+            </div>
+            <div className="today-task-list">
+              {(planFilter === 'completed'
+                ? tasks.filter((t) => t.today_status === 'completed')
+                : tasks
+              ).length ? (
+                (planFilter === 'completed'
+                  ? tasks.filter((t) => t.today_status === 'completed')
+                  : tasks
+                )
+                  .slice(0, 6)
+                  .map((task) => (
+                    <div className="today-task" key={task.id}>
+                      <button
+                        aria-label={
+                          (task.today_status === 'completed'
+                            ? 'Mark incomplete: '
+                            : 'Complete: ') + task.title
+                        }
+                        aria-pressed={task.today_status === 'completed'}
+                        disabled={
+                          saving === task.id ||
+                          ['skipped', 'missed'].includes(task.today_status)
+                        }
+                        onClick={() => void toggle(task.id)}
+                        className={
+                          'today-task-check' +
+                          (task.today_status === 'completed'
+                            ? ' is-complete'
+                            : '')
+                        }
+                      >
+                        {task.today_status === 'completed' && (
+                          <Check size={16} />
                         )}
-                      </div>
-
-                      {percent != null && (
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-2">
-                          <div
-                            className="h-full bg-[var(--theme-primary)]"
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                      )}
-
-                      {latest && (
-                        <p className="text-[10px] text-white/65 mt-2 line-clamp-2">
-                          AI: {latest.summary}
+                      </button>
+                      <div>
+                        <p
+                          className={
+                            task.today_status === 'completed'
+                              ? 'today-task-completed'
+                              : ''
+                          }
+                        >
+                          {task.title}
                         </p>
-                      )}
+                        <span>
+                          {task.category || 'Personal'}
+                          {['skipped', 'missed'].includes(task.today_status)
+                            ? ' · ' + task.today_status
+                            : ''}
+                        </span>
+                      </div>
+                      <time>{task.preferred_time || 'Any time'}</time>
                     </div>
+                  ))
+              ) : (
+                <div className="today-empty">
+                  <CheckCircle2 size={24} />
+                  <p>
+                    {planFilter === 'completed'
+                      ? 'Your completed steps will appear here.'
+                      : 'A little space to begin.'}
+                  </p>
+                  <Link href="/tasks?create=task">
+                    Choose your first routine <ArrowRight size={14} />
+                  </Link>
+                </div>
+              )}
+            </div>
+            {tasks.length > 6 && (
+              <Link className="today-footer-link" href="/tasks">
+                See all {tasks.length} scheduled tasks <ArrowRight size={14} />
+              </Link>
+            )}
+          </GlassCard>
+          <div className="today-paired">
+            <GlassCard hover className="today-goals">
+              <div className="today-section-heading">
+                <h2>Goals in Motion</h2>
+                <Link href="/goals" aria-label="View all goals">
+                  <ArrowUpRight size={18} />
+                </Link>
+              </div>
+              {goals.length ? (
+                goals.slice(0, 3).map((goal) => {
+                  const percent = Math.max(
+                    0,
+                    Math.min(100, Number(goal.effort_percent || 0)),
+                  );
+                  return (
+                    <Link
+                      href={'/goals#goal-' + goal.id}
+                      key={goal.id}
+                      className="today-goal"
+                    >
+                      <div>
+                        <span className="today-goal-icon">
+                          <Target size={17} />
+                        </span>
+                        <strong>{goal.title}</strong>
+                        <span>{percent}%</span>
+                      </div>
+                      <GoalProgress percent={percent} />
+                      <p>
+                        {goal.checkin_state?.due
+                          ? 'Ready for a check-in'
+                          : goal.pacing || 'One step closer, at your pace.'}
+                      </p>
+                    </Link>
                   );
                 })
-              )}
-            </div>
-          </GlassCard>
-
-          <GlassCard padding="md">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-sm font-semibold text-white">Wealth Overview</p>
-                <p className="text-[10px] text-[var(--theme-text-muted)] mt-0.5">
-                  Actual Naira ledger
-                </p>
-              </div>
-              <Link href="/finance" className="text-xs text-[var(--theme-primary)]">
-                Wealth
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <p className="text-[10px] text-[var(--theme-text-muted)]">Available</p>
-                <p className="wealth-number text-sm font-semibold text-emerald-300 mt-1">
-                  {formatCurrency(Number(wealthSummary.availableBalance || 0))}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <p className="text-[10px] text-[var(--theme-text-muted)]">Safe to spend</p>
-                <p className="wealth-number text-sm font-semibold text-amber-300 mt-1">
-                  {formatCurrency(Number(wealthSummary.safeToSpend || 0))}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <p className="text-[10px] text-[var(--theme-text-muted)]">Net position</p>
-                <p className="wealth-number text-sm font-semibold text-sky-300 mt-1">
-                  {formatCurrency(Number(wealthSummary.netPosition || 0))}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] text-white/85">Spending pattern</p>
-                <p className="text-[10px] text-[var(--theme-text-muted)] capitalize">
-                  {wealthSummary.spendingVelocity || 'learning'}
-                </p>
-              </div>
-
-              {(wealthSummary.categoryPatterns || []).length === 0 ? (
-                <p className="text-[10px] text-[var(--theme-text-muted)] mt-2">
-                  Add expenses to begin learning your pattern.
-                </p>
               ) : (
-                <div className="space-y-2 mt-2">
-                  {(wealthSummary.categoryPatterns || [])
-                    .slice(0, 3)
-                    .map((item: any) => (
-                      <div key={item.category}>
-                        <div className="flex items-center justify-between text-[9px]">
-                          <span className="text-[var(--theme-text-muted)]">
-                            {item.category}
-                          </span>
-                          <span className="text-white">
-                            {Math.round(item.sharePct)}%
-                          </span>
-                        </div>
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mt-1">
-                          <div
-                            className="h-full bg-[var(--theme-primary)] rounded-full"
-                            style={{ width: `${Math.min(100, item.sharePct)}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                </div>
+                <p className="today-empty-copy">
+                  A meaningful direction starts with one small goal.{' '}
+                  <Link href="/goals?create=goal">Create a goal →</Link>
+                </p>
               )}
+            </GlassCard>
+            <GlassCard hover className="today-wealth">
+              <div className="today-section-heading">
+                <h2>Wealth Snapshot</h2>
+                <Link href="/finance" aria-label="Open Wealth">
+                  <Wallet size={18} />
+                </Link>
+              </div>
+              <p className="today-eyebrow">Available balance · NGN</p>
+              <strong className="today-balance">
+                {formatMoney(
+                  wealthSummary.exact?.availableBalance ??
+                    wealthSummary.availableBalance ??
+                    '0',
+                )}
+              </strong>
+              <div className="today-wealth-detail">
+                <div>
+                  <span>Safe to spend</span>
+                  <strong>{money('safeToSpend')}</strong>
+                </div>
+                <div>
+                  <span>Protected & saved</span>
+                  <strong>{money('savedBalance')}</strong>
+                </div>
+              </div>
+              <Link href="/finance" className="today-footer-link">
+                Your money, with clarity <ArrowUpRight size={15} />
+              </Link>
+            </GlassCard>
+          </div>
+          <GlassCard hover className="today-reflection">
+            <div className="today-section-heading">
+              <div>
+                <span className="today-eyebrow">A moment for you</span>
+                <h2>Quick Reflection</h2>
+              </div>
+              <PenLine size={19} />
+            </div>
+            <p>
+              {data?.ritual?.reflection ||
+                'What felt meaningful today—even in a small way?'}
+            </p>
+            <button
+              className="glass-button"
+              onClick={() => setRitual('evening')}
+            >
+              {data?.ritual?.reflection
+                ? 'Revisit your reflection'
+                : 'Reflect on today'}
+              <ArrowRight size={15} />
+            </button>
+            <div className="today-ritual-links">
+              <button onClick={() => setRitual('weekly')}>
+                Weekly perspective
+              </button>
+              <Link href="/plan">Your planning rituals →</Link>
             </div>
           </GlassCard>
         </div>
-
-        <div className="xl:col-span-3 space-y-4">
-          <GlassCard padding="md">
-            <MiniCalendar
-              todayDay={data?.day} timezone={data?.timezone} eventDates={assignments
-                .map((item) => item.deadline)
-                .filter(Boolean)}
-            />
+        <aside className="today-side-column">
+          <GlassCard className="today-focus" hover>
+            <div className="today-section-heading">
+              <h2 id="focus-session">Focus Session</h2>
+              <Timer size={19} />
+            </div>
+            <p className="today-focus-description">
+              One task. A little protected time.
+            </p>
+            <FocusTimer autoComplete={false} />
+            <p className="today-focus-footnote">
+              Focused time is saved to the task you choose.
+            </p>
           </GlassCard>
-
-          <GlassCard padding="md">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-white">
-                Assignments & reminders
-              </p>
-              <Link
-                href="/assignments"
-                className="text-xs text-[var(--theme-primary)]"
-              >
-                View all
+          <WorkloadRadar snapshot={data || undefined} />
+          <GlassCard className="today-activity" hover>
+            <div className="today-section-heading">
+              <h2>Recent Activity</h2>
+              <Link href="/history" aria-label="Open activity history">
+                <ArrowUpRight size={18} />
               </Link>
             </div>
-
-            <div className="space-y-2">
-              {assignments.slice(0, 4).map((assignment) => (
-                <div
-                  key={assignment.id}
-                  className="rounded-xl border border-white/10 bg-black/10 p-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-medium text-white line-clamp-1">
-                      {assignment.title}
-                    </p>
-                    {assignment.computed_status === 'overdue' && (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-300 shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
-                    {new Date(assignment.deadline).toLocaleString([], {
-                      weekday: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-              ))}
-
-              {assignments.length === 0 && (
-                <p className="text-xs text-[var(--theme-text-muted)] py-4">
-                  No active assignments.
-                </p>
-              )}
-            </div>
-
-            {reminders.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/10">
-                <div className="flex items-center gap-2 text-[11px] text-[var(--theme-text-muted)]">
-                  <Bell className="w-3.5 h-3.5 text-[var(--theme-primary)]" />
-                  {reminders.length} reminder event
-                  {reminders.length === 1 ? '' : 's'} visible
-                </div>
-              </div>
+            {history.length ? (
+              <ol>
+                {history.slice(0, 4).map((item) => (
+                  <li key={item.id}>
+                    <span className="today-activity-dot" />
+                    <div>
+                      <p>
+                        {item.metadata_json?.title ||
+                          item.type?.replaceAll('_', ' ') ||
+                          'Recorded activity'}
+                      </p>
+                      <time>{eventTime(item.created_at)}</time>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="today-empty-copy">
+                Your small steps will appear here as you go.
+              </p>
             )}
           </GlassCard>
-
-          <GlassCard padding="md">
-            <p className="text-sm font-semibold text-white">Today note</p>
-            <div className="mt-4 flex gap-3">
-              <MessageSquareText className="w-4 h-4 text-[var(--theme-primary)] shrink-0" />
-              <p className="text-xs leading-relaxed text-white/80">
-                Small progress is still progress. CrysTrack records what you actually
-                execute, not whether you followed a perfect clock.
-              </p>
-            </div>
-          </GlassCard>
+        </aside>
+      </div>
+      <WorkspaceOverlay
+        open={capture}
+        onClose={() => setCapture(false)}
+        title="Capture something that matters"
+      >
+        <p className="workspace-utility-muted">
+          Choose a space. The details are yours.
+        </p>
+        <div className="today-capture-grid">
+          {[
+            {
+              href: '/tasks?create=task',
+              title: 'A task',
+              note: 'A small step to repeat',
+              icon: CheckCircle2,
+            },
+            {
+              href: '/goals?create=goal',
+              title: 'A goal',
+              note: 'A direction to grow into',
+              icon: Target,
+            },
+            {
+              href: '/assignments?create=assignment',
+              title: 'An assignment',
+              note: 'Make room for learning',
+              icon: CalendarDays,
+            },
+            {
+              href: '/finance?create=entry',
+              title: 'A money entry',
+              note: 'Keep the real picture clear',
+              icon: Wallet,
+            },
+          ].map(({ href, title, note, icon: Icon }) => (
+            <Link href={href} key={href} onClick={() => setCapture(false)}>
+              <Icon size={21} />
+              <strong>{title}</strong>
+              <span>{note}</span>
+            </Link>
+          ))}
         </div>
-      </section>
-
-      <GlassCard padding="md">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-white">Recent activity</p>
-          <Link href="/history" className="text-xs text-[var(--theme-primary)]">
-            Full history
-          </Link>
-        </div>
-
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">
-          {history.length === 0 ? (
-            <p className="text-xs text-[var(--theme-text-muted)]">
-              Your activity will appear here.
-            </p>
-          ) : (
-            history.slice(0, 6).map((item: any) => (
-              <div
-                key={item.id}
-                className="rounded-xl border border-white/10 bg-black/10 px-3 py-2.5"
-              >
-                <p className="text-xs text-white truncate">
-                  {item.metadata_json?.title ||
-                    item.type?.replaceAll('_', ' ') ||
-                    'Activity'}
-                </p>
-                <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
-                  {new Date(item.created_at).toLocaleString([], {
-                    weekday: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      </GlassCard>
+      </WorkspaceOverlay>
+      {ritual && (
+        <RitualFlow
+          key={ritual}
+          kind={ritual}
+          onClose={() => setRitual(null)}
+        />
+      )}
     </div>
   );
 }

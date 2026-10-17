@@ -486,22 +486,7 @@ export default function GoalsPage() {
       className="goal-workspace space-y-6"
       style={goalThemeTokens as React.CSSProperties}
     >
-      <nav className="goal-tabs" aria-label="Goal lifecycle">
-        {[
-          ['active', 'In motion'],
-          ['paused', 'Resting'],
-          ['achieved', 'Achieved · Trophy shelf'],
-          ['let_go', 'Let go'],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            aria-pressed={view === key}
-            onClick={() => setView(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+
       {notice && (
         <div role="status" className="goal-notice">
           <span>{notice}</span>
@@ -526,7 +511,7 @@ export default function GoalsPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">
             Plan · Direction
           </p>
-          <h1 className="text-2xl font-bold text-white mt-1">Goals</h1>
+          <h1 className="text-2xl font-bold text-white mt-1">Goals worth growing into.</h1>
           <p className="text-sm text-[var(--theme-text-muted)] mt-1">
             Give your next chapter a direction. Connect small steps, daily
             effort, and the things you’re saving for.
@@ -545,6 +530,23 @@ export default function GoalsPage() {
           New goal
         </Button>
       </div>
+
+      <nav className="goal-tabs" aria-label="Goal lifecycle">
+        {[
+          ['active', 'In motion'],
+          ['paused', 'Resting'],
+          ['achieved', 'Achieved · Trophy shelf'],
+          ['let_go', 'Let go'],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            aria-pressed={view === key}
+            onClick={() => setView(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
 
       {error && (
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -624,7 +626,7 @@ export default function GoalsPage() {
                     {goal.progress_mode === 'ai' ? 'AI assisted' : 'Numeric'}
                   </span>
                 </div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 id={'goal-'+goal.id} className="text-lg font-semibold text-white">
                   {goal.title}
                 </h3>
                 {goal.description && (

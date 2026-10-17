@@ -1,5 +1,6 @@
 "use client";
 
+import {useSearchParams} from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Area,
@@ -93,6 +94,7 @@ function cashflowSeries(entries: any[], timezone: string) {
 }
 
 export default function WealthPage() {
+  const search=useSearchParams();
   const [data, setData] = useState<
     Omit<typeof emptyData, keyof WealthSuite> & WealthSuite
   >(emptyData);
@@ -101,6 +103,7 @@ export default function WealthPage() {
   const { currency, setCurrency, rate, loadingRate } = useWealthCurrency();
 
   const [showEntry, setShowEntry] = useState(false);
+  useEffect(()=>{if(search.get('create')==='entry')queueMicrotask(()=>setShowEntry(true));},[search]);
   const [showTarget, setShowTarget] = useState(false);
   const [showDebt, setShowDebt] = useState(false);
   const [showExpected, setShowExpected] = useState(false);
@@ -329,7 +332,7 @@ export default function WealthPage() {
 
   return (
     <div
-      className="space-y-5 pb-8"
+      className="space-y-5 pb-8 wealth-workspace"
       style={wealthThemeTokens as React.CSSProperties}
     >
       <section className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
@@ -338,7 +341,7 @@ export default function WealthPage() {
             CrysTrack
           </p>
           <h1 className="dashboard-hero-title text-3xl sm:text-4xl font-semibold mt-1">
-            Wealth
+            Take control of your money.
           </h1>
           <p className="dashboard-hero-copy text-sm mt-2">
             Know where your money is going, what is changing, and what is

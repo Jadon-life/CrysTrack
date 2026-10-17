@@ -1,6 +1,13 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   environmentLocalIso,
   fallbackEnvironment,
@@ -8,7 +15,13 @@ import {
   phaseFromSolarTimes,
   type EnvironmentState,
 } from '@/lib/environment';
-import { getThemeForPhase, type ThemeColors, type ThemePreference } from '@/lib/theme';
+import { effectiveWorkspaceTheme } from '@/lib/workspace/design';
+import {
+  getThemeForPhase,
+  workspaceThemeTokens,
+  type ThemeColors,
+  type ThemePreference,
+} from '@/lib/theme';
 
 interface ThemeContextType {
   theme: ThemeColors;
@@ -61,13 +74,21 @@ async function saveDetectedLocation(environment: EnvironmentState) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [environment, setEnvironment] = useState<EnvironmentState>(() => fallbackEnvironment());
+  const [environment, setEnvironment] = useState<EnvironmentState>(() =>
+    fallbackEnvironment(),
+  );
   const [environmentLoading, setEnvironmentLoading] = useState(false);
-  const [preference, setPreferenceState] = useState<ThemePreference>('adaptive');
+  const [preference, setPreferenceState] =
+    useState<ThemePreference>('adaptive');
   const [reducedMotion, setReducedMotionState] = useState(false);
-  const [locationPermission, setLocationPermission] = useState<PermissionState | 'unsupported' | 'unknown'>('unknown');
+  const [locationPermission, setLocationPermission] = useState<
+    PermissionState | 'unsupported' | 'unknown'
+  >('unknown');
 
-  const theme = useMemo(() => getThemeForPhase(environment.phase, preference), [environment.phase, preference]);
+  const theme = useMemo(
+    () => getThemeForPhase(environment.phase, preference),
+    [environment.phase, preference],
+  );
 
   const resolvePermission = useCallback(async () => {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
@@ -91,51 +112,64 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const loadApproximateEnvironment = useCallback(async () => {
     setEnvironmentLoading(true);
-    try { setEnvironment(await loadEnvironment()); }
-    finally { setEnvironmentLoading(false); }
+    try {
+      setEnvironment(await loadEnvironment());
+    } finally {
+      setEnvironmentLoading(false);
+    }
   }, []);
 
-  const requestLocation = useCallback(async (options?: { prompt?: boolean }) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      await loadApproximateEnvironment();
-      return;
-    }
+  const requestLocation = useCallback(
+    async (options?: { prompt?: boolean }) => {
+      if (typeof navigator === 'undefined' || !navigator.geolocation) {
+        await loadApproximateEnvironment();
+        return;
+      }
 
-    const permission = await resolvePermission();
-    if (permission === 'denied' || (permission === 'prompt' && options?.prompt === false)) {
-      await loadApproximateEnvironment();
-      return;
-    }
+      const permission = await resolvePermission();
+      if (
+        permission === 'denied' ||
+        (permission === 'prompt' && options?.prompt === false)
+      ) {
+        await loadApproximateEnvironment();
+        return;
+      }
 
-    setEnvironmentLoading(true);
-    await new Promise<void>((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const next = await loadEnvironment({
-  latitude: position.coords.latitude,
-  longitude: position.coords.longitude,
-  accuracy: position.coords.accuracy,
-});
-            setEnvironment(next);
-            await saveDetectedLocation(next);
-          } finally {
-            setEnvironmentLoading(false);
-            resolve();
-          }
-        },
-        async () => {
-          try { setEnvironment(await loadEnvironment()); }
-          finally { setEnvironmentLoading(false); resolve(); }
-        },
-        {
-  enableHighAccuracy: true,
-  timeout: 20000,
-  maximumAge: 0,
-},
-      );
-    });
-  }, [loadApproximateEnvironment, resolvePermission]);
+      setEnvironmentLoading(true);
+      await new Promise<void>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const next = await loadEnvironment({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              });
+              setEnvironment(next);
+              await saveDetectedLocation(next);
+            } finally {
+              setEnvironmentLoading(false);
+              resolve();
+            }
+          },
+          async () => {
+            try {
+              setEnvironment(await loadEnvironment());
+            } finally {
+              setEnvironmentLoading(false);
+              resolve();
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0,
+          },
+        );
+      });
+    },
+    [loadApproximateEnvironment, resolvePermission],
+  );
 
   const refreshEnvironment = useCallback(async () => {
     await requestLocation({ prompt: false });
@@ -156,7 +190,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     queueMicrotask(() => {
       setReducedMotionState(media.matches);
     });
-    const onChange = (event: MediaQueryListEvent) => setReducedMotionState(event.matches);
+    const onChange = (event: MediaQueryListEvent) =>
+      setReducedMotionState(event.matches);
     media.addEventListener('change', onChange);
 
     queueMicrotask(() => {
@@ -165,11 +200,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     });
 
     fetch('/api/preferences')
-      .then((response) => response.ok ? response.json() : null)
+      .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (!data) return;
-        if (['adaptive', 'light', 'dark'].includes(data.theme_preference)) setPreferenceState(data.theme_preference);
-        if (typeof data.reduced_motion === 'boolean') setReducedMotionState(data.reduced_motion);
+        if (['adaptive', 'light', 'dark'].includes(data.theme_preference))
+          setPreferenceState(data.theme_preference);
+        if (typeof data.reduced_motion === 'boolean')
+          setReducedMotionState(data.reduced_motion);
       })
       .catch(() => null);
 
@@ -177,7 +214,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [loadApproximateEnvironment, resolvePermission]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => void refreshEnvironment(), 10 * 60 * 1000);
+    const interval = window.setInterval(
+      () => void refreshEnvironment(),
+      10 * 60 * 1000,
+    );
     return () => window.clearInterval(interval);
   }, [refreshEnvironment]);
 
@@ -187,15 +227,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const tick = () => {
       setEnvironment((current) => {
         const localTime = environmentLocalIso(current.timezone);
-        const phase = phaseFromSolarTimes(localTime, current.sunrise, current.sunset);
-        if (localTime === current.localTime && phase === current.phase) return current;
+        const phase = phaseFromSolarTimes(
+          localTime,
+          current.sunrise,
+          current.sunset,
+        );
+        if (localTime === current.localTime && phase === current.phase)
+          return current;
         return { ...current, localTime, phase };
       });
     };
 
     tick();
     const interval = window.setInterval(tick, 60_000);
-    const onVisibility = () => { if (document.visibilityState === 'visible') tick(); };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
     window.addEventListener('focus', tick);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
@@ -207,6 +254,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    const mode = effectiveWorkspaceTheme(preference, environment.phase);
+    root.dataset.workspaceTheme = mode;
+    for (const [key, value] of Object.entries(workspaceThemeTokens(mode)))
+      root.style.setProperty(key, value);
     root.dataset.phase = environment.phase;
     root.dataset.weather = environment.weather;
     root.dataset.themePreference = preference;
@@ -223,22 +274,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty('--theme-border', theme.border);
     root.style.setProperty('--theme-glow', theme.glow);
     root.style.setProperty('--theme-glass-tint', theme.glassTint);
-  }, [environment.phase, environment.weather, preference, reducedMotion, theme]);
+  }, [
+    environment.phase,
+    environment.weather,
+    preference,
+    reducedMotion,
+    theme,
+  ]);
 
   return (
-    <ThemeContext.Provider value={{
-      theme,
-      timeOfDay: environment.phase,
-      reducedMotion,
-      setReducedMotion,
-      preference,
-      setPreference,
-      environment,
-      environmentLoading,
-      locationPermission,
-      requestLocation,
-      refreshEnvironment,
-    }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        timeOfDay: environment.phase,
+        reducedMotion,
+        setReducedMotion,
+        preference,
+        setPreference,
+        environment,
+        environmentLoading,
+        locationPermission,
+        requestLocation,
+        refreshEnvironment,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

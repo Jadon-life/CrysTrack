@@ -136,12 +136,12 @@ export default function CalendarPage() {
       )}
     </div>
   );
-  if(!data)return <div className="rhythm-page"><h1>Timeboxed Calendar</h1><p role={dayError?"alert":"status"}>{dayError||"Loading your saved local day…"}</p>{dayError&&<button onClick={()=>void refresh()}>Try again</button>}</div>;
+  if(!data)return <div className="rhythm-page"><h1>Your time, intentionally planned.</h1><p role={dayError?"alert":"status"}>{dayError||"Loading your saved local day…"}</p>{dayError&&<button onClick={()=>void refresh()}>Try again</button>}</div>;
   return (
     <div className="rhythm-page">
       <header>
         <p className="rhythm-eyebrow">Plan · Time</p>
-        <h1>Timeboxed Calendar</h1>
+        <h1>Your time, intentionally planned.</h1>
         <p>
           Drag a task into an hour, or choose it and activate a slot with your
           keyboard. {data?.timezone}
