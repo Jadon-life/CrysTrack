@@ -171,7 +171,7 @@ export default function DashboardPage() {
   ) => {
     if (!dayContext || busyTaskId) return;
     const date = undoDate || dayContext.dateKey;
-    if (date !== dayContext.dateKey) {
+    if (date !== dayContext.dateKey || dayInTimezone(dayContext.timezone).dateKey !== dayContext.dateKey) {
       setTaskError('The day has changed. Refresh Today before making another change.');
       return;
     }
@@ -476,7 +476,7 @@ export default function DashboardPage() {
                             {goal.title}
                           </p>
                           <p className="text-xs text-[var(--theme-text-muted)] mt-1">
-                            {checkInDue(goal)
+                            {dayContext && checkInDue(goal, dayContext.dateKey, dayContext.weekday, dayContext.timezone)
                               ? 'Check-in due today'
                               : 'Check-in up to date'}
                           </p>
