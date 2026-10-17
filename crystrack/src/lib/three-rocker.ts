@@ -33,19 +33,19 @@ export function mountRocker(
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.18;
+  renderer.toneMappingExposure = 0.92;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(23, 2.5, 0.1, 20);
   camera.position.set(0, 0.68, 3.72);
   camera.lookAt(0, 0, 0);
 
-  const ambient = new THREE.HemisphereLight(0xa7dcf7, 0x061425, 2.6);
+  const ambient = new THREE.HemisphereLight(0x78b7d7, 0x06101f, 1.85);
   scene.add(ambient);
-  const key = new THREE.DirectionalLight(0xbfeaff, 3.5);
+  const key = new THREE.DirectionalLight(0x8fc9e5, 2.25);
   key.position.set(-2.2, 3.2, 4.2);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0x38a8ff, 4.0);
+  const rim = new THREE.DirectionalLight(0x2387c3, 2.55);
   rim.position.set(2.7, 1.0, -1.5);
   scene.add(rim);
 
@@ -191,15 +191,15 @@ export function mountRocker(
 
     // Every visible hardware surface derives from CrysTrack's active theme.
     // No white plastic; the face is a brighter/deeper glass-metal shade.
-    baseMat.color.copy(bg).lerp(primary, .18);
-    pitMat.color.copy(bg).multiplyScalar(.62);
-    edgeMat.color.copy(primary).lerp(secondary, .35);
-    faceMat.color.copy(bg).lerp(primary, light ? .30 : .20).lerp(secondary, .08);
-    seamMat.color.copy(primary).lerp(secondary, .22);
-    iconMat.color.copy(light ? secondary : primary);
-    iconMat.emissive.copy(light ? secondary : primary).multiplyScalar(.28);
-    inactiveIconMat.color.copy(primary).lerp(bg, .58);
-    inactiveIconMat.emissive.copy(bg).lerp(primary, .18).multiplyScalar(.10);
+    baseMat.color.copy(bg).lerp(primary, .09).multiplyScalar(.86);
+    pitMat.color.copy(bg).multiplyScalar(.48);
+    edgeMat.color.copy(bg).lerp(primary, .20).lerp(secondary, .08);
+    faceMat.color.copy(bg).lerp(primary, light ? .17 : .12).lerp(secondary, .035).multiplyScalar(.90);
+    seamMat.color.copy(bg).lerp(primary, .22).lerp(secondary, .07);
+    iconMat.color.copy(bg).lerp(light ? secondary : primary, .62);
+    iconMat.emissive.copy(light ? secondary : primary).multiplyScalar(.10);
+    inactiveIconMat.color.copy(bg).lerp(primary, .24);
+    inactiveIconMat.emissive.copy(bg).lerp(primary, .10).multiplyScalar(.05);
 
     // Selected side gets the brighter embedded symbol.
     sunGroup.traverse((object) => {
@@ -207,7 +207,7 @@ export function mountRocker(
     });
     moon.material = light ? inactiveIconMat : iconMat;
     rim.color.copy(primary);
-    key.color.copy(secondary).lerp(new THREE.Color(0xb7dcf2), .45);
+    key.color.copy(bg).lerp(secondary, .32);
   }
 
   function update(light: boolean, reducedMotion: boolean, palette: RockerPalette) {

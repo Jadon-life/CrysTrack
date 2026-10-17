@@ -19,3 +19,7 @@ icons if WebGL cannot start. Rendering is event-driven, not continuous.
 This is an approval candidate only. No further product piece should begin
 until the user approves the visual result. No production merge or database
 changes.
+
+## Darker visual calibration
+
+The approval candidate has been deliberately darkened without changing its geometry. The rocker face, base and edge now stay much closer to the active CrysTrack background, with lower blue/cyan mixing and softer scene lighting. The sun/moon markings remain legible but less luminous, and the fallback uses the same darker calibration. The goal is for the control to feel embedded in the glass navigation rather than like a bright object placed on top of it.
