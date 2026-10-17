@@ -90,7 +90,9 @@
 @media (prefers-reduced-transparency: reduce) {
   .crys-glass-card,
   .crys-glass-card--substantial,
-  .calendar-glass {
+  .calendar-glass,
+  .crys-glass-card.crys-glass-card--hover,
+  .crys-glass-card.crys-glass-card--hover:hover {
     background: rgba(5, 18, 33, 0.96);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -100,7 +102,9 @@
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .crys-glass-card,
   .crys-glass-card--substantial,
-  .calendar-glass {
+  .calendar-glass,
+  .crys-glass-card.crys-glass-card--hover,
+  .crys-glass-card.crys-glass-card--hover:hover {
     background: rgba(5, 18, 33, 0.96);
   }
 }

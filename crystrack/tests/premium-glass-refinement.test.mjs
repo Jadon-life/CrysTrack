@@ -21,6 +21,7 @@ test('refined glass has legibility, mobile, and accessibility fallbacks', () => 
   assert.match(css, /@media \(max-width: 719px\)/);
   assert.match(css, /prefers-reduced-transparency: reduce/);
   assert.match(css, /@supports not/);
+  assert.match(css, /\.calendar-glass,\s*\.crys-glass-card\.crys-glass-card--hover,/);
   assert.match(css, /prefers-reduced-motion: reduce/);
   assert.match(css, /\[data-crys-reduced-motion='true'\]/);
 });
