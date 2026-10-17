@@ -1,5 +1,6 @@
 'use client';
 
+import { StreakEncouragement } from '@/components/gamification/elements';
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -154,6 +155,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-6">
+      <StreakEncouragement/>
+      <StreakEncouragement/>
       <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-1 scenic-readable-copy">
         <div>
           <p className="text-sm text-white/75">{greetingForLocalTime(environment.localTime)},</p>

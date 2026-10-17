@@ -19,7 +19,8 @@
     "test:goals:db": "node --test tests/goals-database.integration.mjs",
     "test:assignments:db": "node --test tests/assignments-database.integration.mjs",
     "test:rhythm:db": "node --test tests/rhythm-database.integration.mjs",
-    "test:wealth:db": "node --test tests/wealth-database.integration.mjs"
+    "test:wealth:db": "node --test tests/wealth-database.integration.mjs",
+    "test:gamification:db": "node --test tests/gamification-database.integration.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.11",

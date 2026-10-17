@@ -1,5 +1,6 @@
 'use client';
 
+import { AchievementCabinet } from '@/components/gamification/elements';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GlassCard } from '@/components/shared/glass-card';
@@ -46,6 +47,7 @@ export default function InsightsPage() {
         </Link>
       </div>
 
+      <AchievementCabinet/>
       <DomainInsightCard domain="overview" />
 
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}

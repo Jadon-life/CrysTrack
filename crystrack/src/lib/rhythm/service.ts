@@ -1,3 +1,4 @@
+import { loadGamification } from '@/lib/gamification/service';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { savedTimezone, loadGoals } from '@/lib/goals/service';
@@ -154,6 +155,7 @@ export async function loadToday(
   ]);
   for (const r of [history, entries, targets, debts, accounts])
     if (r.error) throw r.error;
+  const gamification=await loadGamification(db,uid,timezone,{entries:entries.data||[],targets:targets.data||[],assignments:raw.assignments});
   const events = calendarEvents(raw, day, day, timezone),
     ritual = raw.rituals.find((r: any) => r.day === day) || null;
   const tasks = raw.tasks.map((t: any) => ({
@@ -175,6 +177,7 @@ export async function loadToday(
   return {
     day,
     timezone,
+    gamification,
     asOf: now.toISOString(),
     tasks,
     goals,

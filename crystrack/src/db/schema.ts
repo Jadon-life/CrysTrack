@@ -30,6 +30,7 @@ export const userPreferences = pgTable('user_preferences', {
   userId: uuid('user_id').notNull().unique(),
   themePreference: varchar('theme_preference', { length: 50 }).default('adaptive'),
   reducedMotion: boolean('reduced_motion').default(false),
+  hideGamification:boolean('hide_gamification').notNull().default(false),
   weatherEnabled: boolean('weather_enabled').default(true),
   dndEnabled: boolean('dnd_enabled').default(false),
   dndStartTime: varchar('dnd_start_time', { length: 5 }),
@@ -291,3 +292,8 @@ export type TaskFocusTotal=typeof taskFocusTotals.$inferSelect;
 export const wealthSettings = pgTable('wealth_settings', {
  userId:uuid('user_id').primaryKey(),spendSaveBps:integer('spend_save_bps').notNull().default(0),targetId:uuid('target_id').references(()=>financeTargets.id,{onDelete:'restrict'}),lowBalance:decimal('low_balance',{precision:12,scale:2}).notNull().default('0'),
 }, (t)=>({rateCheck:check('wealth_settings_spend_save_bps_check',sql`${t.spendSaveBps} BETWEEN 0 AND 10000`),lowCheck:check('wealth_settings_low_balance_check',sql`${t.lowBalance}>=0`)}));
+
+// Protected reward ledger. RLS SELECT only; trigger writes are defined in migration 0010.
+export const gamificationEvents=pgTable('gamification_events',{
+ id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),actionKey:text('action_key').notNull(),kind:varchar('kind',{length:20}).notNull(),sourceId:text('source_id').notNull(),day:date('day').notNull(),area:varchar('area',{length:100}),active:boolean('active').notNull().default(true),onTime:boolean('on_time').notNull().default(false),createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
+},t=>({ownerAction:unique('gamification_events_user_id_action_key_key').on(t.userId,t.actionKey),ownerDay:index('gamification_owner_day').on(t.userId,t.day),kindCheck:check('gamification_events_kind_check',sql`${t.kind} IN ('task','goal','expense','morning','evening','weekly','assignment')`)}));

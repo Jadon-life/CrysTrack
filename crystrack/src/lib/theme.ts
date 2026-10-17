@@ -152,3 +152,5 @@ export const wealthThemeTokens = {
  '--wealth-ivory': '#F6F1E4',
  '--wealth-muted': '#B7BED1',
 };
+
+export const gamificationThemeTokens={...goalThemeTokens,'--xp-gold':'#D9B65D','--xp-bright':'#F0D48A','--xp-muted':'#B7BED1','--xp-ivory':'#F6F1E4'};

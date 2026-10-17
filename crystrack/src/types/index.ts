@@ -133,3 +133,5 @@ export type { AcademicAssignment, AssignmentSubtask, AcademicWorkload } from './
 export type { TodayData,Timebox,DailyRitual,FocusSession,CalendarEvent } from './rhythm';
 
 export type { WealthAccount, LedgerEntry, BudgetCap, RecurringBill, SavingsCircle, CircleContribution, WealthSettings, WealthSuite } from './finance';
+
+export type { RewardEvent, RewardKind, StreakState, Badge, GamificationSnapshot } from './gamification';

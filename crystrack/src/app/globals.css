@@ -1186,3 +1186,54 @@ html[data-crys-reduced-motion="true"] .rhythm-island button:active { transform: 
 html[data-crys-reduced-motion=true] .wealth-suite button { transition: none; transform: none; }
 
 html[data-crys-reduced-motion="true"] .wealth-suite .goal-particles { display: none; }
+
+/* Piece 8 — glass cabinet, gold avatar ring and quiet-mode controls. */
+.app-experience-shell .topnav-shell,
+.app-experience-shell .topnav-popover {
+ background: linear-gradient(135deg,var(--goal-glass,rgba(10,22,52,.55)),var(--goal-shade,rgba(3,5,11,.70)));
+ backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+ border-color: rgba(217,182,93,.4); color: var(--goal-ivory,#F6F1E4); font-variant-numeric:tabular-nums;
+}
+.gamification-avatar { position:relative; display:inline-grid; place-items:center; width:48px; height:48px; flex-shrink:0; font-variant-numeric:tabular-nums; }
+.gamification-avatar .topnav-avatar { width:34px; height:34px; }
+.gamification-avatar svg { position:absolute; inset:0; width:48px; height:48px; overflow:visible; pointer-events:none; transform:rotate(-90deg); }
+.xp-ring-track,.xp-ring-gold { fill:none; stroke-width:2.5; }
+.xp-ring-track { stroke:rgba(217,182,93,.18); }
+.xp-ring-gold { stroke:var(--xp-gold,#D9B65D); stroke-linecap:round; filter:drop-shadow(0 0 3px rgba(217,182,93,.5)); transition:stroke-dasharray 200ms ease; }
+.xp-level { position:absolute; right:-2px; bottom:-1px; min-width:20px; min-height:18px; display:grid; place-items:center; background:var(--goal-shade,rgba(3,5,11,.70)); border:1px solid var(--xp-gold,#D9B65D); border-radius:9px; color:var(--xp-bright,#F0D48A); font-size:12px; line-height:1.4; }
+.gamification-cabinet { display:grid; gap:20px; font-size:14px; color:var(--xp-ivory,#F6F1E4); font-variant-numeric:tabular-nums; scroll-margin-top:100px; }
+.gamification-cabinet p,.gamification-streak p { margin-block:8px; line-height:1.6; }
+.gamification-cabinet h2 { font-size:22px; font-weight:650; }
+.gamification-cabinet h3 { font-size:16px; font-weight:650; }
+.gamification-heading { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.gamification-heading > svg { color:var(--xp-gold,#D9B65D); }
+.gamification-heading > span { margin-left:auto; }
+.gamification-secondary { color:var(--xp-muted,#B7BED1); font-size:12px; }
+.gamification-filters { display:flex; gap:8px; flex-wrap:wrap; }
+.gamification-cabinet :is(button,summary),.gamification-streak a,.gamification-toast :is(button,a) { min-height:40px; padding:10px 12px; border-radius:12px; border:1px solid rgba(217,182,93,.35); background:var(--goal-glass,rgba(10,22,52,.55)); color:inherit; font-size:14px; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 2px 4px rgba(0,0,0,.6); transition:transform 180ms cubic-bezier(.2,.8,.2,1.2),border-color 180ms; }
+.gamification-cabinet button[aria-pressed=true] { border-color:var(--xp-gold,#D9B65D); color:var(--xp-bright,#F0D48A); }
+.gamification-cabinet button:active,.gamification-toast button:active { transform:translateY(1px); }
+.gamification-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:16px; }
+.gamification-badge { min-width:0; }
+.gamification-badge-icon { position:relative; width:56px; height:56px; border-radius:18px; display:grid; place-items:center; margin-bottom:16px; border:1px solid rgba(255,255,255,.15); background:linear-gradient(135deg,rgba(255,255,255,.08),transparent); }
+.gamification-badge-icon > svg { width:28px; height:28px; }
+.gamification-badge-icon .badge-lock { position:absolute; bottom:-4px; right:-4px; width:18px; height:18px; color:var(--xp-muted,#B7BED1); }
+.gamification-badge.is-locked .gamification-badge-icon > svg:first-child { opacity:.3; }
+.gamification-badge.is-unlocked .gamification-badge-icon { color:var(--xp-bright,#F0D48A); border-color:var(--xp-gold,#D9B65D); box-shadow:0 0 22px rgba(217,182,93,.16),inset 0 1px 0 rgba(255,255,255,.2); background:linear-gradient(135deg,rgba(217,182,93,.14),rgba(170,196,255,.1),transparent); }
+.gamification-cabinet progress { width:100%; height:8px; accent-color:var(--xp-gold,#D9B65D); margin-top:12px; }
+.gamification-streak { display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.gamification-setting { margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,.14); font-size:14px; font-variant-numeric:tabular-nums; }
+.gamification-setting label { min-height:44px; display:flex; align-items:center; gap:12px; cursor:pointer; }
+.gamification-setting input { width:24px; height:24px; accent-color:var(--goal-gold,#D9B65D); }
+.gamification-setting p { margin:8px 0; line-height:1.6; }
+.gamification-toast { position:fixed; bottom:120px; left:50%; transform:translateX(-50%); z-index:65; display:flex; gap:12px; flex-wrap:wrap; align-items:center; width:max-content; max-width:calc(100vw - 24px); padding:16px; border:1px solid rgba(217,182,93,.4); border-radius:20px; background:rgba(3,5,11,.70); backdrop-filter:blur(20px) saturate(180%); color:var(--xp-ivory,#F6F1E4); font-size:14px; font-variant-numeric:tabular-nums; }
+:is(.gamification-cabinet,.gamification-setting,.gamification-streak,.gamification-toast) :is(button,a,input,summary):focus-visible { outline:2px solid var(--xp-bright,#F0D48A); outline-offset:3px; }
+@media(prefers-reduced-motion:reduce) { .xp-ring-gold,.gamification-cabinet button,.gamification-toast button { transition:none; } .gamification-cabinet button:active,.gamification-toast button:active { transform:none; } }
+html[data-crys-reduced-motion=true] :is(.xp-ring-gold,.gamification-cabinet button,.gamification-toast button) { transition:none; }
+html[data-crys-reduced-motion=true] :is(.gamification-cabinet button:active,.gamification-toast button:active) { transform:none; }
+.app-experience-shell main .gamification-badge.is-unlocked[data-glass-reactive] { border-color:rgba(217,182,93,.6); box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 0 24px rgba(217,182,93,.1),0 14px 28px rgba(0,0,0,.3); }
+.gamification-cabinet progress { appearance:none; -webkit-appearance:none; border:0; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.1); }
+.gamification-cabinet progress::-webkit-progress-bar { background:rgba(255,255,255,.1); border-radius:999px; }
+.gamification-cabinet progress::-webkit-progress-value { background:linear-gradient(90deg,var(--xp-gold,#D9B65D),var(--xp-bright,#F0D48A)); border-radius:999px; }
+.gamification-cabinet progress::-moz-progress-bar { background:linear-gradient(90deg,var(--xp-gold,#D9B65D),var(--xp-bright,#F0D48A)); border-radius:999px; }
+html[data-crys-reduced-motion=true] .gamification-particles { display:none; }

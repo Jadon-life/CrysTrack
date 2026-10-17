@@ -1,5 +1,7 @@
 'use client';
 
+import { AvatarXP } from '@/components/gamification/elements';
+import { useGamification } from '@/components/gamification/provider';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -174,6 +176,7 @@ function NotificationMenu() {
 }
 
 function ProfileMenu() {
+  const {data:gamification,hidden:quiet}=useGamification();
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -229,10 +232,11 @@ function ProfileMenu() {
       <button
         type="button"
         className="topnav-profile"
+        aria-label={quiet?'Open profile':`Open profile, level ${gamification?.level||1}, ${gamification?.xp||0} XP, ${gamification ? gamification.xp-gamification.levelStart : 0} of ${gamification ? gamification.nextLevel-gamification.levelStart : 100} XP toward next level`}
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
-        <span className="topnav-avatar overflow-hidden">
+        <AvatarXP><span className="topnav-avatar overflow-hidden">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -244,14 +248,14 @@ function ProfileMenu() {
           ) : (
             initial
           )}
-        </span>
+        </span></AvatarXP>
 
         <span className="hidden 2xl:block min-w-0 text-left">
           <span className="block text-xs font-semibold text-white truncate max-w-28">
             {displayName}
           </span>
           <span className="block text-[10px] text-[var(--theme-text-muted)]">
-            Personal
+            {!quiet&&gamification?.ready?`Level ${gamification.level}`:'Personal'}
           </span>
         </span>
 
@@ -266,6 +270,7 @@ function ProfileMenu() {
               {user?.email}
             </p>
           </div>
+          {!quiet&&gamification?.ready&&<Link href="/insights#achievement-cabinet" onClick={()=>setOpen(false)} className="topnav-menu-item">Level {gamification.level} · {gamification.xp} XP · Your badges</Link>}
           <Link
             href="/settings"
             onClick={() => setOpen(false)}
@@ -335,7 +340,7 @@ export function TopNavigation() {
                 <MapPin className="w-3 h-3" /> {environmentLoading ? 'Updating…' : location}
               </span>
             </button>
-            <ThemeControl />
+            <div className="hidden sm:block"><ThemeControl /></div>
             <NotificationMenu />
             <ProfileMenu />
             <button type="button" className="topnav-icon-button lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu className="w-4 h-4" /></button>
@@ -350,6 +355,7 @@ export function TopNavigation() {
               <div className="flex items-center gap-2 text-white font-semibold"><Diamond className="w-4 h-4 text-[var(--theme-primary)]" /> CrysTrack</div>
               <button type="button" className="topnav-icon-button" onClick={() => setMobileOpen(false)}><X className="w-4 h-4" /></button>
             </div>
+            <div className="sm:hidden"><ThemeControl/></div>
             <nav className="grid grid-cols-2 gap-2 mt-2">
               {navItems.map((item) => {
                 const active = navItemIsActive(pathname, item);

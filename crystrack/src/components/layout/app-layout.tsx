@@ -1,4 +1,5 @@
 'use client';
+import { GamificationProvider } from '@/components/gamification/provider';
 
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -65,7 +66,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <RhythmProvider><div className="relative min-h-screen app-experience-shell">
+    <RhythmProvider><GamificationProvider><div className="relative min-h-screen app-experience-shell">
       <EnvironmentBackground />
       <GoalAtmosphere phase={environment.phase} reducedMotion={reducedMotion}/>
       <TopNavigation />
@@ -73,6 +74,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="w-full max-w-[1560px] mx-auto px-3 sm:px-5 lg:px-7 xl:px-9">{children}</div>
       </main>
       <FloatingIsland/>
-    </div></RhythmProvider>
+    </div></GamificationProvider></RhythmProvider>
   );
 }

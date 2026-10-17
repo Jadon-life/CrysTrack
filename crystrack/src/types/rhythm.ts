@@ -63,6 +63,7 @@ export interface CalendarEvent {
   box_id?: string;
 }
 export interface TodayData {
+  gamification?: import('./gamification').GamificationSnapshot;
   timezone: string;
   day: string;
   asOf: string;
