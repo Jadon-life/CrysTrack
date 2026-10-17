@@ -24,7 +24,7 @@ test('selected calendar day has closed, collapsible activity groups', () => {
 });
 
 test('calendar still reads existing task, goal and assignment APIs', () => {
-  assert.match(page, /fetcher\('\/api\/tasks/);
+  assert.match(page, /fetcher\(.?\/api\/tasks/);
   assert.match(page, /fetcher\('\/api\/goals'\)/);
   assert.match(page, /fetcher\('\/api\/assignments'\)/);
 });

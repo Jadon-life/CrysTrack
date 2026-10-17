@@ -46,7 +46,7 @@ test(
 );
 
 test(
-  'calendar collapses day-cell items into compact counts',
+  'calendar keeps month cells compact with coloured category dots',
   () => {
     const calendar = read(
       'src/app/calendar/page.tsx',
@@ -54,17 +54,17 @@ test(
 
     assert.match(
       calendar,
-      /const taskCount/,
+      /const groups =/,
     );
 
     assert.match(
       calendar,
-      /const assignmentCount/,
+      /events\.some/,
     );
 
     assert.match(
       calendar,
-      /const goalCount/,
+      /groups\.map/,
     );
 
     assert.doesNotMatch(
