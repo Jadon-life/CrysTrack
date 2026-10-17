@@ -13,14 +13,24 @@ import {
   Loader2,
   MessageSquareText,
   Plus,
+  RotateCcw,
+  SkipForward,
   Target,
 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { MiniCalendar } from '@/components/dashboard/mini-calendar';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
-import { fetcher } from '@/lib/api';
-import { formatCurrency, getLocalDateKey } from '@/lib/utils';
+import { fetcher, post } from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
+import {
+  dayInTimezone,
+  dueSoonAssignments,
+  groupTodayTasks,
+  nextTodayTaskStatus,
+  summarizeToday,
+  type TodayMutation,
+} from '@/lib/today-progress';
 
 function greetingForLocalTime(localTime: string) {
   const hour = Number(
@@ -46,20 +56,19 @@ function greetingForLocalTime(localTime: string) {
   return 'Good night';
 }
 
-function checkInDue(goal: any) {
+function checkInDue(goal: any, dateKey: string, weekday: number, timezone: string) {
   const config = goal.checkin_config || {};
   const frequency = config.frequency || 'weekly';
-  const weekday = new Date().getDay();
   const scheduled =
     frequency === 'daily' ||
     (Array.isArray(config.days) && config.days.map(Number).includes(weekday));
 
   if (!scheduled) return false;
 
-  return !(goal.goal_checkins || []).some(
-    (item: any) =>
-      new Date(item.created_at).toDateString() === new Date().toDateString(),
-  );
+  return !(goal.goal_checkins || []).some((item: any) => {
+    const date = new Date(item.created_at);
+    return !Number.isNaN(date.getTime()) && dayInTimezone(timezone, date).dateKey === dateKey;
+  });
 }
 
 function goalPercent(goal: any) {
@@ -94,13 +103,22 @@ export default function DashboardPage() {
   });
   const [history, setHistory] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
+  const [dayContext, setDayContext] = useState<{ dateKey: string; weekday: number; timezone: string } | null>(null);
+  const [taskError, setTaskError] = useState('');
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const [undoAction, setUndoAction] = useState<{ taskId: string; title: string; action: TodayMutation; dateKey: string } | null>(null);
 
   useEffect(() => {
+    let active = true;
     const load = async () => {
       setLoading(true);
 
-      const weekday = new Date().getDay();
-      const date = getLocalDateKey();
+      // Use the saved profile timezone for the daily date and task schedule.
+      const profile = await fetcher('/api/profile').catch(() => null);
+      const timezone = profile?.timezone || profile?.current_timezone || environment.timezone || 'UTC';
+      const context = { ...dayInTimezone(timezone), timezone };
+      const date = context.dateKey;
+      const weekday = context.weekday;
 
       const [
         taskData,
@@ -124,17 +142,80 @@ export default function DashboardPage() {
         fetcher('/api/reminders?limit=6').catch(() => []),
       ]);
 
-      setTasks(taskData);
-      setGoals(goalData);
-      setAssignments(assignmentData);
+      if (!active) return;
+      setDayContext(context);
+      setTasks(Array.isArray(taskData) ? taskData : []);
+      setGoals(Array.isArray(goalData) ? goalData : []);
+      setAssignments(Array.isArray(assignmentData) ? assignmentData : []);
       setWealth(wealthData);
-      setHistory(historyData);
-      setReminders(reminderData);
+      setHistory(Array.isArray(historyData) ? historyData : []);
+      setReminders(Array.isArray(reminderData) ? reminderData : []);
       setLoading(false);
     };
 
     void load();
-  }, []);
+    return () => { active = false; };
+  }, [environment.timezone]);
+
+  useEffect(() => {
+    if (!undoAction) return;
+    const timeout = window.setTimeout(() => setUndoAction(null), 7000);
+    return () => window.clearTimeout(timeout);
+  }, [undoAction]);
+
+  const changeTask = async (
+    task: any,
+    action: TodayMutation,
+    undo = false,
+    undoDate?: string,
+  ) => {
+    if (!dayContext || busyTaskId) return;
+    const date = undoDate || dayContext.dateKey;
+    if (date !== dayContext.dateKey) {
+      setTaskError('The day has changed. Refresh Today before making another change.');
+      return;
+    }
+
+    const before = task.today_status || 'pending';
+    const next = nextTodayTaskStatus(before, action);
+    if (!next) return;
+
+    setBusyTaskId(task.id);
+    setTaskError('');
+    setTasks((current) => current.map((entry) =>
+      entry.id === task.id ? { ...entry, today_status: next } : entry));
+
+    try {
+      const occurrence = await post(
+        `/api/tasks/${encodeURIComponent(task.id)}/occurrences/${date}/${action}`, {},
+      );
+      setTasks((current) => current.map((entry) =>
+        entry.id === task.id ? { ...entry, today_status: occurrence?.status || next } : entry));
+      const refreshed = await fetcher(
+        `/api/tasks?date=${dayContext.dateKey}&weekday=${dayContext.weekday}`,
+      ).catch(() => null);
+      if (Array.isArray(refreshed)) setTasks(refreshed);
+
+      if (undo) {
+        setUndoAction(null);
+      } else {
+        setUndoAction({ taskId: task.id, title: task.title, action, dateKey: date });
+      }
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
+    } catch (error) {
+      setTasks((current) => current.map((entry) =>
+        entry.id === task.id ? { ...entry, today_status: before } : entry));
+      setTaskError(error instanceof Error ? error.message : 'Could not update this task. Please try again.');
+    } finally {
+      setBusyTaskId(null);
+    }
+  };
+
+  const undoLastTaskAction = () => {
+    if (!undoAction) return;
+    const task = tasks.find((entry) => entry.id === undoAction.taskId);
+    if (task) void changeTask(task, undoAction.action, true, undoAction.dateKey);
+  };
 
   const displayName =
     user?.user_metadata?.full_name ||
@@ -143,22 +224,16 @@ export default function DashboardPage() {
     'there';
 
   const todayTasks = useMemo(
-    () =>
-      tasks
-        .filter((task) => task.scheduled_today)
-        .sort((a, b) =>
-          (a.preferred_time || '99:99').localeCompare(
-            b.preferred_time || '99:99',
-          ),
-        ),
+    () => tasks.filter((task) => task.scheduled_today),
     [tasks],
   );
-
-  const completedTasks = todayTasks.filter(
-    (task) => task.today_status === 'completed',
-  ).length;
-
-  const dueGoals = goals.filter(checkInDue);
+  const todayGroups = useMemo(() => groupTodayTasks(todayTasks), [todayTasks]);
+  const progress = summarizeToday(tasks);
+  const completedTasks = progress.completed;
+  const dueGoals = dayContext
+    ? goals.filter((goal) => checkInDue(goal, dayContext.dateKey, dayContext.weekday, dayContext.timezone))
+    : [];
+  const upcomingAssignments = dueSoonAssignments(assignments);
 
   const urgentAssignments = assignments.filter(
     (item) =>
@@ -171,6 +246,7 @@ export default function DashboardPage() {
 
   const summary = [
     {
+      href: '/tasks',
       label: 'Tasks today',
       value: `${completedTasks}/${todayTasks.length}`,
       note: todayTasks.length
@@ -180,6 +256,7 @@ export default function DashboardPage() {
       tone: 'text-emerald-300',
     },
     {
+      href: '/goals',
       label: 'Goal check-ins',
       value: String(dueGoals.length),
       note: dueGoals.length ? 'need attention today' : 'all caught up',
@@ -187,6 +264,7 @@ export default function DashboardPage() {
       tone: 'text-violet-300',
     },
     {
+      href: '/assignments',
       label: 'Assignments',
       value: String(assignments.length),
       note: urgentAssignments
@@ -196,6 +274,7 @@ export default function DashboardPage() {
       tone: 'text-amber-300',
     },
     {
+      href: '/finance',
       label: 'Savings logged',
       value: formatCurrency(totalSavings),
       note: 'from recorded saving entries',
@@ -218,7 +297,7 @@ export default function DashboardPage() {
         <div>
           <p className="text-sm text-white/75">{greetingForLocalTime(environment.localTime)},</p>
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-1">
-            {displayName} <span aria-hidden="true">👋</span>
+            {displayName}
           </h1>
           <p className="text-sm text-[var(--theme-text-muted)] mt-2">
             See what needs attention, act on it, and keep moving.
@@ -243,14 +322,17 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {summary.map(({ label, value, note, icon: Icon, tone }) => (
+        {summary.map(({ label, value, note, icon: Icon, tone, href }) => (
           <GlassCard key={label} padding="md">
             <div className="flex items-center justify-between">
               <div className={tone}>
                 <Icon className="w-5 h-5" />
               </div>
+              <Link href={href} aria-label={`Open ${label}`} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--theme-primary)] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            <p className="text-xs text-[var(--theme-text-muted)] mt-4">{label}</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1">{label}</p>
             <p className="text-2xl font-semibold text-white mt-1 truncate">{value}</p>
             <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
           </GlassCard>
@@ -259,78 +341,99 @@ export default function DashboardPage() {
 
       <section className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         <GlassCard padding="md" className="xl:col-span-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-semibold text-white">Today&apos;s plan</p>
-              <p className="text-xs text-[var(--theme-text-muted)]">
-                Execution matters more than the exact time.
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white">Today&apos;s tasks</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1" aria-live="polite">
+                {progress.total === 0
+                  ? 'Nothing scheduled today'
+                  : `${progress.completed} of ${progress.total} done · ${progress.remaining} left`}
+                {progress.skipped > 0 ? ` · ${progress.skipped} skipped` : ''}
               </p>
             </div>
-            <Link href="/tasks" className="text-xs text-[var(--theme-primary)]">
-              View all
-            </Link>
+            <div className="relative h-[72px] w-[72px] shrink-0" role="img" aria-label={`${progress.percent}% of scheduled tasks completed`}>
+              <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90" aria-hidden="true">
+                <circle cx="40" cy="40" r="31" pathLength="100" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="7" />
+                <circle cx="40" cy="40" r="31" pathLength="100" fill="none" stroke="var(--theme-primary)" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${progress.percent} 100`} />
+              </svg>
+              <span className="absolute inset-0 grid place-items-center text-sm font-semibold text-white">{progress.percent}%</span>
+            </div>
           </div>
 
-          <div className="space-y-1.5">
+          {progress.allDone && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100" role="status">
+              <CheckCircle2 className="h-4 w-4 shrink-0" /> All done today
+            </div>
+          )}
+          {taskError && (
+            <p className="mb-3 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">{taskError}</p>
+          )}
+          {undoAction && (
+            <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-[var(--theme-border)] bg-white/[0.06] px-3 py-2" role="status">
+              <p className="min-w-0 truncate text-xs text-white">
+                {undoAction.action === 'skip' ? 'Skip saved' : 'Task updated'}: {undoAction.title}
+              </p>
+              <button type="button" disabled={busyTaskId !== null} onClick={undoLastTaskAction} className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-[var(--theme-primary)] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:opacity-50">
+                <RotateCcw className="h-3.5 w-3.5" /> Undo
+              </button>
+            </div>
+          )}
+
+          <div className="max-h-[28rem] space-y-4 overflow-y-auto pr-1">
             {todayTasks.length === 0 ? (
               <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-5 text-center">
                 <p className="text-sm font-medium text-white">Nothing scheduled today</p>
                 <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
-                  A clear day leaves room to plan at your own pace.
+                  Your next routines will appear here on their scheduled days.
                 </p>
               </div>
-            ) : (
-              todayTasks.slice(0, 7).map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-3 rounded-xl px-2.5 py-2.5 hover:bg-white/[0.04]"
-                >
-                  <span
-                    className={
-                      task.today_status === 'completed'
-                        ? 'w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-300 grid place-items-center'
-                        : task.today_status === 'skipped'
-                          ? 'w-6 h-6 rounded-full bg-amber-500/10 text-amber-300 grid place-items-center'
-                          : 'w-6 h-6 rounded-full border border-white/20 grid place-items-center text-transparent'
-                    }
-                  >
-                    {task.today_status === 'completed' ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : (
-                      '•'
-                    )}
-                  </span>
-
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-xs font-medium truncate ${
+            ) : todayGroups.map((group) => (
+              <div key={group.key} className="space-y-1.5">
+                <p className="px-2 text-xs font-semibold uppercase tracking-wide text-[var(--theme-text-muted)]">{group.label}</p>
+                {group.tasks.map((task) => (
+                  <div key={task.id} className="flex items-center gap-2 rounded-xl px-1.5 py-1.5 hover:bg-white/[0.04]">
+                    <button
+                      type="button"
+                      aria-label={task.today_status === 'completed' ? `Mark ${task.title} incomplete` : `Complete ${task.title}`}
+                      aria-pressed={task.today_status === 'completed'}
+                      disabled={busyTaskId !== null || task.today_status === 'skipped' || task.today_status === 'missed'}
+                      onClick={() => void changeTask(task, 'toggle')}
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:opacity-50 ${
                         task.today_status === 'completed'
-                          ? 'text-white/45 line-through'
-                          : 'text-white'
+                          ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200'
+                          : 'border-white/20 text-white/50 hover:border-[var(--theme-primary)]'
                       }`}
                     >
-                      {task.title}
-                    </p>
-                    <p className="text-xs text-[var(--theme-text-muted)]">
-                      {task.preferred_time || 'Any time today'}
-                      {task.category ? ` · ${task.category}` : ''}
-                    </p>
+                      {busyTaskId === task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : task.today_status === 'completed' ? <Check className="h-4 w-4" /> : <span className="h-2 w-2 rounded-full bg-current" />}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium break-words ${task.today_status === 'completed' ? 'text-white/55 line-through' : 'text-white'}`}>{task.title}</p>
+                      <p className="text-xs text-[var(--theme-text-muted)]">
+                        {task.preferred_time || 'Any time'}
+                        {task.today_status === 'skipped' ? ' · Skipped' : ''}
+                        {task.category ? ` · ${task.category}` : ''}
+                      </p>
+                    </div>
+                    {task.today_status !== 'completed' && task.today_status !== 'missed' && (
+                      <button
+                        type="button"
+                        disabled={busyTaskId !== null}
+                        onClick={() => void changeTask(task, 'skip')}
+                        className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[var(--theme-text-muted)] hover:bg-white/10 hover:text-amber-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:opacity-50"
+                        aria-label={task.today_status === 'skipped' ? `Undo skip for ${task.title}` : `Skip ${task.title} today`}
+                      >
+                        <SkipForward className="h-3.5 w-3.5" />
+                        {task.today_status === 'skipped' ? 'Unskip' : 'Skip'}
+                      </button>
+                    )}
                   </div>
-
-                  <span className="text-xs uppercase tracking-wide text-[var(--theme-text-muted)]">
-                    {task.today_status}
-                  </span>
-                </div>
-              ))
-            )}
+                ))}
+              </div>
+            ))}
           </div>
-
           <div className="pt-3 mt-3 border-t border-white/10">
-            <Link
-              href="/tasks"
-              className="text-xs text-[var(--theme-primary)] inline-flex items-center gap-1"
-            >
-              Manage routines <ArrowRight className="w-3 h-3" />
+            <Link href="/tasks" className="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-[var(--theme-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
+              Manage routines <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </GlassCard>
@@ -506,7 +609,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-2">
-              {assignments.slice(0, 4).map((assignment) => (
+              {upcomingAssignments.map((assignment) => (
                 <div
                   key={assignment.id}
                   className="rounded-xl border border-white/10 bg-black/10 p-3"
@@ -529,11 +632,11 @@ export default function DashboardPage() {
                 </div>
               ))}
 
-              {assignments.length === 0 && (
+              {upcomingAssignments.length === 0 && (
                 <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-4">
-                  <p className="text-sm font-medium text-white">No active assignments</p>
+                  <p className="text-sm font-medium text-white">Nothing due soon</p>
                   <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
-                    Deadlines you add will appear here.
+                    Assignments approaching their deadlines will appear here.
                   </p>
                 </div>
               )}
@@ -551,7 +654,7 @@ export default function DashboardPage() {
           </GlassCard>
 
           <GlassCard padding="md">
-            <p className="text-sm font-semibold text-white">Today note</p>
+            <p className="text-sm font-semibold text-white">Daily reminder</p>
             <div className="mt-4 flex gap-3">
               <MessageSquareText className="w-4 h-4 text-[var(--theme-primary)] shrink-0" />
               <p className="text-xs leading-relaxed text-white/80">
