@@ -23,3 +23,7 @@ changes.
 ## Darker visual calibration
 
 The approval candidate has been deliberately darkened without changing its geometry. The rocker face, base and edge now stay much closer to the active CrysTrack background, with lower blue/cyan mixing and softer scene lighting. The sun/moon markings remain legible but less luminous, and the fallback uses the same darker calibration. The goal is for the control to feel embedded in the glass navigation rather than like a bright object placed on top of it.
+
+## Weather-indicator colour match
+
+The rocker no longer uses a custom colour formula. Its 3D surfaces now follow the same visual family as the top-bar weather indicator: quiet glass surface, the normal CrysTrack border, and the theme primary colour reserved for the active sun/moon mark. The non-WebGL fallback uses the weather button's exact `rgba(255,255,255,.055)` surface and `var(--theme-border)` border. Geometry and depth are unchanged.
