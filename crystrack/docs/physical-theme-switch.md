@@ -27,3 +27,7 @@ The approval candidate has been deliberately darkened without changing its geome
 ## Weather-indicator colour match
 
 The rocker no longer uses a custom colour formula. Its 3D surfaces now follow the same visual family as the top-bar weather indicator: quiet glass surface, the normal CrysTrack border, and the theme primary colour reserved for the active sun/moon mark. The non-WebGL fallback uses the weather button's exact `rgba(255,255,255,.055)` surface and `var(--theme-border)` border. Geometry and depth are unchanged.
+
+## Screenshot correction — exact weather-surface recipe
+
+The supplied screenshot showed the issue clearly: the Three.js rocker was still materially darker than the weather button. The renderer now recreates the weather button's actual visible fill recipe — the active theme background blended 5.5% toward white, corresponding to the weather control's `rgba(255,255,255,.055)` overlay — instead of using `surfaceGlass` / `surfaceStrong` as substitutes. The physical depth, border and active primary-colour sun/moon remain.

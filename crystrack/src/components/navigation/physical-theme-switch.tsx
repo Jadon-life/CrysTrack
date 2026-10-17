@@ -12,11 +12,10 @@ export function PhysicalThemeSwitch() {
     preference === 'adaptive' && (environment.phase === 'morning' || environment.phase === 'day')
   );
   const palette = useMemo<RockerPalette>(() => ({
-    surfaceGlass: theme.surfaceGlass,
-    surfaceStrong: theme.surfaceStrong,
+    background: theme.background,
     border: theme.border,
     primary: theme.primary,
-  }), [theme.surfaceGlass, theme.surfaceStrong, theme.border, theme.primary]);
+  }), [theme.background, theme.border, theme.primary]);
 
   const [ready, setReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);

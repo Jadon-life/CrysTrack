@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 
 export interface RockerPalette {
-  surfaceGlass: string;
-  surfaceStrong: string;
+  background: string;
   border: string;
   primary: string;
 }
@@ -186,30 +185,35 @@ export function mountRocker(
   window.addEventListener('resize', resize);
 
   function applyPalette(palette: RockerPalette, light: boolean) {
-    const glass = color(palette.surfaceGlass, 0x103243);
-    const strong = color(palette.surfaceStrong, 0x071927);
+    const background = color(palette.background, 0x081523);
     const border = color(palette.border, 0x9cc8e3);
     const primary = color(palette.primary, 0x38a8ff);
+    const white = new THREE.Color(0xffffff);
 
-    // Match the existing weather indicator: quiet glass surface, normal
-    // CrysTrack border, and primary colour only for the active symbol.
-    baseMat.color.copy(strong);
-    pitMat.color.copy(strong).multiplyScalar(.68);
-    edgeMat.color.copy(border).lerp(strong, .48);
-    faceMat.color.copy(glass).lerp(strong, light ? .18 : .27);
-    seamMat.color.copy(border).lerp(strong, .38);
-    iconMat.color.copy(primary).lerp(glass, .18);
-    iconMat.emissive.copy(primary).multiplyScalar(.06);
-    inactiveIconMat.color.copy(glass).lerp(strong, .38);
-    inactiveIconMat.emissive.copy(strong).multiplyScalar(.03);
+    // The weather indicator is literally rgba(255,255,255,.055) over the
+    // navbar. Recreate that visible colour for the 3D material instead of
+    // substituting surfaceGlass/surfaceStrong tokens (which rendered too dark).
+    const weatherSurface = background.clone().lerp(white, .055);
+    const weatherRaised = weatherSurface.clone().lerp(white, .018);
+    const weatherInset = background.clone().multiplyScalar(.74);
+
+    baseMat.color.copy(weatherSurface).multiplyScalar(.92);
+    pitMat.color.copy(weatherInset);
+    edgeMat.color.copy(border).lerp(weatherSurface, .42);
+    faceMat.color.copy(weatherRaised);
+    seamMat.color.copy(border).lerp(weatherSurface, .48);
+    iconMat.color.copy(primary);
+    iconMat.emissive.copy(primary).multiplyScalar(.045);
+    inactiveIconMat.color.copy(weatherSurface).lerp(border, .28);
+    inactiveIconMat.emissive.copy(background).multiplyScalar(.02);
 
     // Selected side gets the brighter embedded symbol.
     sunGroup.traverse((object) => {
       if (object instanceof THREE.Mesh) object.material = light ? iconMat : inactiveIconMat;
     });
     moon.material = light ? inactiveIconMat : iconMat;
-    rim.color.copy(primary).lerp(glass, .42);
-    key.color.copy(border).lerp(glass, .58);
+    rim.color.copy(primary).lerp(weatherSurface, .58);
+    key.color.copy(border).lerp(weatherSurface, .68);
   }
 
   function update(light: boolean, reducedMotion: boolean, palette: RockerPalette) {
