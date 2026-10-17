@@ -256,7 +256,7 @@ export function DomainInsightCard({
             </p>
           </div>
 
-          <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">
+          <p className="text-xs text-[var(--theme-text-muted)] mt-1">
             {domain === 'tasks'
               ? 'Current routine state first, then recent pattern analysis.'
               : 'Important observations only. CrysTrack reuses unchanged analysis when the underlying data has not changed.'}
@@ -289,7 +289,7 @@ export function DomainInsightCard({
         currentSnapshot && (
           <div className="mt-4 rounded-xl border border-white/10 bg-black/10 px-3 py-2.5">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-primary)]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--theme-primary)]">
                 Today
                 {currentDate
                   ? ` · ${currentDate}`
@@ -297,7 +297,7 @@ export function DomainInsightCard({
               </p>
 
               {updatedAtLabel && (
-                <span className="text-[10px] text-[var(--theme-text-muted)]">
+                <span className="text-xs text-[var(--theme-text-muted)]">
                   Updated{' '}
                   {updatedAtLabel}
                 </span>
@@ -326,13 +326,13 @@ export function DomainInsightCard({
         )}
 
       {warning && (
-        <p className="mt-3 text-[11px] text-amber-200">
+        <p className="mt-3 text-xs text-amber-200">
           {warning}
         </p>
       )}
 
       {error && (
-        <p className="mt-3 text-[11px] text-red-300">
+        <p className="mt-3 text-xs text-red-300">
           {error}
         </p>
       )}
@@ -390,7 +390,7 @@ export function DomainInsightCard({
                                 key={
                                   index
                                 }
-                                className="text-[11px] leading-relaxed text-[var(--theme-text-muted)]"
+                                className="text-xs leading-relaxed text-[var(--theme-text-muted)]"
                               >
                                 •{' '}
                                 {
@@ -410,7 +410,7 @@ export function DomainInsightCard({
                       .length >
                       0 && (
                       <div className="mt-3 border-t border-white/10 pt-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-primary)]">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--theme-primary)]">
                           Suggested focus
                         </p>
 

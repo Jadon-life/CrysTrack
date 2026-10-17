@@ -27,12 +27,12 @@ export function MobileNav() {
             const isActive = navItemIsActive(pathname, item);
             return (
               <Link key={item.href} href={item.href} className={cn('flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors', isActive ? 'text-blue-400' : 'text-slate-500')}>
-                {item.icon}<span className="text-[10px] font-medium">{item.label}</span>
+                {item.icon}<span className="text-xs font-medium">{item.label}</span>
               </Link>
             );
           })}
-          <button onClick={() => setMenuOpen(true)} className={cn('flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors', menuOpen || pathname === '/settings' ? 'text-blue-400' : 'text-slate-500')}>
-            <Menu className="w-5 h-5" /><span className="text-[10px] font-medium">More</span>
+          <button type="button" aria-label="Open more navigation" onClick={() => setMenuOpen(true)} className={cn('flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors', menuOpen || pathname === '/settings' ? 'text-blue-400' : 'text-slate-500')}>
+            <Menu className="w-5 h-5" /><span className="text-xs font-medium">More</span>
           </button>
         </div>
       </nav>
@@ -41,17 +41,17 @@ export function MobileNav() {
         <div className="fixed inset-0 z-[60] flex flex-col bg-[#080c19]/98 backdrop-blur-md">
           <div className="flex items-center justify-between p-4 border-b border-white/10">
             <div className="flex items-center gap-3"><Diamond className="w-6 h-6 text-blue-400" /><span className="text-lg font-bold text-white">CrysTrack</span></div>
-            <button onClick={() => setMenuOpen(false)} className="p-2 text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <button type="button" aria-label="Close more navigation" onClick={() => setMenuOpen(false)} className="p-2 text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
           </div>
           <nav className="flex-1 p-4 overflow-y-auto">
-            <p className="px-2 mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-600">Main</p>
+            <p className="px-2 mb-2 text-xs uppercase tracking-[0.16em] text-slate-600">Main</p>
             <div className="space-y-1">
               {mobileNavItems.map((item) => {
                 const isActive = navItemIsActive(pathname, item);
                 return <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className={cn('flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-colors', isActive ? 'bg-blue-500/10 text-white' : 'text-slate-400 hover:text-white hover:bg-white/[0.035]')}><span className={isActive ? 'text-blue-400' : ''}>{item.icon}</span><span>{item.label}</span></Link>;
               })}
             </div>
-            <p className="px-2 mt-6 mb-2 text-[11px] uppercase tracking-[0.16em] text-slate-600">Plan shortcuts</p>
+            <p className="px-2 mt-6 mb-2 text-xs uppercase tracking-[0.16em] text-slate-600">Plan shortcuts</p>
             <div className="space-y-1">
               {planLinks.map((item) => <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className="flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.035] transition-colors"><span>{item.icon}</span><span>{item.label}</span></Link>)}
             </div>

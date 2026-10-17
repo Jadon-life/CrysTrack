@@ -268,7 +268,7 @@ export default function WealthPage() {
 
       {status && <div className="rounded-xl border border-[var(--theme-border)] bg-black/25 px-4 py-3 text-sm text-white">{status}</div>}
 
-      <section className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--theme-text-muted)]">
+      <section className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--theme-text-muted)]">
         <span className="font-semibold text-white/90">Canonical ledger: NGN</span>
         {rate ? (
           <>
@@ -291,11 +291,11 @@ export default function WealthPage() {
           <GlassCard key={label} padding="md">
             <div className="flex items-center justify-between">
               <Icon className={cn('w-5 h-5', tone)} />
-              <span className="text-[10px] text-[var(--theme-text-muted)]">{currency}</span>
+              <span className="text-xs text-[var(--theme-text-muted)]">{currency}</span>
             </div>
-            <p className="text-[11px] text-[var(--theme-text-muted)] mt-4">{label}</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-4">{label}</p>
             <p className="wealth-number text-xl sm:text-2xl font-semibold text-white mt-1 truncate">{money(value, true)}</p>
-            <p className="text-[10px] leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
+            <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
           </GlassCard>
         ))}
       </section>
@@ -305,9 +305,9 @@ export default function WealthPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="dashboard-panel-title text-sm">Cashflow</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Six-month view of actual recorded money.</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">Six-month view of actual recorded money.</p>
             </div>
-            <span className="text-[11px] text-[var(--theme-text-muted)]">This month: {money(summary?.monthIncome || 0)} in · {money(summary?.monthExpenses || 0)} out</span>
+            <span className="text-xs text-[var(--theme-text-muted)]">This month: {money(summary?.monthIncome || 0)} in · {money(summary?.monthExpenses || 0)} out</span>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -340,7 +340,7 @@ export default function WealthPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="dashboard-panel-title text-sm flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-[var(--theme-primary)]" /> Wealth Intelligence</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">CrysTrack processes your ledger for patterns; AI receives compact transaction context without identity, credentials, private notes or debt counterparties.</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack processes your ledger for patterns; AI receives compact transaction context without identity, credentials, private notes or debt counterparties.</p>
             </div>
             <Button variant="outline" onClick={() => void refreshInsight()} disabled={aiLoading}>
               {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
@@ -350,17 +350,17 @@ export default function WealthPage() {
           <div className="rounded-xl border border-white/10 bg-black/15 p-4 mt-4">
             <p className="text-sm font-semibold text-white">{aiInsight?.insight?.headline || 'Current pattern'}</p>
             <p className="text-xs leading-relaxed text-white/85 mt-2">{aiInsight?.insight?.summary || summary?.deterministicRemark}</p>
-            {aiInsight?.insight?.observations?.[0] && <p className="text-[11px] leading-relaxed text-[var(--theme-text-muted)] mt-3">{aiInsight.insight.observations[0]}</p>}
-            {aiInsight?.insight?.actions?.[0] && <div className="mt-3 pt-3 border-t border-white/10"><p className="text-[10px] uppercase tracking-wide text-[var(--theme-primary)]">Next review</p><p className="text-xs text-white mt-1">{aiInsight.insight.actions[0]}</p></div>}
+            {aiInsight?.insight?.observations?.[0] && <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-3">{aiInsight.insight.observations[0]}</p>}
+            {aiInsight?.insight?.actions?.[0] && <div className="mt-3 pt-3 border-t border-white/10"><p className="text-xs uppercase tracking-wide text-[var(--theme-primary)]">Next review</p><p className="text-xs text-white mt-1">{aiInsight.insight.actions[0]}</p></div>}
           </div>
 
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-              <p className="text-[10px] text-[var(--theme-text-muted)]">Savings rate</p>
+              <p className="text-xs text-[var(--theme-text-muted)]">Savings rate</p>
               <p className="wealth-number text-xl font-semibold text-white mt-1">{summary?.savingsRatePct == null ? '—' : `${Math.round(summary.savingsRatePct)}%`}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-              <p className="text-[10px] text-[var(--theme-text-muted)]">Spending pace</p>
+              <p className="text-xs text-[var(--theme-text-muted)]">Spending pace</p>
               <p className="text-sm font-semibold text-white mt-1 capitalize">{summary?.spendingVelocity || 'insufficient'}</p>
             </div>
           </div>
@@ -370,9 +370,9 @@ export default function WealthPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="dashboard-panel-title text-sm">Spending pattern</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">CrysTrack compares your current pace with up to three recent months.</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack compares your current pace with up to three recent months.</p>
             </div>
-            <p className="text-[11px] text-[var(--theme-text-muted)]">Projected month: {money(summary?.projectedMonthExpenses || 0)}</p>
+            <p className="text-xs text-[var(--theme-text-muted)]">Projected month: {money(summary?.projectedMonthExpenses || 0)}</p>
           </div>
 
           <div className="grid md:grid-cols-[220px_1fr] gap-5 items-center">
@@ -400,7 +400,7 @@ export default function WealthPage() {
                   <div className="min-w-0">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-xs font-medium text-white truncate">{item.category}</p>
-                      <p className="text-[10px] text-[var(--theme-text-muted)]">{Math.round(item.sharePct)}% of spending</p>
+                      <p className="text-xs text-[var(--theme-text-muted)]">{Math.round(item.sharePct)}% of spending</p>
                     </div>
                     <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mt-2">
                       <div className="h-full rounded-full bg-[var(--theme-primary)]" style={{ width: `${Math.min(100, item.sharePct)}%` }} />
@@ -408,7 +408,7 @@ export default function WealthPage() {
                   </div>
                   <div className="text-right">
                     <p className="wealth-number text-xs font-semibold text-white">{money(item.current, true)}</p>
-                    <p className={cn('text-[10px] mt-1', (item.vsBaselinePct ?? 0) > 15 ? 'text-red-300' : (item.vsBaselinePct ?? 0) < -15 ? 'text-emerald-300' : 'text-[var(--theme-text-muted)]')}>
+                    <p className={cn('text-xs mt-1', (item.vsBaselinePct ?? 0) > 15 ? 'text-red-300' : (item.vsBaselinePct ?? 0) < -15 ? 'text-emerald-300' : 'text-[var(--theme-text-muted)]')}>
                       {item.vsBaselinePct == null ? 'learning' : `${item.vsBaselinePct > 0 ? '+' : ''}${Math.round(item.vsBaselinePct)}% vs baseline`}
                     </p>
                   </div>
@@ -420,23 +420,23 @@ export default function WealthPage() {
 
         <GlassCard padding="md" className="xl:col-span-5">
           <p className="dashboard-panel-title text-sm">Forecast</p>
-          <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Expected money never changes your actual balance until you confirm it.</p>
+          <p className="text-xs text-[var(--theme-text-muted)] mt-1">Expected money never changes your actual balance until you confirm it.</p>
 
           <div className="rounded-xl border border-white/10 bg-black/12 p-4 mt-4">
-            <p className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">Projected month-end available</p>
+            <p className="text-xs uppercase tracking-wide text-[var(--theme-text-muted)]">Projected month-end available</p>
             <p className="wealth-number text-2xl font-semibold text-white mt-2">
               {money(summary?.projectedMonthEndLow || 0, true)} – {money(summary?.projectedMonthEndHigh || 0, true)}
             </p>
-            <p className="text-[10px] text-[var(--theme-text-muted)] mt-2">Range reflects unconfirmed expected income/expenses and liabilities due this month.</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-2">Range reflects unconfirmed expected income/expenses and liabilities due this month.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-              <p className="text-[10px] text-[var(--theme-text-muted)]">Owed to you</p>
+              <p className="text-xs text-[var(--theme-text-muted)]">Owed to you</p>
               <p className="wealth-number text-lg font-semibold text-sky-300 mt-1">{money(summary?.receivables || 0, true)}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-              <p className="text-[10px] text-[var(--theme-text-muted)]">You owe</p>
+              <p className="text-xs text-[var(--theme-text-muted)]">You owe</p>
               <p className="wealth-number text-lg font-semibold text-orange-300 mt-1">{money(summary?.liabilities || 0, true)}</p>
             </div>
           </div>
@@ -448,7 +448,7 @@ export default function WealthPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="dashboard-panel-title text-sm">Expected money</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Exact amount or range; exact date is optional.</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">Exact amount or range; exact date is optional.</p>
             </div>
             <button type="button" onClick={() => setShowExpected(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ Add expected</button>
           </div>
@@ -461,13 +461,13 @@ export default function WealthPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{flow.title}</p>
-                  <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">
                     {money(Number(flow.amount_min), true)}
                     {flow.amount_max && Number(flow.amount_max) !== Number(flow.amount_min) ? ` – ${money(Number(flow.amount_max), true)}` : ''}
                     {' · '}{flow.timing_hint || flow.frequency.replace('_', ' ')}
                   </p>
                 </div>
-                <button type="button" onClick={() => { setConfirmingFlow(flow); setActualAmount(String(flow.amount_min)); }} className="text-[11px] font-semibold text-[var(--theme-primary)]">
+                <button type="button" onClick={() => { setConfirmingFlow(flow); setActualAmount(String(flow.amount_min)); }} className="text-xs font-semibold text-[var(--theme-primary)]">
                   {flow.direction === 'income' ? 'Received' : 'Paid'}
                 </button>
               </div>
@@ -480,7 +480,7 @@ export default function WealthPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="dashboard-panel-title text-sm">Money owed</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Receivables and liabilities stay separate from income and normal spending.</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">Receivables and liabilities stay separate from income and normal spending.</p>
             </div>
             <button type="button" onClick={() => setShowDebt(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ Add debt</button>
           </div>
@@ -493,12 +493,12 @@ export default function WealthPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{item.counterparty}</p>
-                  <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">
                     {item.kind === 'receivable' ? 'Owes you' : 'You owe'} {money(Number(item.outstanding_amount), true)}
                     {item.due_date ? ` · ${formatDate(item.due_date)}` : ''}
                   </p>
                 </div>
-                <button type="button" onClick={() => { setRepayingDebt(item); setRepaymentAmount(String(item.outstanding_amount)); }} className="text-[11px] font-semibold text-[var(--theme-primary)]">Repay</button>
+                <button type="button" onClick={() => { setRepayingDebt(item); setRepaymentAmount(String(item.outstanding_amount)); }} className="text-xs font-semibold text-[var(--theme-primary)]">Repay</button>
               </div>
             ))}
             {!data.debts.some((item: any) => item.status === 'open') && <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">No open debts or receivables.</p>}
@@ -510,7 +510,7 @@ export default function WealthPage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="dashboard-panel-title text-sm">Savings goals</p>
-            <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Savings are removed from available cash but still count toward your net position.</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1">Savings are removed from available cash but still count toward your net position.</p>
           </div>
           <button type="button" onClick={() => setShowTarget(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ New goal</button>
         </div>
@@ -525,7 +525,7 @@ export default function WealthPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-white truncate">{item.title}</p>
-                    <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">{item.deadline ? `Target ${formatDate(item.deadline)}` : 'No fixed deadline'}</p>
+                    <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.deadline ? `Target ${formatDate(item.deadline)}` : 'No fixed deadline'}</p>
                   </div>
                   <Target className="w-4 h-4 text-[var(--theme-primary)]" />
                 </div>
@@ -534,7 +534,7 @@ export default function WealthPage() {
                 </div>
                 <div className="flex justify-between gap-3 mt-2">
                   <p className="wealth-number text-xs text-white">{money(current, true)}</p>
-                  <p className="text-[10px] text-[var(--theme-text-muted)]">{percent}% of {money(targetAmount, true)}</p>
+                  <p className="text-xs text-[var(--theme-text-muted)]">{percent}% of {money(targetAmount, true)}</p>
                 </div>
               </GlassCard>
             );
@@ -547,7 +547,7 @@ export default function WealthPage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="dashboard-panel-title text-sm">Recent money</p>
-            <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Manual ledger entries. NGN remains the stored source of truth.</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1">Manual ledger entries. NGN remains the stored source of truth.</p>
           </div>
           <button type="button" onClick={() => setShowEntry(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ Add</button>
         </div>
@@ -567,7 +567,7 @@ export default function WealthPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-white truncate">{item.source || item.category || kind.replaceAll('_', ' ')}</p>
-                  <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">{item.category || 'Uncategorised'} · {formatDate(item.date)}</p>
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.category || 'Uncategorised'} · {formatDate(item.date)}</p>
                 </div>
                 <p className={cn('wealth-number text-xs font-semibold', positive ? 'text-emerald-300' : neutral ? 'text-white/70' : 'text-red-300')}>
                   {positive ? '+' : neutral ? '' : '-'}{money(Number(item.amount), true)}
@@ -604,7 +604,7 @@ export default function WealthPage() {
               placeholder="e.g. Salary, Fuel, Groceries"
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white"
             />
-            {categorySuggestion && !entry.category && <button type="button" onClick={() => setEntry((current) => ({ ...current, category: categorySuggestion }))} className="text-[10px] text-[var(--theme-primary)] mt-1.5">Use learned category: {categorySuggestion}</button>}
+            {categorySuggestion && !entry.category && <button type="button" onClick={() => setEntry((current) => ({ ...current, category: categorySuggestion }))} className="text-xs text-[var(--theme-primary)] mt-1.5">Use learned category: {categorySuggestion}</button>}
           </div>
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Category</label>
@@ -692,7 +692,7 @@ export default function WealthPage() {
             Forecast: {confirmingFlow ? money(Number(confirmingFlow.amount_min)) : '—'}
             {confirmingFlow?.amount_max && Number(confirmingFlow.amount_max) !== Number(confirmingFlow.amount_min) ? ` – ${money(Number(confirmingFlow.amount_max))}` : ''}
           </p>
-          <p className="text-[11px] text-white/70">The actual amount can be below or above the forecast range. CrysTrack records what really happened.</p>
+          <p className="text-xs text-white/70">The actual amount can be below or above the forecast range. CrysTrack records what really happened.</p>
           <input type="number" value={actualAmount} onChange={(event) => setActualAmount(event.target.value)} placeholder="Actual amount received / paid" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
         </div>
       </CreateModal>

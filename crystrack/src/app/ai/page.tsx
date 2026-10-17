@@ -132,7 +132,7 @@ export default function AiPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">CrysTrack Intelligence</p>
         <h1 className="text-2xl font-bold text-white mt-1">AI</h1>
         <p className="text-sm text-[var(--theme-text-muted)] mt-1">Ask about your routines, goals, assignments, Wealth and the relationships between them. This chat is read-only.</p>
-        <p className="text-[11px] text-[var(--theme-text-muted)] mt-2">CrysTrack does not send your email, authentication IDs, credentials, private transaction notes or debt counterparties to the AI context.</p>
+        <p className="text-xs text-[var(--theme-text-muted)] mt-2">CrysTrack does not send your email, authentication IDs, credentials, private transaction notes or debt counterparties to the AI context.</p>
       </div>
 
       {status && <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{status}</div>}
@@ -147,7 +147,7 @@ export default function AiPage() {
               <div key={conversation.id} className={cn('group flex items-center gap-1 rounded-xl border', activeId === conversation.id ? 'border-white/15 bg-white/[0.08]' : 'border-transparent hover:bg-white/[0.04]')}>
                 <button type="button" onClick={() => setActiveId(conversation.id)} className="min-w-0 flex-1 px-3 py-2.5 text-left">
                   <p className="truncate text-xs font-medium text-white">{conversation.title}</p>
-                  <p className="mt-0.5 text-[10px] text-[var(--theme-text-muted)]">{new Date(conversation.updated_at).toLocaleDateString()}</p>
+                  <p className="mt-0.5 text-xs text-[var(--theme-text-muted)]">{new Date(conversation.updated_at).toLocaleDateString()}</p>
                 </button>
                 <button type="button" onClick={() => void deleteConversation(conversation.id)} className="mr-2 rounded-lg p-1.5 text-slate-500 opacity-0 transition group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-300" aria-label="Delete conversation">
                   <Trash2 className="w-3.5 h-3.5" />
@@ -161,7 +161,7 @@ export default function AiPage() {
         <GlassCard padding="none" className="flex min-h-[620px] flex-col overflow-hidden">
           <div className="border-b border-white/10 px-4 py-3">
             <div className="flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-[var(--theme-primary)]" /><p className="text-sm font-semibold text-white">Read-only CrysTrack AI</p></div>
-            <p className="mt-1 text-[11px] text-[var(--theme-text-muted)]">It can analyze your data but cannot create, edit or delete CrysTrack activity.</p>
+            <p className="mt-1 text-xs text-[var(--theme-text-muted)]">It can analyze your data but cannot create, edit or delete CrysTrack activity.</p>
           </div>
 
           <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">

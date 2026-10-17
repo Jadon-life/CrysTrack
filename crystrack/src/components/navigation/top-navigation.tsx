@@ -132,7 +132,7 @@ function NotificationMenu() {
           <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10">
             <div>
               <p className="text-sm font-semibold text-white">Reminders</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)]">Upcoming and recent alerts</p>
+              <p className="text-xs text-[var(--theme-text-muted)]">Upcoming and recent alerts</p>
             </div>
             <Link href="/settings" className="text-xs text-[var(--theme-primary)] hover:opacity-80">Settings</Link>
           </div>
@@ -143,7 +143,7 @@ function NotificationMenu() {
                 <Zap className="w-4 h-4 text-[var(--theme-primary)] mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-white">Never miss what matters</p>
-                  <p className="text-[11px] leading-relaxed text-[var(--theme-text-muted)] mt-1">Enable browser reminders for tasks, assignments and goal check-ins.</p>
+                  <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-1">Enable browser reminders for tasks, assignments and goal check-ins.</p>
                   <button type="button" onClick={enablePush} className="mt-2 text-xs font-semibold text-[var(--theme-primary)]">Enable reminders</button>
                 </div>
               </div>
@@ -161,7 +161,7 @@ function NotificationMenu() {
                   <Bell className="w-3.5 h-3.5 text-[var(--theme-primary)] mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium text-white truncate">{item.title || item.entity_type.replace('_', ' ')}</p>
-                    <p className="text-[11px] text-[var(--theme-text-muted)] mt-0.5">{new Date(item.scheduled_for).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className="text-xs text-[var(--theme-text-muted)] mt-0.5">{new Date(item.scheduled_for).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 </div>
               </div>
@@ -229,6 +229,7 @@ function ProfileMenu() {
       <button
         type="button"
         className="topnav-profile"
+        aria-label={open ? 'Close profile menu' : 'Open profile menu'}
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
@@ -250,7 +251,7 @@ function ProfileMenu() {
           <span className="block text-xs font-semibold text-white truncate max-w-28">
             {displayName}
           </span>
-          <span className="block text-[10px] text-[var(--theme-text-muted)]">
+          <span className="block text-xs text-[var(--theme-text-muted)]">
             Personal
           </span>
         </span>
@@ -262,7 +263,7 @@ function ProfileMenu() {
         <div className="topnav-popover right-0 w-56 p-2">
           <div className="px-3 py-2 border-b border-white/10 mb-1">
             <p className="text-xs font-semibold text-white truncate">{displayName}</p>
-            <p className="text-[11px] text-[var(--theme-text-muted)] truncate mt-0.5">
+            <p className="text-xs text-[var(--theme-text-muted)] truncate mt-0.5">
               {user?.email}
             </p>
           </div>
@@ -326,6 +327,7 @@ export function TopNavigation() {
             <button
               type="button"
               className="topnav-weather hidden sm:flex"
+              aria-label="Refresh local weather and location"
               onClick={() => void requestLocation({ prompt: true })}
               title={`${weatherLabel(environment.weather)} · click to refresh location`}
             >
@@ -348,7 +350,7 @@ export function TopNavigation() {
           <div className="absolute left-3 right-3 top-3 rounded-2xl border border-white/15 bg-[#07101c]/95 p-3 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between px-2 py-2">
               <div className="flex items-center gap-2 text-white font-semibold"><Diamond className="w-4 h-4 text-[var(--theme-primary)]" /> CrysTrack</div>
-              <button type="button" className="topnav-icon-button" onClick={() => setMobileOpen(false)}><X className="w-4 h-4" /></button>
+              <button type="button" className="topnav-icon-button" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X className="w-4 h-4" /></button>
             </div>
             <nav className="grid grid-cols-2 gap-2 mt-2">
               {navItems.map((item) => {
