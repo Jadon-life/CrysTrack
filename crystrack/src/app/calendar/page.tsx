@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { fetcher } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -18,6 +19,7 @@ function dateKey(date: Date) {
 export default function CalendarPage() {
   const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [selected, setSelected] = useState(() => dateKey(new Date()));
+  const [hovered, setHovered] = useState<string | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -119,108 +121,50 @@ export default function CalendarPage() {
               const key = dateKey(date);
               const events = eventsFor(date);
               const active = key === selected;
-              const today =
-                key === dateKey(new Date());
-
-              const taskCount =
-                events.filter(
-                  (event) =>
-                    event.type === 'task',
-                ).length;
-
-              const assignmentCount =
-                events.filter(
-                  (event) =>
-                    event.type ===
-                    'assignment',
-                ).length;
-
-              const goalCount =
-                events.filter(
-                  (event) =>
-                    event.type === 'goal',
-                ).length;
-
-              const summaries = [
-                {
-                  type: 'task',
-                  count: taskCount,
-                  singular: 'routine',
-                  plural: 'routines',
-                  tone: 'bg-emerald-400',
-                },
-                {
-                  type: 'assignment',
-                  count: assignmentCount,
-                  singular: 'assignment',
-                  plural: 'assignments',
-                  tone: 'bg-amber-400',
-                },
-                {
-                  type: 'goal',
-                  count: goalCount,
-                  singular: 'goal',
-                  plural: 'goals',
-                  tone: 'bg-violet-400',
-                },
-              ].filter(
-                (item) => item.count > 0,
-              );
+              const today = key === dateKey(new Date());
+              const groups = [
+                { type: 'task', tone: 'bg-emerald-400' },
+                { type: 'assignment', tone: 'bg-amber-400' },
+                { type: 'goal', tone: 'bg-violet-400' },
+              ].filter((group) => events.some((item) => item.type === group.type));
 
               return (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={active}
-                  aria-label={`${date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}, ${events.length} scheduled ${events.length === 1 ? 'item' : 'items'}`}
-                  onClick={() =>
-                    setSelected(key)
-                  }
-                  className={`calendar-day min-h-20 sm:min-h-24 rounded-xl border p-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 ${
-                    active
-                      ? 'border-[var(--theme-primary)] bg-white/10'
-                      : 'border-white/[0.07] bg-black/10 hover:bg-white/[0.04]'
-                  } ${
-                    inMonth
-                      ? ''
-                      : 'opacity-35'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-xs ${
-                        today
-                          ? 'w-6 h-6 rounded-full grid place-items-center bg-[var(--theme-primary)] text-white font-bold'
-                          : 'text-white/80'
-                      }`}
-                    >
-                      {date.getDate()}
+                <div key={key} className="relative min-w-0" onMouseEnter={() => setHovered(key)} onMouseLeave={() => setHovered(null)}>
+                  <button
+                    type="button"
+                    aria-pressed={active}
+                    aria-label={date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + ', ' + events.length + ' scheduled items'}
+                    aria-describedby={hovered === key && events.length ? 'calendar-preview-' + key : undefined}
+                    onClick={() => { setSelected(key); setHovered(null); }}
+                    className={cn(
+                      'calendar-day flex min-h-16 w-full flex-col items-center justify-center rounded-xl border px-1 py-2 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 sm:min-h-20',
+                      active ? 'border-[var(--theme-primary)] bg-white/10' : 'border-white/[0.07] bg-black/10 hover:bg-white/[0.04]',
+                      !inMonth && 'opacity-35',
+                    )}
+                  >
+                    <span className={cn('grid h-7 w-7 place-items-center text-xs', today ? 'rounded-full bg-[var(--theme-primary)] font-bold text-white' : 'text-white/85')}>{date.getDate()}</span>
+                    <span className="mt-1 flex min-h-2 items-center justify-center gap-1" aria-hidden="true">
+                      {groups.map((group) => <span key={group.type} className={cn('h-1.5 w-1.5 rounded-full', group.tone)} />)}
                     </span>
-                  </div>
-
-                  {summaries.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {summaries.map(
-                        (item) => (
-                          <div
-                            key={item.type}
-                            className="flex items-center gap-1.5 min-w-0"
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.tone}`}
-                            />
-                            <span className="text-xs text-white/85 truncate">
-                              {item.count}{' '}
-                              {item.count === 1
-                                ? item.singular
-                                : item.plural}
-                            </span>
-                          </div>
-                        ),
-                      )}
+                  </button>
+                  {hovered === key && events.length > 0 && (
+                    <div id={'calendar-preview-' + key} role="tooltip" className={cn(
+                      'pointer-events-none absolute bottom-[calc(100%+6px)] z-50 hidden w-56 rounded-xl border border-white/20 bg-[#071424]/95 p-3 text-left shadow-2xl backdrop-blur-xl md:block',
+                      date.getDay() === 0 ? 'left-0' : date.getDay() === 6 ? 'right-0' : 'left-1/2 -translate-x-1/2',
+                    )}>
+                      <p className="text-xs font-semibold text-white">{date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                      <div className="mt-2 space-y-1.5">
+                        {events.slice(0, 4).map((event, index) => (
+                          <p key={event.type + index} className="flex items-start gap-2 text-xs text-white/85">
+                            <span className={cn('mt-1 h-1.5 w-1.5 shrink-0 rounded-full', event.tone)} />
+                            <span className="line-clamp-2">{event.title}</span>
+                          </p>
+                        ))}
+                        {events.length > 4 && <p className="text-xs text-[var(--theme-text-muted)]">+ {events.length - 4} more · Click to see all</p>}
+                      </div>
                     </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
