@@ -61,12 +61,17 @@ export default function HistoryPage() {
 
   useEffect(() => {
     const version = ++versionRef.current;
-    setLoading(true);
-    setLoadingMore(false);
-    setHistory([]);
-    setHasMore(false);
-    setNextPage(1);
-    setError('');
+    // Defer reset until after the effect; React's lint rule disallows
+    // synchronous state cascades within effects.
+    queueMicrotask(() => {
+      if (version !== versionRef.current) return;
+      setLoading(true);
+      setLoadingMore(false);
+      setHistory([]);
+      setHasMore(false);
+      setNextPage(1);
+      setError('');
+    });
     void fetcher(historyUrl(0, filterType))
       .then((result: PageResult) => {
         if (version !== versionRef.current) return;
@@ -81,6 +86,7 @@ export default function HistoryPage() {
       .finally(() => {
         if (version === versionRef.current) setLoading(false);
       });
+    return () => { if (version === versionRef.current) versionRef.current += 1; };
   }, [filterType]);
 
   const months = useMemo(() => groupHistoryByMonth(history, timezone), [history, timezone]);
