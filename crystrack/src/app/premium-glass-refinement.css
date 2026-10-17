@@ -175,3 +175,13 @@
     min-height: 38px;
   }
 }
+
+
+/* Collapsible History, with native keyboard/assistive disclosure semantics. */
+.history-accordion > summary::-webkit-details-marker { display: none; }
+.history-accordion > summary { list-style: none; }
+.history-accordion > summary .history-chevron { transition: transform 180ms ease; }
+.history-accordion[open] > summary .history-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .history-accordion > summary .history-chevron { transition: none; }
+}
