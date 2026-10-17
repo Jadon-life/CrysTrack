@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CreateModal } from '@/components/shared/create-modal';
 import { del, fetcher, post } from '@/lib/api';
 import { cn, getLocalDateKey } from '@/lib/utils';
-import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive, Trash2 } from 'lucide-react';
+import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive, Trash2, ChevronDown } from 'lucide-react';
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -242,12 +242,19 @@ export default function TasksPage() {
         </div>
       </section>
 
-      <section className="space-y-4 routine-readable-section">
-        <div>
-          <h2 className="text-lg font-semibold text-white">All routines</h2>
-          <p className="text-xs text-[var(--theme-text-muted)] mt-1">Review schedules without mixing them with today&apos;s execution list.</p>
-        </div>
-
+      <section className="routine-readable-section">
+        <details className="group overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-black/15">
+          <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 py-4 text-white hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden">
+            <Calendar className="h-5 w-5 shrink-0 text-[var(--theme-primary)]" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-semibold">All routines</span>
+              <span className="mt-1 block text-xs text-[var(--theme-text-muted)]">
+                {tasks.length} routine{tasks.length === 1 ? '' : 's'} · Open to manage schedules, archive or delete
+              </span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-[var(--theme-text-muted)] transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
+          </summary>
+          <div className="space-y-4 border-t border-white/10 px-3 py-4 sm:px-4">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
           <button onClick={() => setFilterDay(null)} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border', filterDay === null ? 'bg-blue-500/15 text-blue-300 border-blue-500/30' : 'bg-white/[0.025] text-slate-400 border-white/10 hover:bg-white/5')}>
             <Filter className="w-3.5 h-3.5" /> All
@@ -326,6 +333,8 @@ export default function TasksPage() {
             );
           })}
         </div>
+          </div>
+        </details>
       </section>
 
       {archiveTarget && (
