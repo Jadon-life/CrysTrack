@@ -185,3 +185,13 @@
 @media (prefers-reduced-motion: reduce) {
   .history-accordion > summary .history-chevron { transition: none; }
 }
+
+
+/* Calendar day categories are native, collapsed disclosures. */
+.calendar-day-details > summary::-webkit-details-marker { display: none; }
+.calendar-day-details > summary { list-style: none; }
+.calendar-day-details > summary .calendar-group-chevron { transition: transform 180ms ease; }
+.calendar-day-details[open] > summary .calendar-group-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .calendar-day-details > summary .calendar-group-chevron { transition: none; }
+}

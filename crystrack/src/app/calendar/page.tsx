@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { fetcher } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -93,6 +93,15 @@ export default function CalendarPage() {
 
   const selectedDate = new Date(`${selected}T12:00:00`);
   const selectedEvents = eventsFor(selectedDate);
+  const groupsForSelected = [
+    { type: 'task', label: 'Routines', tone: 'bg-emerald-400' },
+    { type: 'assignment', label: 'Assignments', tone: 'bg-amber-400' },
+    { type: 'goal', label: 'Goals', tone: 'bg-violet-400' },
+  ].map((category) => ({
+    ...category,
+    events: selectedEvents.filter((event) => event.type === category.type),
+  })).filter((category) => category.events.length > 0);
+
   const monthLabel = cursor.toLocaleDateString([], { month: 'long', year: 'numeric' });
 
   if (loading) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[var(--theme-primary)]" /></div>;
@@ -169,7 +178,43 @@ export default function CalendarPage() {
             })}
           </div>
         </GlassCard>
-        <GlassCard padding="md" depth="substantial" className="calendar-glass h-fit"><p className="text-sm font-semibold text-white">{selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">Scheduled items</p><div className="space-y-2 mt-4">{selectedEvents.length === 0 ? <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-5 text-center"><p className="text-sm font-medium text-white">Nothing scheduled for this day</p><p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">A clear day. Add a routine, goal or assignment whenever you need one.</p><Link href="/plan" className="mt-3 inline-flex min-h-9 items-center text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">Open Plan</Link></div> : selectedEvents.map((event, index) => <div key={`${event.type}-${index}`} className="calendar-event-glass rounded-xl border border-white/10 bg-black/10 p-3"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${event.tone}`} /><span className="text-xs uppercase tracking-wide text-[var(--theme-text-muted)]">{event.type}</span></div><p className="text-xs text-white mt-1.5">{event.title}</p></div>)}</div></GlassCard>
+        <GlassCard padding="md" depth="substantial" className="calendar-glass h-fit">
+          <h2 className="text-sm font-semibold text-white">
+            {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+          </h2>
+          <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+            {selectedEvents.length} scheduled item{selectedEvents.length === 1 ? '' : 's'} · Open a category to see everything
+          </p>
+          {selectedEvents.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-white/10 bg-black/10 px-3 py-5 text-center">
+              <p className="text-sm font-medium text-white">Nothing scheduled for this day</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
+                A clear day. Add a routine, goal or assignment whenever you need one.
+              </p>
+              <Link href="/plan" className="mt-3 inline-flex min-h-10 items-center text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">Open Plan</Link>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-2">
+              {groupsForSelected.map((category) => (
+                <details key={selected + '-' + category.type} className="calendar-day-details overflow-hidden rounded-xl border border-white/10 bg-black/10">
+                  <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-3 py-3 text-sm font-medium text-white hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden">
+                    <span className={cn('h-2 w-2 shrink-0 rounded-full', category.tone)} aria-hidden="true" />
+                    <span className="min-w-0 flex-1">{category.label}</span>
+                    <span className="text-xs text-[var(--theme-text-muted)]">{category.events.length}</span>
+                    <ChevronDown className="calendar-group-chevron h-4 w-4 text-[var(--theme-text-muted)]" aria-hidden="true" />
+                  </summary>
+                  <div className="space-y-2 border-t border-white/10 p-2">
+                    {category.events.map((event, index) => (
+                      <p key={event.type + index} className="calendar-event-glass rounded-lg border border-white/[0.06] p-3 text-sm text-white">
+                        {event.title}
+                      </p>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+        </GlassCard>
       </div>
     </div>
   );
