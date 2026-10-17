@@ -24,3 +24,12 @@
 - Database isolation audit returned UNKNOWN. Do not write financial data against any unverified preview database.
 
 **No production merge, no Supabase changes, no financial writes.**
+
+## Second pass — typography and focus
+
+- Raised explicit text sizes of 9–11px to 12px in all eight polished pages, plus Wealth, AI, Settings, the AI insight card and both navigation components.
+- Raised selected legacy-CSS navigation, reminder badge, currency switch and ceremony captions to 12px through the final stylesheet.
+- Named profile, weather and mobile-menu icon buttons for assistive technology.
+- Added visible keyboard focus for navigation and common glass controls.
+- Intentionally retained compact theme-icon widths to avoid breaking the header on narrow mobile screens. A proper mobile touch-target/layout review remains outstanding.
+- Source tests check explicit pixel classes and focus wiring. Actual rendered contrast, zoom behaviour, and mobile overflow still need browser verification; this is not a claim of WCAG certification.

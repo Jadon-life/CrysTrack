@@ -122,3 +122,56 @@
   transform: none;
   transition: none;
 }
+
+
+/* Piece 1 typography and keyboard accessibility. Use existing adaptive colours. */
+.topnav-link,
+.topnav-weather,
+.topnav-theme__button,
+.topnav-badge,
+.wealth-segmented button,
+.ceremony-clean-prompt__eyebrow,
+.ceremony-clean-prompt__copy,
+.ceremony-clean-prompt__actions button,
+.immersive-ceremony__signature {
+  font-size: 12px;
+}
+
+.topnav-badge {
+  min-width: 19px;
+  height: 19px;
+  top: -4px;
+  right: -4px;
+}
+
+.wealth-segmented button {
+  min-height: 40px;
+}
+
+.topnav-link {
+  min-height: 40px;
+}
+
+/* The compact narrow-screen theme toggle needs its existing width
+   to avoid pushing the navigation off the viewport. */
+:is(
+  .topnav-brand,
+  .topnav-link,
+  .topnav-icon-button,
+  .topnav-weather,
+  .topnav-theme__button,
+  .topnav-profile,
+  .topnav-menu-item,
+  .topnav-mobile-link,
+  .glass-button,
+  .wealth-segmented button
+):focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .topnav-link {
+    min-height: 38px;
+  }
+}
