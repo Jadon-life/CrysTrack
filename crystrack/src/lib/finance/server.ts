@@ -53,6 +53,7 @@ export async function entryPayload(
   payload: Record<string, unknown>,
 ) {
   if (
+    Object.prototype.hasOwnProperty.call(payload, "category") &&
     !payload.category &&
     (typeof payload.source === "string" || typeof payload.note === "string")
   )

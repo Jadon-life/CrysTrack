@@ -366,6 +366,7 @@ test("revisions, soft delete and restoration change target totals once, reject s
   let e = await post({
     flowKind: "saving",
     amount: "10.00",
+    category: "Savings",
     targetId: target.id,
   });
   const starting = ok(
@@ -374,6 +375,8 @@ test("revisions, soft delete and restoration change target totals once, reject s
   const stale = e;
   e = await change(e, "save", { amount: "12.34" });
   await change(stale, "save", { amount: "1.00" }, 409);
+  e = await change(e, "save", {note:"A helpful note"});
+  assert.equal(e.category,"Savings","partial edits preserve unspecified category");
   e = await change(e, "delete");
   assert.ok(e.deleted_at);
   let snapshot = await (await read()).json();
