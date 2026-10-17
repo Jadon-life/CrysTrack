@@ -257,7 +257,7 @@ export default function AssignmentsPage() {
       <header className="academic-page-header">
         <div>
           <p className="academic-eyebrow">Plan · Your next chapter</p>
-          <h1>Assignments</h1>
+          <h1>Assignments, without the overwhelm.</h1>
           <p>Small steps, clear deadlines, and room to begin again.</p>
         </div>
         <button

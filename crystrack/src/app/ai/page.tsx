@@ -127,18 +127,18 @@ export default function AiPage() {
   };
 
   return (
-    <div className="space-y-5 pb-8">
+    <div className="space-y-5 pb-8 intelligence-workspace">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">CrysTrack Intelligence</p>
-        <h1 className="text-2xl font-bold text-white mt-1">AI</h1>
+        <h1 className="text-2xl font-bold text-white mt-1">Ask CrysTrack Intelligence.</h1>
         <p className="text-sm text-[var(--theme-text-muted)] mt-1">Ask about your routines, goals, assignments, Wealth and the relationships between them. This chat is read-only.</p>
         <p className="text-[11px] text-[var(--theme-text-muted)] mt-2">CrysTrack does not send your email, authentication IDs, credentials, private transaction notes or debt counterparties to the AI context.</p>
       </div>
 
       {status && <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{status}</div>}
 
-      <div className="grid min-h-[620px] grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <GlassCard padding="sm" className="h-fit lg:sticky lg:top-24">
+      <div className="intelligence-grid">
+        <GlassCard padding="sm" className="intelligence-conversations">
           <Button variant="default" className="w-full" onClick={() => void createConversation()}>
             <MessageSquarePlus className="w-4 h-4 mr-1.5" /> New chat
           </Button>
@@ -158,7 +158,7 @@ export default function AiPage() {
           </div>
         </GlassCard>
 
-        <GlassCard padding="none" className="flex min-h-[620px] flex-col overflow-hidden">
+        <GlassCard padding="none" className="intelligence-conversation">
           <div className="border-b border-white/10 px-4 py-3">
             <div className="flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-[var(--theme-primary)]" /><p className="text-sm font-semibold text-white">Read-only CrysTrack AI</p></div>
             <p className="mt-1 text-[11px] text-[var(--theme-text-muted)]">It can analyze your data but cannot create, edit or delete CrysTrack activity.</p>
@@ -189,6 +189,7 @@ export default function AiPage() {
           <div className="border-t border-white/10 p-3 sm:p-4">
             <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-black/20 p-2">
               <textarea
+                aria-label="Message CrysTrack Intelligence"
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 onKeyDown={(event) => {

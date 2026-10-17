@@ -3,7 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { post } from '@/lib/api';
 import { useRhythm } from '@/components/rhythm/rhythm-provider';
 import type { FocusSession } from '@/types/rhythm';
-export function FocusTimer({ compact = false }: { compact?: boolean }) {
+export function FocusTimer({
+  compact = false,
+  autoComplete = true,
+}: {
+  compact?: boolean;
+  autoComplete?: boolean;
+}) {
   const { data, refresh } = useRhythm();
   const [task, setTask] = useState(''),
     [minutes, setMinutes] = useState(25),
@@ -87,6 +93,7 @@ export function FocusTimer({ compact = false }: { compact?: boolean }) {
       );
       setRemaining(left);
       if (
+        autoComplete &&
         !left &&
         session.status === 'running' &&
         attempted.current !== session.id &&
@@ -104,7 +111,7 @@ export function FocusTimer({ compact = false }: { compact?: boolean }) {
       clearInterval(interval);
       if (finishTimeout) clearTimeout(finishTimeout);
     };
-  }, [session, data?.asOf]);
+  }, [session, data?.asOf, autoComplete]);
   const active = session && ['running', 'paused'].includes(session.status);
   const taskTitle =
     data?.tasks.find((t) => t.id === session?.task_id)?.title || 'Your task';
@@ -112,13 +119,37 @@ export function FocusTimer({ compact = false }: { compact?: boolean }) {
     <div
       className={compact ? 'rhythm-focus rhythm-focus-compact' : 'rhythm-focus'}
     >
+      {!compact && (
+        <div className="rhythm-focus-clock">
+          <svg viewBox="0 0 128 128" aria-hidden="true">
+            <circle cx="64" cy="64" r="55" />
+            <circle
+              cx="64"
+              cy="64"
+              r="55"
+              pathLength="100"
+              strokeDasharray={`${active ? Math.max(0, Math.min(100, (remaining / (session.planned_minutes * 60)) * 100)) : 100} 100`}
+              transform="rotate(-90 64 64)"
+            />
+          </svg>
+          <output aria-label="Focus time remaining">
+            {String(
+              Math.floor((active ? remaining : minutes * 60) / 60),
+            ).padStart(2, '0')}
+            :{String((active ? remaining : minutes * 60) % 60).padStart(2, '0')}
+          </output>
+          <span>Focus minutes</span>
+        </div>
+      )}
       {active ? (
         <>
           <strong>{taskTitle}</strong>
-          <output aria-label="Focus time remaining">
-            {String(Math.floor(remaining / 60)).padStart(2, '0')}:
-            {String(remaining % 60).padStart(2, '0')}
-          </output>
+          {compact && (
+            <output aria-label="Focus time remaining">
+              {String(Math.floor(remaining / 60)).padStart(2, '0')}:
+              {String(remaining % 60).padStart(2, '0')}
+            </output>
+          )}
           <button
             disabled={busy}
             onClick={() =>
@@ -155,7 +186,7 @@ export function FocusTimer({ compact = false }: { compact?: boolean }) {
             </select>
           </label>
           <label>
-            Pomodoro / custom minutes
+            Duration · minutes
             <input
               aria-label="Focus minutes"
               type="number"
@@ -175,7 +206,7 @@ export function FocusTimer({ compact = false }: { compact?: boolean }) {
             }
             onClick={() => void action('start')}
           >
-            Focus
+            Start focus
           </button>
         </>
       )}

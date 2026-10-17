@@ -49,9 +49,9 @@ test('navigation follows the consolidated product model', () => {
   for (const label of ["'Today'", "'Plan'", "'Wealth'", "'Insights'", "'Calendar'"]) {
     assert.equal(nav.includes(label), true, `Missing navigation label ${label}`);
   }
-  assert.equal(nav.includes("label: 'Tasks'"), false);
-  assert.equal(nav.includes("label: 'Assignments'"), false);
-  assert.equal(nav.includes("label: 'Settings'"), false);
+  assert.equal(nav.includes("label: 'Tasks'"), true);
+  assert.equal(nav.includes("label: 'Assignments'"), true);
+  assert.equal(nav.includes("label: 'Settings'"), true);
 });
 
 test('authenticated app shell fully retires the 3D background', () => {

@@ -5,9 +5,8 @@ import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { RhythmProvider } from '@/components/rhythm/rhythm-provider';
-import { FloatingIsland } from '@/components/rhythm/floating-island';
+import { FloatingAppShell } from '@/components/workspace/floating-app-shell';
 import { GoalAtmosphere } from '@/components/goals/goal-atmosphere';
-import { TopNavigation } from '@/components/navigation/top-navigation';
 import { EnvironmentBackground } from './environment-background';
 import { useTheme } from './theme-provider';
 import { useAuth } from './auth-provider';
@@ -16,7 +15,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAuthPage = pathname === '/auth';
-  const { theme, requestLocation, environment, reducedMotion } = useTheme();
+  const { requestLocation, environment, reducedMotion } = useTheme();
   const { user, loading } = useAuth();
 
   React.useEffect(() => {
@@ -24,13 +23,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [user, loading, isAuthPage, router]);
 
   React.useEffect(() => {
-    if (!user || isAuthPage || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-    import('@/lib/push').then(({ registerCrysTrackServiceWorker }) => registerCrysTrackServiceWorker()).catch(() => null);
+    if (
+      !user ||
+      isAuthPage ||
+      typeof navigator === 'undefined' ||
+      !('serviceWorker' in navigator)
+    )
+      return;
+    import('@/lib/push')
+      .then(({ registerCrysTrackServiceWorker }) =>
+        registerCrysTrackServiceWorker(),
+      )
+      .catch(() => null);
   }, [user, isAuthPage]);
 
   React.useEffect(() => {
     if (!user || isAuthPage) return;
-    const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'CrysTrack';
+    const displayName =
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.email?.split('@')[0] ||
+      'CrysTrack';
 
     fetch('/api/profile', {
       method: 'PUT',
@@ -50,30 +63,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     void requestLocation({ prompt: true });
   }, [user, isAuthPage, requestLocation]);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#06101b]"><Loader2 className="w-8 h-8 text-blue-400 animate-spin" /></div>;
-  }
-
-  if (isAuthPage) {
+  if (loading)
     return (
-      <div className="relative min-h-screen flex items-center justify-center" style={{ background: theme.background }}>
-        <EnvironmentBackground />
-        <div className="relative z-10 w-full max-w-md px-4">{children}</div>
+      <div className="workspace-loading" role="status">
+        <Loader2 className="animate-spin" />
+        <span>Opening your workspace…</span>
       </div>
     );
-  }
-
+  if (isAuthPage)
+    return (
+      <div className="workspace-viewport workspace-auth">
+        <EnvironmentBackground />
+        <div className="workspace-auth-content">{children}</div>
+      </div>
+    );
   if (!user) return null;
-
   return (
-    <RhythmProvider><GamificationProvider><div className="relative min-h-screen app-experience-shell">
-      <EnvironmentBackground />
-      <GoalAtmosphere phase={environment.phase} reducedMotion={reducedMotion}/>
-      <TopNavigation />
-      <main className="relative z-10 min-h-screen pt-[88px] sm:pt-[96px] pb-10">
-        <div className="w-full max-w-[1560px] mx-auto px-3 sm:px-5 lg:px-7 xl:px-9">{children}</div>
-      </main>
-      <FloatingIsland/>
-    </div></GamificationProvider></RhythmProvider>
+    <RhythmProvider>
+      <GamificationProvider>
+        <div className="app-experience-shell workspace-viewport">
+          <EnvironmentBackground />
+          <GoalAtmosphere
+            phase={environment.phase}
+            reducedMotion={reducedMotion}
+          />
+          <FloatingAppShell>{children}</FloatingAppShell>
+        </div>
+      </GamificationProvider>
+    </RhythmProvider>
   );
 }

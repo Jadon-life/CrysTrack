@@ -18,7 +18,7 @@ function read(path) {
 
 test('calendar uses the shared calendar-day grid and unified event model', () => {
  const calendar=read('src/app/calendar/page.tsx');
- assert.match(calendar,/monthCells/);assert.match(calendar,/Timeboxed Calendar/);assert.match(calendar,/onDrop/);assert.match(calendar,/Place selected task/);
+ assert.match(calendar,/monthCells/);assert.match(calendar,/Your time, intentionally planned/);assert.match(calendar,/onDrop/);assert.match(calendar,/Place selected task/);
 });
 
 test(

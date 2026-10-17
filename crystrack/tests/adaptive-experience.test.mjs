@@ -8,9 +8,10 @@ const read = (path) => readFileSync(join(root, path), 'utf8');
 test('top navigation follows the approved information architecture', () => {
   const nav = read('src/components/navigation/nav-items.tsx');
   for (const label of ['Today', 'Plan', 'Wealth', 'Insights', 'Calendar']) assert.match(nav, new RegExp(`label: '${label}'`));
-  assert.doesNotMatch(nav, /label: 'Settings'/);
+  for (const label of ['Tasks','Goals','Assignments','Settings']) assert.match(nav,new RegExp("label: '"+label+"'"));
   const layout = read('src/components/layout/app-layout.tsx');
-  assert.match(layout, /<TopNavigation/);
+  assert.match(layout, /<FloatingAppShell/);
+  assert.match(read('src/components/workspace/floating-app-shell.tsx'), /<TopNavigation/);
   assert.match(layout, /<EnvironmentBackground/);
 });
 
@@ -97,7 +98,7 @@ test('dashboard greeting follows local clock rather than solar phase', () => {
 
   assert.match(
     dashboard,
-    /greetingForLocalTime\(environment\.localTime\)/,
+    /localClock\(new Date\(\),\s*data.timezone\)/,
   );
 
   assert.doesNotMatch(

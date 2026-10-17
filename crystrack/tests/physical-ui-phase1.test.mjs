@@ -8,7 +8,8 @@ const read = (relativePath) => readFile(path.join(root, relativePath), 'utf8');
 
 test('premium physical UI stylesheet is wired after the accepted globals', async () => {
   const layout = await read('src/app/layout.tsx');
-  assert.match(layout, /import '\.\/globals\.css';\s*import '\.\/premium-physical-ui\.css';/);
+  assert.match(layout, /import '\.\/workspace\.css';/);
+  assert.doesNotMatch(layout, /import '\.\/premium-physical-ui(?:-phase2|-phase3)?\.css';/);
 });
 
 test('GlassCard provides substantial depth and pointer/tap liquid response', async () => {
@@ -27,18 +28,18 @@ test('calendar uses a deeper interactive glass sheet for unified timeboxing', as
   assert.match(calendar, /rhythm-event/);
 });
 
-test('navigation collapses before tablet widths become crowded', async () => {
-  const nav = await read('src/components/navigation/top-navigation.tsx');
-  assert.match(nav, /hidden lg:flex items-center gap-1/);
-  assert.match(nav, /topnav-icon-button lg:hidden/);
-  assert.match(nav, /z-\[90\].*lg:hidden/);
+test('sidebar adapts to a tablet rail and accessible portalled mobile drawer', async () => {
+  const shell=await read('src/components/workspace/floating-app-shell.tsx');
+  const css=await read('src/app/workspace.css');
+  assert.match(shell, /GlassSidebar/);assert.match(shell,/WorkspaceOverlay/);
+  assert.match(css, /max-width:\s*1099px/);assert.match(css,/max-width:\s*767px/);
+  assert.match(css,/--workspace-sidebar-width:\s*76px/);
 });
 
-test('premium UI CSS includes glass depth, safe nav margins and reduced-motion fallback', async () => {
-  const css = await read('src/app/premium-physical-ui.css');
-  assert.match(css, /\.crys-glass-card--substantial/);
-  assert.match(css, /@keyframes crysGlassLiquidSettle/);
-  assert.match(css, /\.calendar-glass--grid/);
-  assert.match(css, /env\(safe-area-inset-right\)/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+test('workspace styling provides floating geometry, reactive glass and reduced-motion support', async () => {
+  const css=await read('src/app/workspace.css');
+  assert.match(css,/width:\s*min\(94vw,\s*1800px\)/);assert.match(css,/height:\s*92dvh/);
+  assert.match(css,/--glass-tilt-x/);assert.match(css,/backdrop-filter:\s*blur/);
+  assert.match(css,/env\(safe-area-inset-right\)/);assert.match(css,/prefers-reduced-motion:\s*reduce/);
+  assert.doesNotMatch(css,/!important/);
 });
