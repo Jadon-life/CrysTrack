@@ -12,8 +12,6 @@ import {
   LogOut,
   MapPin,
   Menu,
-  Monitor,
-  Moon,
   Settings,
   Sun,
   User,
@@ -22,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
+import { PhysicalThemeSwitch } from './physical-theme-switch';
 import { weatherLabel } from '@/lib/environment';
 import { cn } from '@/lib/utils';
 import { navItems, navItemIsActive } from './nav-items';
@@ -30,34 +29,6 @@ function WeatherIcon({ weather }: { weather: string }) {
   if (weather === 'rain' || weather === 'storm') return <CloudRain className="w-4 h-4" />;
   if (weather === 'cloudy' || weather === 'fog' || weather === 'snow') return <Cloud className="w-4 h-4" />;
   return <Sun className="w-4 h-4" />;
-}
-
-function ThemeControl() {
-  const { preference, setPreference } = useTheme();
-  const items = [
-    { value: 'adaptive' as const, icon: Monitor, label: 'Auto' },
-    { value: 'light' as const, icon: Sun, label: 'Light' },
-    { value: 'dark' as const, icon: Moon, label: 'Dark' },
-  ];
-
-  return (
-    <div className="topnav-theme" aria-label="Theme mode">
-      {items.map(({ value, icon: Icon, label }) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => void setPreference(value)}
-          className={cn('topnav-theme__button', preference === value && 'is-active')}
-          title={label}
-          aria-label={`Use ${label.toLowerCase()} theme`}
-          aria-pressed={preference === value}
-        >
-          <Icon className="w-4 h-4" />
-          {value === 'adaptive' && <span className="hidden 2xl:inline">Auto</span>}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 interface ReminderPreview {
@@ -337,7 +308,7 @@ export function TopNavigation() {
                 <MapPin className="w-3 h-3" /> {environmentLoading ? 'Updating…' : location}
               </span>
             </button>
-            <ThemeControl />
+            <PhysicalThemeSwitch />
             <NotificationMenu />
             <ProfileMenu />
             <button type="button" className="topnav-icon-button lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu className="w-4 h-4" /></button>
