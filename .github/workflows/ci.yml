@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -47,6 +49,9 @@ jobs:
 
       - name: Tests
         run: npm test
+
+      - name: Disposable database compatibility regression
+        run: npm run test:september:db
 
       - name: Typecheck
         run: npm run typecheck

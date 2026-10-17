@@ -1,6 +1,8 @@
+import {dateKeyForInstant} from '@/lib/reminders';
 import { createHash } from 'crypto';
 import { goalCheckinAccountability, goalCheckinState } from '@/lib/goals/checkin-occurrence';
-import { summarizeWealth } from '@/lib/wealth';
+import { loadWealth } from '@/lib/finance/data';
+import {toKobo,fromKobo} from '@/lib/money';
 
 export type IntelligenceDomain = 'tasks' | 'goals' | 'assignments' | 'wealth' | 'overview';
 
@@ -401,59 +403,32 @@ async function assignmentsContext(supabase: any, userId: string) {
   };
 }
 
-async function loadMoneyEntries(supabase: any, userId: string) {
-  const rows: any[] = [];
-  const pageSize = 1000;
-  const maxRows = 12000;
-  for (let from = 0; from < maxRows; from += pageSize) {
-    const { data, error } = await supabase
-      .from('money_entries')
-      .select('type, flow_kind, amount, date, source, category, debt_id, expected_flow_id')
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
-      .range(from, from + pageSize - 1);
-    if (error) throw error;
-    const batch = data || [];
-    rows.push(...batch);
-    if (batch.length < pageSize) return { rows, truncated: false };
-  }
-  return { rows, truncated: true };
-}
 
-function monthlyLedger(entries: any[]) {
-  const months = new Map<string, Record<string, number>>();
+function monthlyLedger(entries: any[], timezone='UTC') {
+  const months = new Map<string, Record<string, bigint>>();
   for (const entry of entries) {
-    const month = String(entry.date || '').slice(0, 7);
+    const entryDay=dateKeyForInstant(new Date(entry.date),timezone);
+    if(entryDay>dateKeyForInstant(new Date(),timezone))continue;
+    const month = entryDay.slice(0,7);
     if (!/^\d{4}-\d{2}$/.test(month)) continue;
     const kind = String(entry.flow_kind || entry.type || 'other');
     const bucket = months.get(month) || {};
-    bucket[kind] = (bucket[kind] || 0) + number(entry.amount);
+    bucket[kind] = (bucket[kind] || BigInt(0)) + toKobo(entry.amount);
     months.set(month, bucket);
   }
-  return Array.from(months.entries()).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 18).map(([month, totals]) => ({ month, totals }));
+  return Array.from(months.entries()).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 18).map(([month, totals]) => ({month,totals:Object.fromEntries(Object.entries(totals).map(([key,value])=>[key,fromKobo(value)]))}));
 }
 
 async function wealthContext(supabase: any, userId: string) {
-  const [entriesResult, targetsResult, debtsResult, expectedResult] = await Promise.all([
-    loadMoneyEntries(supabase, userId),
-    supabase.from('finance_targets').select('title, target_amount, current_amount, deadline, status').eq('user_id', userId).order('created_at', { ascending: false }),
-    supabase.from('wealth_debts').select('kind, original_amount, outstanding_amount, due_date, status').eq('user_id', userId).order('created_at', { ascending: false }),
-    supabase.from('wealth_expected_flows').select('direction, title, category, amount_min, amount_max, frequency, expected_on, timing_hint, status, last_actual_amount, last_confirmed_at').eq('user_id', userId).order('created_at', { ascending: false }),
-  ]);
-
-  const firstError = targetsResult.error || debtsResult.error || expectedResult.error;
-  if (firstError) throw firstError;
-
-  const entries = entriesResult.rows;
-  const debts = debtsResult.data || [];
-  const expected = expectedResult.data || [];
-  const summary = summarizeWealth(entries as any, debts as any, expected as any);
+  const {entries,targets,debts,expectedFlows:expected,summary,timezone}=await loadWealth(supabase,userId);
+  const entriesResult={truncated:false};
+  const targetsResult={data:targets};
 
   return {
     ledger_rows_processed: entries.length,
     ledger_truncated_for_safety: entriesResult.truncated,
     accounting_summary: summary,
-    monthly_ledger: monthlyLedger(entries),
+    monthly_ledger: monthlyLedger(entries,timezone),
     recent_transactions: entries.slice(0, 120).map((entry: any) => ({
       date: String(entry.date || '').slice(0, 10),
       kind: entry.flow_kind || entry.type,

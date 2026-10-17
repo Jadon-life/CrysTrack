@@ -1,3 +1,4 @@
+import {financeError} from '@/lib/finance/server';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { analyzeGoal } from '@/lib/goals/analyze-goal';
@@ -49,7 +50,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
 
   let progressValue: number | null = null;
   let progressPercent: number | null = null;
-  if ((goal.progress_mode === 'percentage' || goal.measurable) && body.progressValue !== '' && body.progressValue != null) {
+  if ((goal.progress_source || 'manual') === 'manual' && (goal.progress_mode === 'percentage' || goal.measurable) && body.progressValue !== '' && body.progressValue != null) {
     progressValue = Number(body.progressValue);
     if (!Number.isFinite(progressValue)) return NextResponse.json({ error: 'Progress value is invalid' }, { status: 400 });
 
@@ -83,17 +84,9 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     .single();
 
   if (error?.code === '23505') return NextResponse.json({ error: 'This goal occurrence has already been checked in' }, { status: 409 });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return financeError(error);
 
-  if (progressValue != null) {
-    const { error: progressError } = await supabase
-      .from('goals')
-      .update({ progress_value: progressValue })
-      .eq('id', goal.id)
-      .eq('user_id', user.id);
-    if (progressError) console.error('Goal progress update failed after saved check-in:', progressError);
-  }
-
+  // 0006 sync_goal_alignment_checkin owns progress atomically; do not apply it again.
   let analysis: any = null;
   const aiConfigured = Boolean(process.env.OPENROUTER_API_KEY);
   if (aiConfigured) {

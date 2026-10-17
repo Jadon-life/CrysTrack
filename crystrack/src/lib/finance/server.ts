@@ -1,0 +1,105 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { savedTimezone, deadlineInstant } from "./time";
+import { merchantCategory } from "./logic";
+
+export async function financeSession() {
+  const db = await createClient();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  return { db, user };
+}
+export function financeError(error: unknown) {
+  console.error("Wealth operation failed:", error);
+  const code = (error as { code?: string })?.code;
+  const status =
+    code === "40001" || code === "23505" || code === "40P01"
+      ? 409
+      : code === "42501"
+        ? 403
+        : code === "P0002"
+          ? 404
+          : [
+                "23514",
+                "22023",
+                "22P02",
+                "23503",
+                "23502",
+                "22003",
+                "P0001",
+              ].includes(code || "")
+            ? 400
+            : 500;
+  return NextResponse.json(
+    {
+      error:
+        status === 409
+          ? "This item changed or was already recorded. Refresh and try again."
+          : status === 403
+            ? "Choose accounts and targets from your own Wealth plan."
+            : status === 404
+              ? "This item is no longer available."
+              : status === 400
+                ? "Check your details, account choices and savings unlock date."
+                : "We could not save your Wealth changes. Please try again.",
+    },
+    { status },
+  );
+}
+export async function entryPayload(
+  db: Awaited<ReturnType<typeof createClient>>,
+  uid: string,
+  payload: Record<string, unknown>,
+) {
+  if (
+    !payload.category &&
+    (typeof payload.source === "string" || typeof payload.note === "string")
+  )
+    payload.category =
+      merchantCategory(`${payload.source || ""} ${payload.note || ""}`) || "";
+  const date = payload.date;
+  if (typeof date === "string" && !date.includes("T"))
+    payload.date = deadlineInstant(date, await savedTimezone(db, uid));
+  return payload;
+}
+export function financeSaved(uid: string, data: unknown, status = 200) {
+  void uid;
+  return NextResponse.json(data, { status });
+}
+export const unauthorized = () =>
+  NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const invalid = () =>
+  NextResponse.json(
+    { error: "Check the form details and try again." },
+    { status: 400 },
+  );
+
+/** Preview writes stay closed until an operator verifies an isolated target schema. */
+export function financeWriteGuard() {
+  if (
+    process.env.VERCEL_ENV === "production" ||
+    process.env.SEPTEMBER_COMPAT_DATABASE_VERIFIED !== "true"
+  )
+    return NextResponse.json(
+      {
+        error:
+          "Financial changes are paused until this preview database is verified.",
+      },
+      { status: 503 },
+    );
+  return null;
+}
+
+export type CompatibilityOperation =
+  "entry" | "create_debt" | "repay_debt" | "confirm_expected";
+export function financeTransaction(
+  db: Awaited<ReturnType<typeof createClient>>,
+  operation: CompatibilityOperation,
+  payload: Record<string, unknown>,
+) {
+  return db.rpc("september_finance_transaction", {
+    p_operation: operation,
+    p_payload: payload,
+  });
+}

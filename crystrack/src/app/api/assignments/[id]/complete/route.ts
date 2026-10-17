@@ -1,46 +1,44 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
-
-export async function PATCH(_request: Request, props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { data: current, error: lookupError } = await supabase
-    .from('assignments')
-    .select('id, title, deadline, status')
-    .eq('id', params.id)
-    .eq('user_id', user.id)
+import { createClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+import { financeError } from "@/lib/finance/server";
+import { z } from "zod";
+export async function PATCH(
+  _request: Request,
+  props: { params: Promise<{ id: string }> },
+) {
+  const { id } = await props.params;
+  const db = await createClient();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!z.string().uuid().safeParse(id).success)
+    return NextResponse.json(
+      { error: "Check the assignment ID." },
+      { status: 400 },
+    );
+  const current = await db
+    .from("assignments")
+    .select("deadline,status")
+    .eq("id", id)
+    .eq("user_id", user.id)
     .maybeSingle();
-
-  if (lookupError) return NextResponse.json({ error: lookupError.message }, { status: 500 });
-  if (!current || current.status === 'completed') {
-    return NextResponse.json({ error: 'Assignment not found or already completed' }, { status: 404 });
-  }
-  if (new Date(current.deadline).getTime() < Date.now()) {
-    return NextResponse.json({ error: 'Assignment deadline has passed; completion is closed' }, { status: 409 });
-  }
-
-  const { data: assignment, error } = await supabase
-    .from('assignments')
-    .update({ status: 'completed', completed_at: new Date().toISOString() })
-    .eq('id', params.id)
-    .eq('user_id', user.id)
-    .neq('status', 'completed')
-    .select()
-    .maybeSingle();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!assignment) return NextResponse.json({ error: 'Assignment not found or already completed' }, { status: 404 });
-
-  await supabase.from('activity_events').insert({
-    user_id: user.id,
-    type: 'assignment_completed',
-    entity_type: 'assignment',
-    entity_id: assignment.id,
-    metadata_json: { title: assignment.title, status: 'completed' },
+  if (current.error) return financeError(current.error);
+  if (!current.data || current.data.status === "completed")
+    return NextResponse.json(
+      { error: "Assignment not found or already completed" },
+      { status: 404 },
+    );
+  if (new Date(current.data.deadline).getTime() < Date.now())
+    return NextResponse.json(
+      { error: "Assignment deadline has passed; completion is closed" },
+      { status: 409 },
+    );
+  const { data, error } = await db.rpc("finish_academic_assignment", {
+    p_id: id,
   });
-
-  return NextResponse.json(assignment);
+  if (error) return financeError(error);
+  // 0007 emits the completion event and cancels reminders in the same transaction.
+  return NextResponse.json(data);
 }

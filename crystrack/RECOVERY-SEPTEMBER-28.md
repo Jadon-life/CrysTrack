@@ -1,5 +1,7 @@
 # September 28, 2026 recovery — preview only
 
+> Historical record of the unchanged recovery branch at `28de0d7`. This compatibility branch intentionally adapts the backend; see `docs/september-compatibility.md` for the current candidate.
+
 Historical source: `83b83542f27e1ff700248fcdb359891fb461c472`, “Fix React 19 lint and CI runtime alignment”, September 28, 2026.
 
 Recovery branch: `restore/crystrack-september-28-2026`, based directly on that commit. October's branch and PR remain separate. No main reset, force push, production promotion or database migration is authorized by this recovery.

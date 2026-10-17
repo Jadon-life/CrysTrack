@@ -20,6 +20,11 @@ export async function DELETE(_request: Request, props: { params: Promise<{ taskI
   if (lookupError) return NextResponse.json({ error: lookupError.message }, { status: 500 });
   if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
 
+  // 0006 stores goal routine links in task_ids; preserve those references.
+  const links = await supabase.from('goals').select('id').eq('user_id',user.id).contains('task_ids',[task.id]).limit(1);
+  if(links.error){console.error('Routine link lookup failed',links.error.code);return NextResponse.json({error:'We could not check linked goals. Please try again.'},{status:500});}
+  if(links.data?.length)return NextResponse.json({error:'This routine supports a goal. Archive it, or unlink it from the goal before deleting it.'},{status:409});
+
   const { error: deleteError } = await supabase
     .from('recurring_tasks')
     .delete()

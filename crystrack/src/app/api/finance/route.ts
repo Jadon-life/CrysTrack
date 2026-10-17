@@ -1,40 +1,21 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
-
+import { NextResponse } from "next/server";
+import {
+  financeSession,
+  financeError,
+  unauthorized,
+} from "@/lib/finance/server";
+import { loadWealth } from "@/lib/finance/data";
+export { POST } from "./entries/route";
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const [{ data: targets }, { data: entries }] = await Promise.all([
-    supabase.from('finance_targets').select('*').eq('user_id', user.id).eq('status', 'active'),
-    supabase.from('money_entries').select('*').eq('user_id', user.id).order('date', { ascending: false }).limit(20),
-  ]);
-
-  return NextResponse.json({ targets: targets || [], entries: entries || [] });
-}
-
-export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const { data: entry, error } = await supabase
-    .from('money_entries')
-    .insert({ ...body, user_id: user.id })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // Update target if applicable
-  if (body.target_id && body.type === 'saving') {
-    await supabase.rpc('increment_target', {
-      target_uuid: body.target_id,
-      amount_num: body.amount,
-    });
+  const { db, user } = await financeSession();
+  if (!user) return unauthorized();
+  try {
+    const data = await loadWealth(db, user.id);
+    return NextResponse.json(
+      { targets: data.targets, entries: data.entries.slice(0, 20) },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch (error) {
+    return financeError(error);
   }
-
-  return NextResponse.json(entry);
 }
