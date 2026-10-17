@@ -252,7 +252,7 @@ export default function DashboardPage() {
             </div>
             <p className="text-xs text-[var(--theme-text-muted)] mt-4">{label}</p>
             <p className="text-2xl font-semibold text-white mt-1 truncate">{value}</p>
-            <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">{note}</p>
+            <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
           </GlassCard>
         ))}
       </section>
@@ -273,9 +273,12 @@ export default function DashboardPage() {
 
           <div className="space-y-1.5">
             {todayTasks.length === 0 ? (
-              <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">
-                No routines scheduled today.
-              </p>
+              <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-5 text-center">
+                <p className="text-sm font-medium text-white">Nothing scheduled today</p>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
+                  A clear day leaves room to plan at your own pace.
+                </p>
+              </div>
             ) : (
               todayTasks.slice(0, 7).map((task) => (
                 <div
@@ -343,9 +346,15 @@ export default function DashboardPage() {
 
             <div className="space-y-3">
               {goals.length === 0 ? (
-                <p className="text-xs text-[var(--theme-text-muted)] py-4">
-                  No active goals.
-                </p>
+                <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-4">
+                  <p className="text-sm font-medium text-white">No active goals yet</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
+                    Start with one outcome that matters to you.
+                  </p>
+                  <Link href="/goals" className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
+                    Explore goals <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               ) : (
                 goals.slice(0, 3).map((goal) => {
                   const percent = goalPercent(goal);
@@ -521,9 +530,12 @@ export default function DashboardPage() {
               ))}
 
               {assignments.length === 0 && (
-                <p className="text-xs text-[var(--theme-text-muted)] py-4">
-                  No active assignments.
-                </p>
+                <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-4">
+                  <p className="text-sm font-medium text-white">No active assignments</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
+                    Deadlines you add will appear here.
+                  </p>
+                </div>
               )}
             </div>
 
@@ -561,8 +573,8 @@ export default function DashboardPage() {
 
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">
           {history.length === 0 ? (
-            <p className="text-xs text-[var(--theme-text-muted)]">
-              Your activity will appear here.
+            <p className="text-sm leading-relaxed text-[var(--theme-text-muted)]">
+              Completed routines, goal check-ins and other activity will appear here.
             </p>
           ) : (
             history.slice(0, 6).map((item: any) => (

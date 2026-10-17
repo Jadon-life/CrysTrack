@@ -134,7 +134,7 @@ export default function AssignmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col items-start sm:flex-row sm:items-center justify-between gap-4 scenic-readable-copy">
         <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">Plan · Deadlines</p><h1 className="text-2xl font-bold text-white mt-1">Assignments</h1><p className="text-sm text-[var(--theme-text-muted)] mt-1">Deadline-driven obligations with deliberate reminders.</p></div>
         <Button variant="primary" onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-1.5" /> New assignment</Button>
       </div>
@@ -149,11 +149,22 @@ export default function AssignmentsPage() {
           { label: 'Due Today', count: statusCounts.due_today, color: 'text-orange-300' },
           { label: 'Due Soon', count: statusCounts.due_soon, color: 'text-amber-300' },
           { label: 'Upcoming', count: statusCounts.upcoming, color: 'text-blue-300' },
-        ].map((stat) => <GlassCard key={stat.label} padding="sm" className="text-center"><div className={cn('text-2xl font-bold', stat.color)}>{stat.count}</div><div className="text-xs text-[var(--theme-text-muted)]">{stat.label}</div></GlassCard>)}
+        ].map((stat) => <GlassCard key={stat.label} padding="sm" className="text-center"><div className={cn('text-2xl font-bold', stat.color)}>{stat.count}</div><div className="mt-1 text-xs font-medium text-[var(--theme-text-muted)]">{stat.label}</div></GlassCard>)}
       </div>
 
       {loading && <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-[var(--theme-primary)] animate-spin" /></div>}
-      {!loading && assignments.length === 0 && <GlassCard padding="lg" className="text-center py-12"><p className="text-[var(--theme-text-muted)]">No active assignments.</p></GlassCard>}
+      {!loading && assignments.length === 0 && (
+        <GlassCard padding="lg" className="text-center py-8">
+          <Clock className="mx-auto mb-3 h-8 w-8 text-[var(--theme-primary)]" aria-hidden="true" />
+          <p className="text-base font-semibold text-white">No active assignments.</p>
+          <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-[var(--theme-text-muted)]">
+            Keep upcoming deadlines in one place and choose when to be reminded.
+          </p>
+          <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4">
+            <Plus className="w-4 h-4 mr-1.5" /> Add an assignment
+          </Button>
+        </GlassCard>
+      )}
 
       <div className="space-y-3">
         {sortedAssignments.map((assignment: any, index: number) => {

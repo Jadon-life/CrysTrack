@@ -161,11 +161,11 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4 scenic-readable-copy">
+      <div className="flex flex-col items-start sm:flex-row sm:items-center justify-between gap-4 scenic-readable-copy">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400">Plan · Routines</p>
           <h1 className="text-2xl font-bold text-white mt-1">Tasks</h1>
-          <p className="text-sm text-slate-400 mt-1">Do today first; manage the recurring schedule second.</p>
+          <p className="text-sm text-[var(--theme-text-muted)] mt-1">Do today first; manage the recurring schedule second.</p>
         </div>
         <Button variant="primary" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> New task
@@ -180,7 +180,7 @@ export default function TasksPage() {
         <div className="flex items-end justify-between gap-4 scenic-readable-strip">
           <div>
             <h2 className="text-lg font-semibold text-white">Today</h2>
-            <p className="text-xs text-slate-500 mt-1">{completedToday} of {todayTasks.length} scheduled routines complete</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1">{completedToday} of {todayTasks.length} scheduled routines complete</p>
           </div>
           <span className="text-sm font-semibold text-emerald-400">{completionPercent}%</span>
         </div>
@@ -190,9 +190,15 @@ export default function TasksPage() {
 
         {loading && <div className="flex justify-center py-10"><Loader2 className="w-7 h-7 text-blue-400 animate-spin" /></div>}
         {!loading && todayTasks.length === 0 && (
-          <GlassCard padding="lg" className="text-center py-10">
-            <CheckCircle2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">No routines are scheduled for today.</p>
+          <GlassCard padding="lg" className="text-center py-8">
+            <CheckCircle2 className="w-8 h-8 text-emerald-300 mx-auto mb-3" aria-hidden="true" />
+            <p className="text-sm font-semibold text-white">No routines are scheduled for today.</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
+              You have room to set the pace. Add a routine when you are ready.
+            </p>
+            <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4">
+              <Plus className="w-4 h-4 mr-1.5" /> Create a routine
+            </Button>
           </GlassCard>
         )}
 
@@ -217,7 +223,7 @@ export default function TasksPage() {
                     {task.today_status === 'skipped' && <span className="text-[10px] uppercase tracking-wide text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Skipped</span>}
                     {task.category && <span className="hidden sm:inline text-[11px] text-slate-500">{task.category}</span>}
                   </div>
-                  {task.description && <p className="text-xs text-slate-500 truncate mt-0.5">{task.description}</p>}
+                  {task.description && <p className="text-xs text-[var(--theme-text-muted)] truncate mt-0.5">{task.description}</p>}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   {task.preferred_time && <span className="text-xs text-slate-500">{task.preferred_time}</span>}
@@ -239,7 +245,7 @@ export default function TasksPage() {
       <section className="space-y-4 routine-readable-section">
         <div>
           <h2 className="text-lg font-semibold text-white">All routines</h2>
-          <p className="text-xs text-slate-500 mt-1">Review schedules without mixing them with today&apos;s execution list.</p>
+          <p className="text-xs text-[var(--theme-text-muted)] mt-1">Review schedules without mixing them with today&apos;s execution list.</p>
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
@@ -253,7 +259,25 @@ export default function TasksPage() {
           ))}
         </div>
 
-        {!loading && filteredTasks.length === 0 && <GlassCard padding="lg" className="text-center py-10"><p className="text-slate-400">No routines match this day.</p></GlassCard>}
+        {!loading && filteredTasks.length === 0 && (
+          <GlassCard padding="lg" className="text-center py-8">
+            <p className="text-sm font-semibold text-white">
+              {tasks.length === 0 ? 'No routines created yet.' : 'No routines match this day.'}
+            </p>
+            <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+              {tasks.length === 0 ? 'Build a routine that fits your week.' : 'Try another day or show all routines.'}
+            </p>
+            {tasks.length === 0 ? (
+              <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4">
+                <Plus className="w-4 h-4 mr-1.5" /> Create your first routine
+              </Button>
+            ) : (
+              <button type="button" onClick={() => setFilterDay(null)} className="mt-4 inline-flex min-h-10 items-center rounded-lg border border-[var(--theme-border)] bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
+                Show all routines
+              </button>
+            )}
+          </GlassCard>
+        )}
 
         <div className="space-y-2">
           {filteredTasks.map((task: any) => {
@@ -269,7 +293,7 @@ export default function TasksPage() {
                       <h3 className="text-sm font-semibold text-white">{task.title}</h3>
                       <StatusBadge status={task.scheduled_today ? task.today_status : 'not_scheduled'} />
                     </div>
-                    {task.description && <p className="text-sm text-slate-400 mt-1">{task.description}</p>}
+                    {task.description && <p className="text-sm text-[var(--theme-text-muted)] mt-1">{task.description}</p>}
                     <div className="flex items-center gap-4 mt-3 flex-wrap text-xs text-slate-500">
                       <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{schedules.map((day: number) => weekdays[day]).join(', ')}</span></div>
                       {task.preferred_time && <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /><span>{task.preferred_time}</span></div>}

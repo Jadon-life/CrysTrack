@@ -185,7 +185,7 @@ export default function GoalsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col items-start sm:flex-row sm:items-center justify-between gap-4 scenic-readable-copy">
         <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">Plan · Direction</p><h1 className="text-2xl font-bold text-white mt-1">Goals</h1><p className="text-sm text-[var(--theme-text-muted)] mt-1">Measure outcomes directly or let AI evaluate real evidence from your check-ins.</p></div>
         <Button variant="primary" onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-1.5" />New goal</Button>
       </div>
@@ -193,10 +193,21 @@ export default function GoalsPage() {
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
       <DomainInsightCard domain="goals" />
 
-      {checkInsDue.length > 0 && <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><AlertCircle className="w-5 h-5 text-amber-300" /><p className="text-sm text-amber-100">{checkInsDue.length} scheduled goal check-in{checkInsDue.length === 1 ? '' : 's'} due today.</p></div><button onClick={() => setCheckInGoal(checkInsDue[0])} className="text-xs font-semibold text-amber-200">Review now</button></div>}
+      {checkInsDue.length > 0 && <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><AlertCircle className="w-5 h-5 text-amber-300" /><p className="text-sm text-amber-100">{checkInsDue.length} scheduled goal check-in{checkInsDue.length === 1 ? '' : 's'} due today.</p></div><button type="button" onClick={() => setCheckInGoal(checkInsDue[0])} className="inline-flex min-h-10 shrink-0 items-center rounded-lg px-3 text-xs font-semibold text-amber-100 hover:bg-amber-500/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300">Review now</button></div>}
 
       {loading && <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-[var(--theme-primary)] animate-spin" /></div>}
-      {!loading && goals.length === 0 && <GlassCard padding="lg" className="text-center py-12"><p className="text-[var(--theme-text-muted)]">No goals yet. Create an outcome you want CrysTrack to help you pursue.</p></GlassCard>}
+      {!loading && goals.length === 0 && (
+        <GlassCard padding="lg" className="text-center py-8">
+          <Target className="mx-auto mb-3 h-8 w-8 text-[var(--theme-primary)]" aria-hidden="true" />
+          <p className="text-base font-semibold text-white">No goals yet.</p>
+          <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-[var(--theme-text-muted)]">
+            Create an outcome you want CrysTrack to help you pursue.
+          </p>
+          <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4">
+            <Plus className="w-4 h-4 mr-1.5" /> Create your first goal
+          </Button>
+        </GlassCard>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {goals.map((goal: any, index: number) => {
