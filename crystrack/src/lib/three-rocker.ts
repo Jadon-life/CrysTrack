@@ -103,6 +103,34 @@ export function mountRocker(canvas: HTMLCanvasElement, initialOn: boolean): Rock
   glint.position.set(0, .265, .208);
   pivot.add(glint);
 
+  // ON/OFF are printed on the physical face itself, not stuck on a static
+  // HTML layer. Their perspective follows the rocker and its pivot.
+  const labelCanvas = document.createElement('canvas');
+  labelCanvas.width = 768;
+  labelCanvas.height = 192;
+  const context = labelCanvas.getContext('2d');
+  if (context) {
+    context.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = '800 78px Arial, sans-serif';
+    context.fillStyle = '#243b4e';
+    context.fillText('ON', 190, 100);
+    context.fillText('OFF', 576, 100);
+  }
+  const labelTexture = new THREE.CanvasTexture(labelCanvas);
+  labelTexture.colorSpace = THREE.SRGBColorSpace;
+  labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const labelGeo = new THREE.PlaneGeometry(2.55, .60);
+  geometries.push(labelGeo);
+  const labelMat = new THREE.MeshBasicMaterial({
+    map: labelTexture, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  });
+  materials.push(labelMat);
+  const labelMesh = new THREE.Mesh(labelGeo, labelMat);
+  labelMesh.position.z = .216;
+  pivot.add(labelMesh);
+
   let disposed = false;
   let raf = 0;
   let currentAngle = initialOn ? -.19 : .19;
@@ -159,6 +187,7 @@ export function mountRocker(canvas: HTMLCanvasElement, initialOn: boolean): Rock
       window.removeEventListener('resize', resize);
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((mat) => mat.dispose());
+      labelTexture.dispose();
       renderer.dispose();
     },
   };

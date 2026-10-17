@@ -84,6 +84,7 @@
   text-align: center;
 }
 .crys-3d-switch__labels span + span { border-left: 1px solid rgba(43,89,118,.33); }
+.crys-3d-switch[data-ready='true'] .crys-3d-switch__labels { display: none; }
 .crys-3d-switch__auto {
   display: none;
   position: absolute;

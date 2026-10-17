@@ -18,6 +18,8 @@ test('Light/Dark hardware switch renders true Three.js meshes and physics-inspir
   assert.match(scene, /new THREE\.WebGLRenderer\(/);
   assert.match(scene, /new THREE\.ExtrudeGeometry\(/);
   assert.match(scene, /new THREE\.MeshPhysicalMaterial\(/);
+  assert.match(scene, /new THREE\.CanvasTexture\(/);
+  assert.match(scene, /labelMesh\.position\.z/);
   assert.match(scene, /new THREE\.DirectionalLight\(/);
   assert.match(scene, /pivot\.rotation\.y/);
   assert.doesNotMatch(scene, /setAnimationLoop/);
