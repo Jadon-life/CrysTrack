@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { isRestrictedPreview, previewMode } from '@/lib/preview/mode';
+import { DEMO_USER } from '@/lib/preview/data';
 import { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -26,9 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const supabase = React.useMemo(() => createClient(), []);
+  const supabase = React.useMemo(() => isRestrictedPreview() ? null : createClient(), []);
 
   const refreshUser = React.useCallback(async () => {
+    if (!supabase) {
+      const demoUser = previewMode() === 'preview-demo' ? DEMO_USER as User : null;
+      setUser(demoUser);
+      return demoUser;
+    }
     try {
       const {
         data: { user: refreshedUser },
@@ -59,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     void initialize();
 
+    if (!supabase) return;
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -67,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshUser, supabase]);
 
   const signOut = async () => {
+    if (!supabase) return; // No real session exists in the synthetic demo.
     await supabase.auth.signOut();
   };
 

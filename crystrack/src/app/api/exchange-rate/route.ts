@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { NextResponse } from 'next/server';
 import { EXPERIENCE_CONFIG } from '@/config/experience';
 
@@ -11,6 +12,7 @@ export async function GET() {
     : EXPERIENCE_CONFIG.wealth.exchangeRate.openEndpoint;
 
   try {
+    assertRealServicesAllowed();
     const response = await fetch(endpoint, {
       cache: 'no-store',
       headers: { Accept: 'application/json' },

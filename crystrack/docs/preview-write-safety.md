@@ -84,3 +84,13 @@ Do not assume a commit marker prevents deployment: prior PR metadata reported
 DEPLOYED despite a `[skip vercel]` marker. Confirm automatic deployment is disabled
 for this implementation branch before pushing it. A draft PR is not an isolation
 boundary. No merge, promotion or production migration is authorized.
+
+## Issue #11 implementation draft
+
+See [credential-free synthetic Preview](preview-synthetic-mode.md). The new
+Preview-only boundary denies all API mutation paths and auth callbacks before
+handlers/session refresh, rejects real client construction, strips public build
+bindings and serves a closed synthetic read adapter. Normal Production behavior
+is retained. This changes the earlier statement that no application guard exists
+**for this new branch only**; it does not protect old deployed artifacts. Preview
+Branch Tracking stays OFF; the reversible Vercel cutover is documentation only.

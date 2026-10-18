@@ -1,3 +1,4 @@
+import { isRestrictedPreview } from '@/lib/preview/mode';
 import type { TimePhase } from '@/lib/theme';
 
 export type WeatherKind = 'clear' | 'cloudy' | 'rain' | 'storm' | 'fog' | 'snow' | 'unknown';
@@ -232,6 +233,7 @@ export async function loadEnvironment(
   coordinates?: Coordinates,
 ): Promise<EnvironmentState> {
   const fallback = fallbackEnvironment();
+  if (isRestrictedPreview()) return fallback;
 
   const geo = await reverseGeocode(coordinates);
 
