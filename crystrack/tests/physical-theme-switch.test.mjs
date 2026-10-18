@@ -33,6 +33,8 @@ test('3D hardware derives its colours from the current CrysTrack theme', () => {
   assert.match(scene, /background\.clone\(\)\.lerp\(white, \.055\)/);
   assert.match(scene, /baseMat\.color\.copy\(weatherSurface\)/);
   assert.match(scene, /faceMat\.color\.copy\(weatherRaised\)/);
+  assert.match(scene, /faceMat\.emissive\.copy\(weatherRaised\)/);
+  assert.match(scene, /faceMat\.emissiveIntensity = \.76/);
   assert.match(scene, /toneMappingExposure = 0\.92/);
   assert.match(scene, /edgeMat\.color\.copy\(border\)\.lerp\(weatherSurface/);
   assert.match(scene, /iconMat\.color\.copy\(primary\)/);

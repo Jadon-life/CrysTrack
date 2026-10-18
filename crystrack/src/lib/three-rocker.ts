@@ -94,7 +94,8 @@ export function mountRocker(
   const baseMat = physical(0x0d2941, .46, .34);
   const pitMat = physical(0x071727, .25, .43, .18);
   const edgeMat = physical(0x167eae, .56, .25);
-  const faceMat = physical(0x173a55, .38, .27, .48);
+  // Matte glass face instead of highly metallic darkened plastic.
+  const faceMat = physical(0x23384b, .07, .67, .12);
   const seamMat = physical(0x2e7399, .42, .34, .22);
   const iconMat = new THREE.MeshStandardMaterial({
     color: 0x64ccff, emissive: 0x155f88, emissiveIntensity: .22,
@@ -197,10 +198,19 @@ export function mountRocker(
     const weatherRaised = weatherSurface.clone().lerp(white, .018);
     const weatherInset = background.clone().multiplyScalar(.74);
 
-    baseMat.color.copy(weatherSurface).multiplyScalar(.92);
+    baseMat.color.copy(weatherSurface);
+    baseMat.emissive.copy(weatherSurface);
+    baseMat.emissiveIntensity = .24;
     pitMat.color.copy(weatherInset);
-    edgeMat.color.copy(border).lerp(weatherSurface, .42);
+    edgeMat.color.copy(border).lerp(weatherSurface, .66);
+    edgeMat.emissive.copy(weatherSurface);
+    edgeMat.emissiveIntensity = .22;
     faceMat.color.copy(weatherRaised);
+    // The former metallic PBR face fell to almost black on the pressed
+    // half. An emissive base maintains the same visible blue-grey as the
+    // weather pill while bevels, sidewalls and highlights retain 3D depth.
+    faceMat.emissive.copy(weatherRaised);
+    faceMat.emissiveIntensity = .76;
     seamMat.color.copy(border).lerp(weatherSurface, .48);
     iconMat.color.copy(primary);
     iconMat.emissive.copy(primary).multiplyScalar(.045);
