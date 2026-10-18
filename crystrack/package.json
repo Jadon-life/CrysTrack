@@ -15,7 +15,15 @@
     "check": "npm run test && npm run typecheck && npm run lint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "local:install": "python3 scripts/install-local-supabase.py",
+    "local:prepare-vfs": "python3 scripts/prepare-local-vfs-image.py",
+    "local:start": "node scripts/local-supabase.mjs start",
+    "local:stop": "node scripts/local-supabase.mjs stop",
+    "local:reset": "node scripts/local-supabase.mjs reset",
+    "local:dev": "node scripts/local-supabase.mjs dev",
+    "test:local:db": "node scripts/local-supabase.mjs test",
+    "audit:preview-writes": "node scripts/preview-write-audit.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.11",
