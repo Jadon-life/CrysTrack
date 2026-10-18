@@ -182,3 +182,14 @@ prototype, not an application migration. `npm run test:local:db` runs both the
 original sandbox and durable-record suites serially against synthetic Docker
 data. Tests temporarily replace a private clock and restore it; reset the local
 sandbox if interrupted. No clock override is exposed to clients.
+
+## Issue #15 HTTP conflict regression
+
+The local bootstrap additionally applies `0014_daily_http_conflicts.sql` after
+0013. It changes business-conflict SQLSTATEs to `PT409`; no data/table shapes,
+grants, policies or financial behavior change. The database suite now exercises
+stale revisions, request-ID reuse, a closed-day request, note conflicts, pagination
+revision conflicts and timezone-boundary conflicts through real local HTTP RPCs
+with bounded requests, followed by successful retries/undo to prove locks release.
+The original SQL-only tests remain. Hosted use requires separate review; the
+previous 0013-only cutover checklist is insufficient until 0014 is approved.

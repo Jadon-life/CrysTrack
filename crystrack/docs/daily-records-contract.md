@@ -132,7 +132,11 @@ UI is introduced.
 Reproduce: `npm run local:install`, `npm run local:start`, `npm run test:local:db`,
 `npm run check`, `npm run build`, `git diff --check`. Use `local:prepare-vfs` only
 where the existing vfs setup requires it. `local:reset` resets **synthetic local**
-data only. The runner hashes 0000–0005 and 0013 separately from hosted bookkeeping.
+data only. The runner hashes 0000–0005, 0013 and the additive 0014 HTTP-conflict
+correction separately from hosted bookkeeping. Business revision/boundary
+conflicts use `PT409` so PostgREST returns HTTP 409 promptly; the adapter also
+recognizes genuine `40001` errors for backward compatibility. See the inventory's
+Issue #15 correction before considering any hosted installation.
 Tests temporarily replace the **private** clock function in the local database,
 restore it afterwards, and never ship an authenticated clock override. Run the DB
 suite serially on a disposable sandbox; an interrupted test requires local reset.

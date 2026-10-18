@@ -1,7 +1,7 @@
 /** Real LOCAL Supabase Auth/REST/Storage/PostgreSQL tests. Never reads a remote URL. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import fs from 'node:fs';
 import ts from 'typescript';
 import { createClient } from '@supabase/supabase-js';
@@ -15,8 +15,13 @@ const roleSql = (uid, sql) => localSql(`BEGIN; SET LOCAL ROLE authenticated;
 const count = (sql) => Number(localSql(sql).split('\n').at(-1));
 const fails = (fn) => assert.throws(fn, /psql|docker/);
 
-test('six historical files and daily records applied once with hashes; no fake CLI migration versions', () => {
-  assert.equal(count('SELECT count(*) FROM crystrack_local_control.applied'), 7);
+test('six historical files and both daily-record migrations applied once with matching local hashes', () => {
+  const inventory=localSql('SELECT name,hash FROM crystrack_local_control.applied ORDER BY name').split('\n');
+  assert.equal(inventory.length,8);
+  for(const row of inventory) {
+    const [name,hash]=row.split('|');
+    assert.equal(hash,createHash('sha256').update(fs.readFileSync('src/db/migrations/'+name)).digest('hex'));
+  }
   assert.equal(count("SELECT count(*) FROM pg_policies WHERE schemaname='public'" ) > 10, true);
   assert.equal(count("SELECT count(*) FROM pg_type t JOIN pg_enum e ON e.enumtypid=t.oid WHERE t.typname='task_status' AND e.enumlabel='skipped'"), 1);
 });

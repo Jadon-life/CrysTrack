@@ -59,3 +59,35 @@ test('notes are not added to AI, telemetry, or public/shared caching',()=>{
  const route=fs.readFileSync('src/app/api/daily-notes/[date]/route.ts','utf8');
  assert.match(route,/private, no-store/);assert.doesNotMatch(route,/console\.|activity_events|daily_mutation_requests/);
 });
+
+test('HTTP conflicts are sanitized 409 responses; genuine unexpected failures stay unavailable',async()=>{
+ const server={exports:{}};
+ const load=name=>name==='@/lib/supabase/server'?{}:name==='./daily-records'?compiledModule.exports:require(name);
+ new Function('require','module','exports',ts.transpileModule(fs.readFileSync('src/lib/daily-records-server.ts','utf8'),{
+  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020},
+ }).outputText)(load,server,server.exports);
+ const original=console.error,logs=[];console.error=(...args)=>logs.push(args);
+ try {
+  for(const [code,status] of [['PT409',409],['40001',409],['42501',403],['XX000',503]]) {
+   const response=server.exports.dailyFailure({code,message:'Private note / raw SQL must not escape'},'rehearsal');
+   assert.equal(response.status,status);
+   assert.doesNotMatch(JSON.stringify(await response.json()),/Private note|raw SQL|PT409/);
+  }
+  assert.doesNotMatch(JSON.stringify(logs),/Private note|raw SQL/);
+ } finally {console.error=original;}
+});
+
+test('additive HTTP conflict migration only changes business SQLSTATEs and preserves the reviewed bodies',()=>{
+ const original=fs.readFileSync('src/db/migrations/0013_daily_records.sql','utf8');
+ const patch=fs.readFileSync('src/db/migrations/0014_daily_http_conflicts.sql','utf8');
+ const names=['crystrack_daily.context','public.daily_set_outcome','public.daily_request_timezone','public.daily_save_note','public.daily_read_window'];
+ for(const name of names) {
+  const escaped=name.replaceAll('.','\\.');
+  const body=original.match(new RegExp('CREATE FUNCTION '+escaped+'\\([\\s\\S]*?END \\$\\$;'))?.[0];
+  assert.ok(body,name);
+  assert.ok(patch.includes(body.replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION').replaceAll("ERRCODE='40001'","ERRCODE='PT409'")),name);
+ }
+ assert.equal((patch.match(/ERRCODE='PT409'/g)||[]).length,8);
+ assert.equal((patch.match(/CREATE OR REPLACE FUNCTION/g)||[]).length,5);
+ assert.doesNotMatch(patch,/\b(?:DROP|GRANT|REVOKE|ALTER TABLE|CREATE TABLE)\b/);
+});
