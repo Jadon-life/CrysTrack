@@ -55,7 +55,7 @@ function bootstrap() {
   }
   const folder = path.join(ROOT, 'src/db/migrations');
   const names = ['0000_initial.sql', '0001_product_integrity.sql', '0002_adaptive_experience.sql',
-    '0003_wealth_intelligence.sql', '0004_profile_avatar_storage.sql', '0005_intelligence_layer.sql', '0013_daily_records.sql'];
+    '0003_wealth_intelligence.sql', '0004_profile_avatar_storage.sql', '0005_intelligence_layer.sql', '0013_daily_records.sql', '0014_daily_http_conflicts.sql'];
   for (const name of names) {
     const sql = fs.readFileSync(path.join(folder, name), 'utf8');
     const hash = createHash('sha256').update(sql).digest('hex');

@@ -1,5 +1,29 @@
 # Issue #10 migration inventory
 
+## Issue #15 rehearsal correction (pending review)
+
+At merged development SHA `c256fd473975cf7d90c2ff7a3eba8683c5f838a7`,
+normal-mode HTTP checks reproduced timeouts for stale task/note revisions. A
+minimal local PostgREST probe returned HTTP 409 immediately for `PT409`, while
+`40001` timed out. The earlier SQL-only conflict tests did not cover that transport.
+
+New additive `0014_daily_http_conflicts.sql` requires 0013 and replaces only eight
+business-conflict SQLSTATEs in five function bodies with PostgREST's `PT409`.
+Function signatures, ownership, ACLs, owner checks, locking, revisions, evidence,
+receipt handling and all table/interface shapes remain unchanged. The local
+runner inventories 0000–0005, 0013, then 0014; no legacy migration is edited.
+
+**Release remains BLOCKED pending draft-PR review and renewed owner migration
+approval.** Issue #13's 0013-only hosted plan must not be executed unchanged after
+this fix. Its compatibility audit covered 0013, not this new patch. A future
+authorized install must separately review 0014 and its exact function definitions,
+then apply 0013 followed by 0014 under the same task-write barrier before any new
+application traffic. Do not replay 0000–0012 against the existing hosted database.
+No hosted migration or metadata query was run for this correction.
+
+The inventory below records the original Issue #10 review; its remote-uncertainty
+notes are historical, superseded where the owner supplied Issue #13 audit evidence.
+
 Inventoried reachable local/remote branch heads before assigning the new number. Base: `9e7ff2653998517ff0e00b92476ae07c10e29dfa`. No hosted SQL, migration-history query, or private-row read was performed. Git files do not prove installed database state.
 
 | Existing filename | Git blob | Present on upgrade base |

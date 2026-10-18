@@ -11,7 +11,7 @@ export function dailyFailure(error: unknown, operation: string) {
   const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : 'unknown';
   // Never log payloads, raw SQL errors, or private note text.
   console.error('Daily record operation failed', {operation, code});
-  const status = code === '40001' ? 409 : code === '42501' ? 403 : code === '22023' || code === '22007' || code === '22008' ? 400 : 503;
+  const status = (code === 'PT409' || code === '40001') ? 409 : code === '42501' ? 403 : code === '22023' || code === '22007' || code === '22008' ? 400 : 503;
   return NextResponse.json({error: status === 409 ? 'This record changed or the day closed. Refresh before trying again.' : status === 403 ? 'This record is not available.' : 'Daily records are unavailable. Please try again later.'}, {status});
 }
 export async function dailyContext(client: DailyClient) {

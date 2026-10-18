@@ -310,6 +310,52 @@ test('actual local Auth/PostgREST exposes only the owner RPC and private-note co
  assert.equal((await client.auth.signOut()).error,null);
 });
 
+test('real HTTP conflicts terminate with 409, release locks and preserve outcomes, receipts and notes',async()=>{
+ clock('2026-09-20T10:00:00Z');
+ const keys=readLocalKeys();
+ const client=createClient(keys.NEXT_PUBLIC_SUPABASE_URL,keys.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+ const signup=await client.auth.signUp({email:`conflict-${randomUUID()}@example.invalid`,password:randomUUID()+'aA1!'});
+ assert.equal(signup.error,null);const uid=signup.data.user.id;
+ assert.equal((await client.from('profiles').upsert({user_id:uid,timezone:'UTC'})).error,null);
+ const rpc=(name,args)=>client.rpc(name,args).abortSignal(AbortSignal.timeout(3000));
+ const conflict=async(name,args)=>{
+  const value=await rpc(name,args);
+  assert.equal(value.status,409,`${name} must return promptly, not time out`);
+  assert.equal(value.error?.code,'PT409');
+ };
+ assert.equal((await rpc('daily_context')).error,null);
+ const created=await rpc('daily_create_routine',{p_payload:{title:'HTTP conflict fixture',schedules:[0,1,2,3,4,5,6]}});
+ assert.equal(created.error,null);
+ clock('2026-09-21T10:00:00Z');
+ const intent={p_day:'2026-09-21',p_routine:created.data.id,p_status:'completed',p_expected_revision:1,p_request_id:randomUUID()};
+ const first=await rpc('daily_set_outcome',intent);assert.equal(first.error,null);assert.equal(first.data.revision,2);
+ await conflict('daily_set_outcome',{...intent,p_request_id:randomUUID()}); // Stale revision.
+ await conflict('daily_set_outcome',{...intent,p_status:'pending'}); // Reused request identity.
+ await conflict('daily_set_outcome',{...intent,p_day:'2026-09-20',p_request_id:randomUUID()});
+ assert.deepEqual((await rpc('daily_set_outcome',intent)).data,first.data); // Retry remains idempotent.
+ assert.equal(scalar(`SELECT count(*) FROM public.daily_mutation_requests WHERE user_id='${uid}'`),'1');
+ assert.equal(scalar(`SELECT count(*) FROM public.activity_events WHERE user_id='${uid}'`),'1');
+ assert.equal((await rpc('daily_save_note',{p_day:intent.p_day,p_body:'Synthetic private note',p_expected_revision:0})).error,null);
+ await conflict('daily_save_note',{p_day:intent.p_day,p_body:'Must not overwrite',p_expected_revision:0});
+ assert.equal(scalar(`SELECT body FROM public.daily_notes WHERE user_id='${uid}'`),'Synthetic private note');
+ assert.equal((await rpc('daily_save_note',{p_day:intent.p_day,p_body:'',p_expected_revision:1})).data.revision,2);
+ const ctx=await rpc('daily_context');assert.equal(ctx.error,null);
+ await conflict('daily_request_timezone',{p_timezone:'America/New_York',p_expected_revision:0});
+ const window=await rpc('daily_read_window',{p_from:intent.p_day,p_to:intent.p_day});assert.equal(window.error,null);
+ await conflict('daily_read_window',{p_from:intent.p_day,p_to:intent.p_day,p_data_revision:window.data.dataRevision+1});
+ const undo=await rpc('daily_set_outcome',{...intent,p_status:'pending',p_expected_revision:2,p_request_id:randomUUID()});
+ assert.equal(undo.error,null);assert.equal(undo.data.revision,3);
+ assert.equal(scalar(`SELECT count(*) FROM public.activity_events WHERE user_id='${uid}'`),'0');
+ const transition=await rpc('daily_request_timezone',{p_timezone:'America/New_York',p_expected_revision:ctx.data.revision});
+ assert.equal(transition.error,null);
+ clock('2026-09-22T00:00:00Z'); // Old midnight, before the new zone's first midnight.
+ await conflict('daily_context');
+ clock(transition.data.effective_at);
+ assert.equal((await rpc('daily_context')).data.timezone,'America/New_York');
+ assert.equal((await client.auth.signOut()).error,null);
+});
+
 test('no finance fixtures or mutations are introduced',()=>{
  for(const table of ['money_entries','finance_targets','wealth_debts','wealth_expected_flows']) assert.equal(scalar(`SELECT count(*) FROM public.${table}`),'0');
 });
