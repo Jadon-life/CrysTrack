@@ -14,8 +14,16 @@ BEGIN RAISE EXCEPTION 'Task writes are temporarily paused. Please try again late
 CREATE FUNCTION crystrack_release_gate.deny_task_event() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 BEGIN
- IF (TG_OP<>'INSERT' AND (to_jsonb(OLD)->>'entity_type'='task' OR to_jsonb(OLD)->>'kind'='task'))
- OR (TG_OP<>'DELETE' AND (to_jsonb(NEW)->>'entity_type'='task' OR to_jsonb(NEW)->>'kind'='task')) THEN
+ -- Any authoritative task classification wins over a conflicting finance label.
+ -- Check OLD as well as NEW so UPDATE cannot launder a task event or award.
+ IF (TG_OP<>'INSERT' AND (
+  to_jsonb(OLD)->>'entity_type'='task' OR to_jsonb(OLD)->>'kind'='task'
+  OR (TG_TABLE_NAME='activity_events' AND to_jsonb(OLD)->>'type' IN ('task_completed','task_missed','task_skipped'))
+  OR (TG_TABLE_NAME='gamification_events' AND left(to_jsonb(OLD)->>'action_key',5)='task:')))
+ OR (TG_OP<>'DELETE' AND (
+  to_jsonb(NEW)->>'entity_type'='task' OR to_jsonb(NEW)->>'kind'='task'
+  OR (TG_TABLE_NAME='activity_events' AND to_jsonb(NEW)->>'type' IN ('task_completed','task_missed','task_skipped'))
+  OR (TG_TABLE_NAME='gamification_events' AND left(to_jsonb(NEW)->>'action_key',5)='task:'))) THEN
   RAISE EXCEPTION 'Task events are temporarily paused. Please try again later.' USING ERRCODE='PT503';
  END IF;
  IF TG_OP='DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;

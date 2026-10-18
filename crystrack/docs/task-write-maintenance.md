@@ -68,8 +68,15 @@ DML fail. COPY/MERGE/upsert use the same underlying write triggers; untested for
 are not claimed as separate executed probes. DDL-capable operators must not DROP,
 replace, disable or TRUNCATE around the gate; API roles must not own these objects.
 
-Task-only ROW guards cover both OLD and NEW entity/kind in shared activity,
-reminder and gamification tables; changing an event out of `task` cannot escape.
+Task-only ROW guards cover both OLD and NEW classifications in shared activity,
+reminder and gamification tables. Any `entity_type='task'` or `kind='task'` retains
+its existing protection. On `activity_events`, `type` values `task_completed`,
+`task_missed` and `task_skipped` also identify task events even if `entity_type`
+is mislabeled `finance`. On `gamification_events`, an `action_key` beginning
+with `task:` also identifies a task award even if `kind` is mislabeled `expense`.
+INSERT checks NEW, DELETE checks OLD, and UPDATE checks both; relabeling a task
+row cannot launder it out of the freeze. True `finance_entry`/`finance` activity
+and `expense` awards whose action keys do not begin `task:` remain writable.
 Those tables also get unconditional TRUNCATE guards. These are additional gate
 triggers, not replacements for existing triggers. Non-task finance activity is
 not suppressed. Outbound reminders of **all entities** are paused via the queue
@@ -89,7 +96,10 @@ legacy RLS/tables, partial daily schemas, privileged API ownership, unknown even
 triggers and unexpected BEFORE STATEMENT triggers. This intentionally conservative
 local policy is **not a certification of hosted metadata**. Hosted event-trigger
 permissions/extension hooks, PG17 behavior, DDL locks and any extra writer surfaces
-need separate review; do not loosen it ad hoc on production.
+need separate review; do not loosen it ad hoc on production. The owner's
+independent PR #20 review reports six existing Supabase-managed event triggers
+in hosted PG17. The local preflight still rejects other event triggers: it has
+not been weakened or adapted for hosted installation.
 
 ## Manual local commands
 

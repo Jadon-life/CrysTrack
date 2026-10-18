@@ -4,6 +4,8 @@ import test,{before,after} from 'node:test';import assert from 'node:assert/stri
 import {prepare,destroy,action,sql,raw,startRest,stopRest,DATABASE,PORT,CONFIRM,preflightSql} from '../scripts/task-release-barrier.mjs';
 import {readLocalKeys,ROOT} from '../scripts/local-supabase.mjs';import {DOCKER_SOCKET,PROJECT,localEnvironment} from '../scripts/local-supabase-policy.mjs';
 const require=createRequire(import.meta.url);let owned=false,client,admin,uid,task,legacy,baseline;
+const taskActivityTypes=['task_completed','task_missed','task_skipped'];
+const events={activity:{},finance:randomUUID(),taskEntity:randomUUID(),award:randomUUID(),expense:randomUUID(),taskKind:randomUUID()};
 const quote=s=>"'"+String(s).replaceAll("'","''")+"'";
 const role=(query,who='authenticated')=>`BEGIN; SET LOCAL ROLE ${who}; SET LOCAL request.jwt.claims='{"sub":"${uid}","role":"${who}"}'; ${query}; COMMIT;`;
 const deny=query=>{const value=raw(query,{allowFailure:true});assert.notEqual(value.status,0);assert.match(value.stderr,/PT503|42501/);};
@@ -27,10 +29,13 @@ before(async()=>{
  CREATE TABLE public.task_timeboxes(id uuid PRIMARY KEY DEFAULT gen_random_uuid());
  CREATE TABLE public.task_focus_sessions(id uuid PRIMARY KEY DEFAULT gen_random_uuid());
  CREATE TABLE public.daily_rituals(id uuid PRIMARY KEY DEFAULT gen_random_uuid());
- CREATE TABLE public.gamification_events(id uuid DEFAULT gen_random_uuid(),user_id uuid,kind text,source_id text); ALTER TABLE public.gamification_events ENABLE ROW LEVEL SECURITY;
+ CREATE TABLE public.gamification_events(id uuid DEFAULT gen_random_uuid(),user_id uuid,kind text,source_id text,action_key text); ALTER TABLE public.gamification_events ENABLE ROW LEVEL SECURITY;
  CREATE FUNCTION public.synthetic_task_award() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$ BEGIN IF NEW.status='completed' THEN INSERT INTO public.gamification_events(user_id,kind,source_id) VALUES('${uid}','task',NEW.id::text); END IF; RETURN NEW; END $$;
  CREATE FUNCTION public.synthetic_service_miss() RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path='' AS $$ INSERT INTO public.task_occurrences(task_id,date,status) VALUES('${task}','2026-09-22','missed') $$; REVOKE ALL ON FUNCTION public.synthetic_service_miss() FROM PUBLIC,anon,authenticated; GRANT EXECUTE ON FUNCTION public.synthetic_service_miss() TO service_role;
  CREATE TRIGGER gamification_task AFTER INSERT OR UPDATE ON public.task_occurrences FOR EACH ROW EXECUTE FUNCTION public.synthetic_task_award();`);
+ for(const type of taskActivityTypes){events.activity[type]=randomUUID();sql(`INSERT INTO activity_events(id,user_id,type,entity_type,entity_id) VALUES('${events.activity[type]}','${uid}','${type}','finance','${task}')`);}
+ sql(`INSERT INTO activity_events(id,user_id,type,entity_type,entity_id) VALUES('${events.finance}','${uid}','finance_entry','finance','${task}'),('${events.taskEntity}','${uid}','finance_entry','task','${task}');
+ INSERT INTO gamification_events(id,user_id,kind,source_id,action_key) VALUES('${events.award}','${uid}','expense','synthetic','task:synthetic:existing'),('${events.expense}','${uid}','expense','synthetic','expense:synthetic:existing'),('${events.taskKind}','${uid}','task','synthetic','expense:synthetic:mislabeled');`);
  legacy={create:loadLegacy('src/app/api/tasks/route.ts'),toggle:loadLegacy('src/app/api/tasks/[taskId]/occurrences/[date]/toggle/route.ts'),skip:loadLegacy('src/app/api/tasks/[taskId]/occurrences/[date]/skip/route.ts'),archive:loadLegacy('src/app/api/tasks/[taskId]/archive/route.ts'),remove:loadLegacy('src/app/api/tasks/[taskId]/route.ts')};
  startRest();for(let n=0;n<60;n++){try{const r=await fetch(`http://127.0.0.1:${PORT}/`);if(r.ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  assert.equal((await client.from('recurring_tasks').select('id')).error,null);
@@ -86,6 +91,85 @@ test('legacy SQL/REST/service-role and immutable old API handlers deny promptly 
  sql(role(`INSERT INTO activity_events(user_id,type,entity_type,entity_id) VALUES('${uid}','finance_entry','finance','${randomUUID()}')`).replace('COMMIT;','ROLLBACK;'));
  assert.equal(digest(),before);
 });
+// Every negative assertion requires the maintenance error, not an incidental RLS denial.
+function denyEvent(statement,who='authenticated'){
+ const result=raw(role(statement,who),{allowFailure:true});assert.notEqual(result.status,0,'Mismatched task classification must be denied');assert.match(result.stderr,/PT503/);
+}
+async function deniedHttp(request){const result=await request.abortSignal(AbortSignal.timeout(3000));assert.equal(result.status,503);assert.equal(result.error?.code,'PT503');}
+
+test('task activity classifications cannot bypass authenticated SQL/HTTP guards on INSERT, OLD/NEW UPDATE or DELETE',async()=>{
+ assert.equal(action('enable'),true);const before=digest();
+ const base={user_id:uid,entity_id:task,entity_type:'finance'};
+ for(const type of taskActivityTypes){
+  const id=events.activity[type];
+  denyEvent(`INSERT INTO activity_events(user_id,type,entity_type,entity_id) VALUES('${uid}','${type}','finance','${task}')`);
+  await deniedHttp(client.from('activity_events').insert({...base,type}));
+  denyEvent(`UPDATE activity_events SET type='${type}' WHERE id='${events.finance}'`); // NEW.type alone.
+  await deniedHttp(client.from('activity_events').update({type}).eq('id',events.finance));
+  denyEvent(`UPDATE activity_events SET type='finance_entry',entity_type='finance' WHERE id='${id}'`); // OLD.type cannot be laundered.
+  await deniedHttp(client.from('activity_events').update({type:'finance_entry',entity_type:'finance'}).eq('id',id));
+  denyEvent(`DELETE FROM activity_events WHERE id='${id}'`);
+  await deniedHttp(client.from('activity_events').delete().eq('id',id));
+ }
+ // Preserve entity-based protection even when the activity type looks financial.
+ denyEvent(`INSERT INTO activity_events(user_id,type,entity_type,entity_id) VALUES('${uid}','finance_entry','task','${task}')`);
+ await deniedHttp(client.from('activity_events').insert({...base,type:'finance_entry',entity_type:'task'}));
+ denyEvent(`UPDATE activity_events SET entity_type='task' WHERE id='${events.finance}'`);
+ await deniedHttp(client.from('activity_events').update({entity_type:'task'}).eq('id',events.finance));
+ denyEvent(`UPDATE activity_events SET entity_type='finance' WHERE id='${events.taskEntity}'`);
+ await deniedHttp(client.from('activity_events').update({entity_type:'finance'}).eq('id',events.taskEntity));
+ denyEvent(`DELETE FROM activity_events WHERE id='${events.taskEntity}'`);
+ await deniedHttp(client.from('activity_events').delete().eq('id',events.taskEntity));
+ assert.equal(digest(),before);
+});
+
+test('task action-key prefix and kind independently protect OLD/NEW gamification rows through service-role SQL/HTTP',async()=>{
+ assert.equal(action('enable'),true);const before=digest();const base={user_id:uid,source_id:'synthetic'};
+ const vectors=[
+  {insert:{...base,kind:'expense',action_key:'task:synthetic:new'}},
+  {id:events.expense,patch:{action_key:'task:synthetic:new'}},
+  {id:events.award,patch:{action_key:'expense:synthetic:laundered'}},
+  {id:events.award,remove:true},
+  {insert:{...base,kind:'task',action_key:'expense:synthetic:new'}},
+  {id:events.expense,patch:{kind:'task'}},
+  {id:events.taskKind,patch:{kind:'expense'}},
+  {id:events.taskKind,remove:true},
+ ];
+ for(const value of vectors){
+  if(value.insert){
+   denyEvent(`INSERT INTO gamification_events(user_id,kind,source_id,action_key) VALUES('${uid}',${quote(value.insert.kind)},'synthetic',${quote(value.insert.action_key)})`,'service_role');
+   await deniedHttp(admin.from('gamification_events').insert(value.insert));
+  }else if(value.remove){
+   denyEvent(`DELETE FROM gamification_events WHERE id='${value.id}'`,'service_role');
+   await deniedHttp(admin.from('gamification_events').delete().eq('id',value.id));
+  }else{
+   const set=Object.entries(value.patch).map(([key,val])=>key+'='+quote(val)).join(',');
+   denyEvent(`UPDATE gamification_events SET ${set} WHERE id='${value.id}'`,'service_role');
+   await deniedHttp(admin.from('gamification_events').update(value.patch).eq('id',value.id));
+  }
+ }
+ assert.equal(digest(),before);
+});
+
+test('genuine financial activity and expense awards retain SQL/HTTP create, update and delete during freeze',async()=>{
+ assert.equal(action('enable'),true);const before=digest();
+ for(const [table,actor,who,payload,patch,field,expected] of [
+  ['activity_events',client,'authenticated',{user_id:uid,type:'finance_entry',entity_type:'finance',entity_id:task},{metadata_json:{synthetic:'updated'}},'metadata_json',{synthetic:'updated'}],
+  ['gamification_events',admin,'service_role',{user_id:uid,kind:'expense',action_key:'expense:task:synthetic:roundtrip',source_id:'synthetic'},{source_id:'synthetic-updated'},'source_id','synthetic-updated'],
+ ]){
+  const id=randomUUID();const columns=['id',...Object.keys(payload)];const values=[id,...Object.values(payload)].map(quote);
+  sql(role(`INSERT INTO ${table}(${columns.join(',')}) VALUES(${values.join(',')})`,who));
+  const assignments=Object.entries(patch).map(([key,val])=>key+'='+quote(typeof val==='object'?JSON.stringify(val):val)).join(',');
+  sql(role(`UPDATE ${table} SET ${assignments} WHERE id='${id}'`,who));
+  const row=JSON.parse(sql(role(`SELECT row_to_json(x) FROM ${table} x WHERE id='${id}'`,who)));assert.deepEqual(row[field],expected);
+  sql(role(`DELETE FROM ${table} WHERE id='${id}'`,who));
+  const inserted=await actor.from(table).insert({id,...payload}).select().single().abortSignal(AbortSignal.timeout(3000));assert.equal(inserted.error,null);
+  const updated=await actor.from(table).update(patch).eq('id',id).select().single().abortSignal(AbortSignal.timeout(3000));assert.equal(updated.error,null);assert.deepEqual(updated.data[field],expected);
+  const removed=await actor.from(table).delete().eq('id',id).select('id').abortSignal(AbortSignal.timeout(3000));assert.equal(removed.error,null);assert.equal(removed.data.length,1);
+ }
+ assert.equal(digest(),before);
+});
+
 test('failed migration rolls back its new-table hook; exact 0013 then 0014 install while every daily writer remains frozen',async()=>{
  const before=digest();
  const candidate=fs.readFileSync('src/db/migrations/0013_daily_records.sql','utf8');

@@ -1,5 +1,68 @@
 # Issue #19 validation evidence — 18 October 2026
 
+## Independent-review correction — current validation
+
+The review at `6570d3b4ef5b1edd8f9b17cb8412af42657112a5` identified that
+`type='task_completed'` with `entity_type='finance'` escaped the shared activity
+row guard. A new authenticated SQL regression reproduced this against the
+original guard (expected failure, exit 1: the insert was accepted).
+
+The release-only guard now examines both OLD and NEW task activity types
+(`task_completed`, `task_missed`, `task_skipped`) even when the entity label is
+financial. It also recognizes `gamification_events.action_key` beginning `task:`
+even when kind is `expense`. Original task entity/kind checks remain intact.
+Only these table-specific classifications changed; grants, RLS, role/target
+checks, trigger behavior, operator controls, hosted preflight, migrations, finance
+writers, authentication and approved UI remain unchanged.
+
+The current full local release rehearsal passes **9/9 scenarios**, 0 failures or
+skips, in **121.45 seconds**. It includes **48 strict negative SQL/HTTP mutation
+probes**: 32 authenticated activity probes and 16 service-role award probes.
+INSERT, UPDATE into a task classification (NEW), UPDATE out of an existing task
+classification (OLD), DELETE, and conflicting entity/type/kind/action-key labels
+all require PT503 / HTTP 503, not incidental RLS errors. Fixture task-labeled
+rows are seeded before freeze so OLD checks exercise real matching rows.
+Protected data digests remain unchanged after denied probes.
+
+Positive controls execute **12 successful financial mutations** during freeze:
+SQL and HTTP INSERT/UPDATE/DELETE of genuine finance activity and expense awards,
+with returned rows checked. An `expense:task:...` key is allowed: the namespace
+check is a literal `task:` prefix, not a broad substring match. Fixture permissions
+are not loosened to obtain passing results. All older rehearsal scenarios pass,
+including exact 0013 → 0014, migration fault rollback, held requests, reversal,
+post-unfreeze HTTP409, notes, timezone and recovery.
+
+Current additional completed runs (all exit 0):
+
+- `npm ci --cache /tmp/crystrack-npm-cache`: 544 packages; unchanged lockfile.
+- `npm run local:start`, clean `npm run local:reset`, then
+  `npm run test:local:db`: **31/31**, no failures or skips (45.80s).
+- `npm run check`: **141/141**, TypeScript passed, ESLint 0 errors / the same
+  4 existing warnings.
+- `CRYSTRACK_CHROMIUM_PATH=/usr/bin/chromium npm run test:preview`: all 12 routes,
+  all 38 method denials, 5 fake markers absent; no external requests, persistence
+  or runtime errors, and missing mode fails closed.
+- Ordinary `npm run build` repeated after Preview using sanitized local-only
+  bindings: passed, runtime normal; 38 client assets scanned clean.
+- `node scripts/test-task-maintenance.mjs --synthetic-local-only=ISSUE19-NO-HOSTED`:
+  all **50** method probes denied before auth, ordinary auth page still 200.
+- `git diff --check`: passed. Rehearsal database/container removed; no release
+  control was installed in the normal sandbox. GitHub CI is recorded in the
+  PR follow-up after the focused commit is pushed.
+
+The negative/positive test groups are committed in the existing explicit
+`tests/task-release-barrier.integration.mjs` suite, with the same required
+`CRYSTRACK_RELEASE_REHEARSAL=ISSUE19-SYNTHETIC-ONLY` confirmation. No release
+controls are automatically installed by ordinary tests/build/CI.
+
+The owner's review reports **six existing Supabase-managed hosted event triggers**.
+The local preflight still rejects other event triggers; it was not relaxed or
+adapted for PG17/hosted use. Production remains BLOCKED by that independent
+adaptation/review, backup proof, Vercel 403, old-client/worker isolation, smoke
+access and separate owner approval. No hosted SQL or Vercel action occurred.
+
+## Original draft snapshot (6570d3b)
+
 Scope: synthetic loopback Docker only. Base
 `e66d6cebbae3edf6c38ed2e3e85ac8e4bd96f297`; old-main handlers pinned to
 `cccdb56edb14463030a9ce9b2aed8fbcd07579a3`, not certified as the live artifact.
