@@ -172,3 +172,13 @@ on those attempts. The successful tests used the documented verified cache.
 Application source, original migrations, deployed settings and approved UI are
 unchanged. Push and draft PR creation are held at the user's request until branch
 auto-deployment is confirmed disabled; no commit marker is considered protection.
+
+## Issue #10 extension
+
+The explicit local bootstrap inventory now includes `0013_daily_records.sql` after
+0000–0005. See [the inventory](daily-records-migration-inventory.md) and
+[contract](daily-records-contract.md). The independent draft schema remains a
+prototype, not an application migration. `npm run test:local:db` runs both the
+original sandbox and durable-record suites serially against synthetic Docker
+data. Tests temporarily replace a private clock and restore it; reset the local
+sandbox if interrupted. No clock override is exposed to clients.

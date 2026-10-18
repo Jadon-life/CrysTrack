@@ -25,9 +25,8 @@ test('overdue assignments have no completion checkbox', () => {
   assert.match(complete, /Assignment deadline has passed; completion is closed/);
 });
 
-test('task, goal and assignment permanent delete routes exist', () => {
+test('task retirement preserves history; goal and assignment delete routes remain owner scoped', () => {
   const routes = [
-    read('src/app/api/tasks/[taskId]/route.ts'),
     read('src/app/api/goals/[id]/route.ts'),
     read('src/app/api/assignments/[id]/route.ts'),
   ];
@@ -38,7 +37,8 @@ test('task, goal and assignment permanent delete routes exist', () => {
     assert.match(route, /\.from\('reminders'\)/);
   }
 
-  assert.match(read('src/app/tasks/page.tsx'), /Delete task permanently/);
+  assert.match(read('src/app/api/tasks/[taskId]/route.ts'), /rpc\('daily_retire_routine'/);
+  assert.match(read('src/app/tasks/page.tsx'), /Your recorded history and today’s plan will be kept/);
   assert.match(read('src/app/goals/page.tsx'), /Delete goal permanently/);
   assert.match(read('src/app/assignments/page.tsx'), /Delete assignment permanently/);
 });

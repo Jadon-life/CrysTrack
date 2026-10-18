@@ -48,6 +48,18 @@
     ]
   },
   {
+    "file": "src/app/api/daily-notes/[date]/route.ts",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "src/app/api/daily-records/timezone/route.ts",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
     "file": "src/app/api/finance/entries/route.ts",
     "methods": [
       "POST"

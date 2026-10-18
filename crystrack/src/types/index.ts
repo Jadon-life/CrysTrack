@@ -4,6 +4,8 @@ export interface User {
   displayName?: string;
   avatarUrl?: string;
   timezone: string;
+  currentTimezone?: string;
+  schedulingTimezone?: string;
 }
 
 export interface ThemeState {
@@ -49,7 +51,7 @@ export interface TaskWithSchedule {
   schedules: number[]; // weekdays
   streak: number;
   bestStreak: number;
-  todayStatus: 'pending' | 'completed' | 'missed' | 'not_scheduled';
+  todayStatus: 'pending' | 'completed' | 'skipped' | 'missed' | 'not_scheduled';
 }
 
 export interface GoalWithProgress {

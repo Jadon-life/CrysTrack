@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
+import { dailyContext, dailyWindow, dailyFailure } from '@/lib/daily-records-server';
+import { dayKeySchema } from '@/lib/daily-records';
 import { NextResponse } from 'next/server';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function dateKeyToDate(value: string) {
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -63,14 +64,14 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
+  const context = await dailyContext(supabase);
   const url = new URL(request.url);
   const requestedDate = url.searchParams.get('date');
-  const todayKey = requestedDate && DATE_RE.test(requestedDate) ? requestedDate : new Date().toISOString().slice(0, 10);
-  const todayDate = dateKeyToDate(todayKey) || new Date();
-  const requestedWeekday = Number(url.searchParams.get('weekday'));
-  const todayWeekday = Number.isInteger(requestedWeekday) && requestedWeekday >= 0 && requestedWeekday <= 6
-    ? requestedWeekday
-    : todayDate.getUTCDay();
+  const todayKey = requestedDate ? dayKeySchema.parse(requestedDate) : context.day;
+  const todayDate = dateKeyToDate(todayKey)!;
+  const window = await dailyWindow(supabase,todayKey,todayKey);
+  const frozen = window.records[0]?.routines || [];
 
   const { data: tasks, error: taskError } = await supabase
     .from('recurring_tasks')
@@ -80,10 +81,14 @@ export async function GET(request: Request) {
     .eq('active', true)
     .order('created_at', { ascending: false });
 
-  if (taskError) return NextResponse.json({ error: taskError.message }, { status: 500 });
-  if (!tasks?.length) return NextResponse.json([]);
+  if (taskError) throw taskError;
+  const taskList = [...(tasks || [])];
+  for (const row of frozen) {
+    if (!taskList.some(task => task.id === row.routine_key)) taskList.push({id:row.routine_key,user_id:user.id,task_schedules:[],title:row.title});
+  }
+  if (!taskList.length) return NextResponse.json([]);
 
-  const taskIds = tasks.map((task: any) => task.id);
+  const taskIds = taskList.map((task: any) => task.id);
   const historyStart = new Date((todayDate?.getTime() || Date.now()) - 370 * DAY_MS).toISOString();
   const { data: occurrences, error: occurrenceError } = await supabase
     .from('task_occurrences')
@@ -92,7 +97,7 @@ export async function GET(request: Request) {
     .gte('date', historyStart)
     .order('date', { ascending: false });
 
-  if (occurrenceError) return NextResponse.json({ error: occurrenceError.message }, { status: 500 });
+  if (occurrenceError) throw occurrenceError;
 
   const byTask = new Map<string, any[]>();
   for (const occurrence of occurrences || []) {
@@ -101,19 +106,25 @@ export async function GET(request: Request) {
     byTask.set(occurrence.task_id, list);
   }
 
-  return NextResponse.json(tasks.map((task: any) => {
+  return NextResponse.json(taskList.map((task: any) => {
     const taskOccurrences = byTask.get(task.id) || [];
     const weekdays = (task.task_schedules || []).map((schedule: any) => schedule.weekday);
     const todayOccurrence = taskOccurrences.find((occurrence: any) => occurrenceDateKey(occurrence.date) === todayKey);
-    const scheduledToday = weekdays.includes(todayWeekday);
+    const daily = frozen.find(row => row.routine_key === task.id);
+    const scheduledToday = Boolean(daily); // Missing historical eligibility remains unknown.
+    const snapshot = daily ? {title:daily.title,description:daily.description,preferred_time:daily.preferred_time,category:daily.category} : {};
     return {
-      ...task,
+      ...task, ...snapshot,
+      daily_revision: daily?.revision || null,
+      daily_day: context.day,
+      scheduling_timezone: context.timezone,
       scheduled_today: scheduledToday,
-      today_status: scheduledToday ? (todayOccurrence?.status || 'pending') : 'not_scheduled',
-      today_occurrence_id: todayOccurrence?.id || null,
+      today_status: scheduledToday ? (daily?.status || todayOccurrence?.status || 'pending') : 'not_scheduled',
+      today_occurrence_id: daily?.compatibility_occurrence_id || todayOccurrence?.id || null,
       streak: calculateStreak(weekdays, taskOccurrences, todayKey),
     };
   }));
+  } catch (error) { return dailyFailure(error,'read-tasks'); }
 }
 
 export async function POST(request: Request) {
@@ -121,36 +132,13 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  try {
   const body = await request.json();
-  const title = String(body.title || '').trim();
-  const schedules: number[] = Array.isArray(body.schedules)
-    ? Array.from(new Set<number>(body.schedules.map((day: unknown) => Number(day)))).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
-    : [];
-
-  if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-  if (!schedules.length) return NextResponse.json({ error: 'Select at least one valid day' }, { status: 400 });
-
-  const { data: task, error } = await supabase
-    .from('recurring_tasks')
-    .insert({
-      user_id: user.id,
-      title,
-      description: body.description || null,
-      preferred_time: body.preferredTime || null,
-      category: body.category || null,
-      reminder_config: normaliseReminderConfig(body.reminderConfig),
-    })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  const scheduleRows = schedules.map((weekday) => ({ task_id: task.id, weekday }));
-  const { error: scheduleError } = await supabase.from('task_schedules').insert(scheduleRows);
-  if (scheduleError) {
-    await supabase.from('recurring_tasks').delete().eq('id', task.id).eq('user_id', user.id);
-    return NextResponse.json({ error: scheduleError.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ...task, task_schedules: scheduleRows }, { status: 201 });
+  const { data, error } = await supabase.rpc('daily_create_routine', {p_payload: {
+    title:body.title, description:body.description || null, preferredTime:body.preferredTime || null,
+    category:body.category || null, schedules:body.schedules, reminderConfig:normaliseReminderConfig(body.reminderConfig),
+  }});
+  if (error) throw error;
+  return NextResponse.json(data,{status:201});
+  } catch (error) { return dailyFailure(error,'create-routine'); }
 }

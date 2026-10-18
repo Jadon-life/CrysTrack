@@ -1,16 +1,16 @@
 import { 
   pgTable, uuid, varchar, text, timestamp, boolean, 
-  integer, decimal, jsonb, pgEnum, index 
+  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex
 } from 'drizzle-orm/pg-core';
 
 // Enums
-export const taskStatusEnum = pgEnum('task_status', ['pending', 'completed', 'missed', 'not_scheduled']);
+export const taskStatusEnum = pgEnum('task_status', ['pending', 'completed', 'skipped', 'missed', 'not_scheduled']);
 export const assignmentStatusEnum = pgEnum('assignment_status', ['upcoming', 'due_soon', 'due_today', 'overdue', 'completed']);
 export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high', 'urgent']);
 export const moneyTypeEnum = pgEnum('money_type', ['income', 'expense', 'saving', 'transfer']);
 export const reminderChannelEnum = pgEnum('reminder_channel', ['push', 'email']);
 export const reminderStatusEnum = pgEnum('reminder_status', ['pending', 'sent', 'snoozed', 'cancelled']);
-export const activityTypeEnum = pgEnum('activity_type', ['task_completed', 'task_missed', 'goal_checkin', 'assignment_completed', 'finance_entry', 'reminder_sent']);
+export const activityTypeEnum = pgEnum('activity_type', ['task_completed', 'task_skipped', 'task_missed', 'goal_checkin', 'assignment_completed', 'finance_entry', 'reminder_sent']);
 
 // Users (extends Supabase Auth)
 export const profiles = pgTable('profiles', {
@@ -18,6 +18,8 @@ export const profiles = pgTable('profiles', {
   userId: uuid('user_id').notNull().unique(),
   displayName: varchar('display_name', { length: 255 }),
   timezone: varchar('timezone', { length: 100 }).default('UTC'),
+  currentTimezone: varchar('current_timezone', { length: 100 }),
+  schedulingTimezone: varchar('scheduling_timezone', { length: 100 }),
   locale: varchar('locale', { length: 10 }).default('en-US'),
   avatarUrl: text('avatar_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -208,3 +210,58 @@ export type FinanceTarget = typeof financeTargets.$inferSelect;
 export type MoneyEntry = typeof moneyEntries.$inferSelect;
 export type GoalCheckIn = typeof goalCheckIns.$inferSelect;
 export type ActivityEvent = typeof activityEvents.$inferSelect;
+
+// Durable daily records: routine_key deliberately has no FK to recurring_tasks.
+export const dailyTrackingStates = pgTable('daily_tracking_states', {
+ userId: uuid('user_id').primaryKey(), initialTimezone: text('initial_timezone').notNull(),
+ schedulingTimezone: text('scheduling_timezone').notNull(), activatedAt: timestamp('activated_at', {withTimezone:true}).notNull(),
+ activationDay: date('activation_day').notNull(), captureStartsOn: date('capture_starts_on').notNull(),
+ recoveryCursor: date('recovery_cursor').notNull(), revision: integer('revision').notNull().default(1),
+ dataRevision: bigint('data_revision', {mode:'number'}).notNull().default(1),
+});
+export const dailyTimezoneTransitions = pgTable('daily_timezone_transitions', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), fromTimezone: text('from_timezone').notNull(),
+ toTimezone: text('to_timezone').notNull(), previousDay: date('previous_day').notNull(), firstDay: date('first_day').notNull(),
+ requestedAt: timestamp('requested_at',{withTimezone:true}).notNull(), effectiveAt: timestamp('effective_at',{withTimezone:true}).notNull(),
+ status: text('status').$type<'pending'|'applied'>().notNull().default('pending'), revision: integer('revision').notNull().default(1),
+});
+export const routineScheduleVersions = pgTable('routine_schedule_versions', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), routineKey: uuid('routine_key').notNull(),
+ version: integer('version').notNull(), effectiveFrom: date('effective_from').notNull(), enabled: boolean('enabled').notNull(),
+ title: text('title').notNull(), description: text('description'), preferredTime: text('preferred_time'), category: text('category'),
+ schedule: jsonb('schedule').$type<{weekday:number;start:string|null;end:string|null}[]>().notNull(),
+ createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+}, t=>({versionUnique:uniqueIndex('routine_schedule_versions_user_id_routine_key_version_key').on(t.userId,t.routineKey,t.version)}));
+export const dailyRecords = pgTable('daily_records', {
+ id: uuid('id').notNull().unique().defaultRandom(), userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(),
+ timezone: text('timezone').notNull(), policyVersion: integer('policy_version').notNull().default(1),
+ evidence: text('evidence').$type<'verified'|'incomplete'>().notNull(), evidenceReason: text('evidence_reason'), expectedCount: integer('expected_count').notNull(),
+ closeStatus: text('close_status').$type<'open'|'closed'>().notNull().default('open'),
+ opensAt: timestamp('opens_at',{withTimezone:true}).notNull(), closesAt: timestamp('closes_at',{withTimezone:true}).notNull(),
+ materializedAt: timestamp('materialized_at',{withTimezone:true}).notNull(), closedAt: timestamp('closed_at',{withTimezone:true}),
+ revision: integer('revision').notNull().default(1),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey]})}));
+export const dailyRoutineRecords = pgTable('daily_routine_records', {
+ id: uuid('id').notNull().unique().defaultRandom(), userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(), routineKey: uuid('routine_key').notNull(),
+ scheduleVersionId: uuid('schedule_version_id').notNull().references(()=>routineScheduleVersions.id),
+ title: text('title').notNull(), description: text('description'), preferredTime: text('preferred_time'), category: text('category'),
+ status: text('status').$type<'pending'|'completed'|'skipped'|'missed'>().notNull().default('pending'),
+ completedAt: timestamp('completed_at',{withTimezone:true}), revision: integer('revision').notNull().default(1),
+ compatibilityOccurrenceId: uuid('compatibility_occurrence_id'), activityEventId: uuid('activity_event_id').notNull().defaultRandom(),
+ legacyConflict: boolean('legacy_conflict').notNull().default(false),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey,t.routineKey]})}));
+export const dailyMutationRequests = pgTable('daily_mutation_requests', {
+ userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(), payload: jsonb('payload').notNull(), result: jsonb('result').notNull(),
+ revision: integer('revision').notNull().default(1), createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export const dailyNotes = pgTable('daily_notes', {
+ userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(), body: text('body').notNull(), revision: integer('revision').notNull(),
+ updatedAt: timestamp('updated_at',{withTimezone:true}).notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey]})}));
+export type DailyRecord = typeof dailyRecords.$inferSelect;
+export type DailyRoutineRecord = typeof dailyRoutineRecords.$inferSelect;
+export type RoutineScheduleVersion = typeof routineScheduleVersions.$inferSelect;
+export type DailyMutationRequest = typeof dailyMutationRequests.$inferSelect;
+export type DailyNote = typeof dailyNotes.$inferSelect;
+export type DailyTrackingState = typeof dailyTrackingStates.$inferSelect;
+export type DailyTimezoneTransition = typeof dailyTimezoneTransitions.$inferSelect;

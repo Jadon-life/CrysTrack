@@ -15,8 +15,8 @@ const roleSql = (uid, sql) => localSql(`BEGIN; SET LOCAL ROLE authenticated;
 const count = (sql) => Number(localSql(sql).split('\n').at(-1));
 const fails = (fn) => assert.throws(fn, /psql|docker/);
 
-test('all six historical files applied once with hashes; no fake CLI migration versions', () => {
-  assert.equal(count('SELECT count(*) FROM crystrack_local_control.applied'), 6);
+test('six historical files and daily records applied once with hashes; no fake CLI migration versions', () => {
+  assert.equal(count('SELECT count(*) FROM crystrack_local_control.applied'), 7);
   assert.equal(count("SELECT count(*) FROM pg_policies WHERE schemaname='public'" ) > 10, true);
   assert.equal(count("SELECT count(*) FROM pg_type t JOIN pg_enum e ON e.enumtypid=t.oid WHERE t.typname='task_status' AND e.enumlabel='skipped'"), 1);
 });
