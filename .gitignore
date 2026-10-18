@@ -8,3 +8,8 @@ crystrack/next-env.d.ts
 crystrack/.next/
 
 .crystrack-upgrade-backups/
+
+# Local-only Supabase tools, generated keys and CLI state. Never publish these.
+crystrack/.local-supabase/
+crystrack/supabase/.temp/
+crystrack/supabase/.branches/
