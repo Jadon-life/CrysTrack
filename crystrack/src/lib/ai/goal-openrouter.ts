@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { z } from 'zod';
 
 const GoalAnalysisSchema = z.object({
@@ -46,6 +47,7 @@ Rules:
 - Do not use generic encouragement when the evidence points to risk or stagnation.
 - Treat check-in consistency as supporting evidence, not proof of outcome progress.`;
 
+  assertRealServicesAllowed();
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {

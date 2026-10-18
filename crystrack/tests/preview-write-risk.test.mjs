@@ -9,7 +9,7 @@ test('writer inventory accounts for every current mutation route and auth callba
   assert.deepEqual(apiWriterInventory(), expected, 'New writers need a documented preview-risk review');
 });
 
-test('existing profile API permits an authenticated Preview write (synthetic mock only)', async () => {
+test('normal production profile API preserves authenticated writes (synthetic mock only)', async () => {
   let writes = 0;
   const row = { user_id: 'synthetic-user', avatar_url: null };
   const client = {
@@ -19,7 +19,7 @@ test('existing profile API permits an authenticated Preview write (synthetic moc
   const key = '__crystrack_preview_audit_client';
   globalThis[key] = client;
   const old = process.env.VERCEL_ENV;
-  process.env.VERCEL_ENV = 'preview';
+  process.env.VERCEL_ENV = 'production';
   try {
     const source = fs.readFileSync('src/app/api/profile/route.ts', 'utf8')
       .replace("import { NextResponse } from 'next/server';", 'const NextResponse = { json: (body, init) => Response.json(body, init) };')
@@ -31,7 +31,7 @@ test('existing profile API permits an authenticated Preview write (synthetic moc
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ timezone: 'Africa/Lagos' }),
     }));
     assert.equal(response.status, 200);
-    assert.equal(writes, 1, 'An API guard is not currently enforcing Preview read-only');
+    assert.equal(writes, 1, 'The normal production writer is preserved');
   } finally {
     delete globalThis[key];
     if (old === undefined) delete process.env.VERCEL_ENV;

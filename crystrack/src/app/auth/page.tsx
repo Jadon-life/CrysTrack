@@ -2,12 +2,18 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { isRestrictedPreview } from '@/lib/preview/mode';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Button } from '@/components/ui/button';
 import { Diamond, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function AuthPage() {
+  if (isRestrictedPreview()) return <GlassCard padding="lg"><h1 className="text-2xl font-bold">Explore CrysTrack</h1><p className="my-4 text-sm">Synthetic read-only demo. No sign-in, signup or personal data is connected.</p><Link className="text-blue-300 underline" href="/">Enter the demo</Link></GlassCard>;
+  return <LiveAuthPage />;
+}
+function LiveAuthPage() {
   const router = useRouter();
   const supabase = createClient();
   const [isSignUp, setIsSignUp] = useState(false);

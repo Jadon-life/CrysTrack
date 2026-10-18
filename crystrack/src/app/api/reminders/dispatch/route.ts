@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { NextResponse } from 'next/server';
 import webPush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -150,6 +151,7 @@ async function deliver(
         let anyPush = false;
         for (const subscription of subscriptions) {
           try {
+            assertRealServicesAllowed();
             await webPush.sendNotification({
               endpoint: subscription.endpoint,
               keys: { p256dh: subscription.keys_p256dh, auth: subscription.keys_auth },
@@ -181,6 +183,7 @@ async function deliver(
       errors.push(!token ? 'Telegram bot is not configured' : 'Telegram is not connected');
     } else {
       try {
+        assertRealServicesAllowed();
         const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

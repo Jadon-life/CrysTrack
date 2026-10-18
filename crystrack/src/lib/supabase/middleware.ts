@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
@@ -25,6 +26,7 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 }
 
 export async function updateSession(request: NextRequest) {
+  assertRealServicesAllowed();
   let response = NextResponse.next({
     request: {
       headers: request.headers,

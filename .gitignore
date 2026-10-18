@@ -13,3 +13,6 @@ crystrack/.next/
 crystrack/.local-supabase/
 crystrack/supabase/.temp/
 crystrack/supabase/.branches/
+
+# Local synthetic Preview browser-test artifacts
+crystrack/.preview-test/

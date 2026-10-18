@@ -12,6 +12,7 @@ import { useTheme } from '@/components/layout/theme-provider';
 import { enablePushNotifications, getPushSetupStatus, type PushSetupStatus } from '@/lib/push';
 import { weatherLabel } from '@/lib/environment';
 import { cn } from '@/lib/utils';
+import { isRestrictedPreview } from '@/lib/preview/mode';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import {
   AVATAR_BUCKET,
@@ -39,7 +40,7 @@ const initialPrefs = {
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
-  const supabase = useMemo(() => createSupabaseClient(), []);
+  const supabase = useMemo(() => isRestrictedPreview() ? null : createSupabaseClient(), []);
   const { preference, setPreference, reducedMotion, setReducedMotion, environment, environmentLoading, locationPermission, requestLocation } = useTheme();
   const [active, setActive] = useState('profile');
   const [prefs, setPrefs] = useState(initialPrefs);
@@ -138,6 +139,7 @@ export default function SettingsPage() {
   };
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!supabase) { event.target.value = ''; setStatus('Uploads are disabled in the synthetic demo.'); return; }
     const file = event.target.files?.[0] || null;
     event.target.value = '';
     if (!file) return;
@@ -242,6 +244,7 @@ export default function SettingsPage() {
   };
 
   const removeAvatar = async () => {
+    if (!supabase) { setStatus('Storage changes are disabled in the synthetic demo.'); return; }
     if (avatarUploading || !user) return;
 
     const oldPath = profile?.avatar_url || null;

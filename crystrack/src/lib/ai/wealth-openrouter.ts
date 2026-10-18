@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { z } from 'zod';
 
 const WealthInsightSchema = z.object({
@@ -42,6 +43,7 @@ Rules:
 - next_action should be a simple behaviour or review action derived from the supplied pattern.
 - Numeric metrics supplied by CrysTrack are authoritative.`;
 
+  assertRealServicesAllowed();
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {

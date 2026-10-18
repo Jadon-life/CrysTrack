@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { z } from 'zod';
 
 export const DomainInsightSchema = z.object({
@@ -122,6 +123,7 @@ async function openRouterRequest(
       headers['HTTP-Referer'] = appUrl;
     }
 
+    assertRealServicesAllowed();
     const response = await fetch(
       OPENROUTER_ENDPOINT,
       {
