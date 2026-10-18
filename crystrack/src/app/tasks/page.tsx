@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CreateModal } from '@/components/shared/create-modal';
 import { del, fetcher, post } from '@/lib/api';
-import { cn, getLocalDateKey } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { groupTodayTasks, summarizeToday } from '@/lib/today-progress';
 import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive, Trash2, ChevronDown } from 'lucide-react';
 
@@ -28,13 +28,16 @@ export default function TasksPage() {
     title: '', description: '', preferredTime: '', category: '', schedules: [] as number[],
     remindersEnabled: true, reminderChannel: 'push', beforeMinutes: 15, atPreferredTime: true, followUp: true, endOfDayReminder: true,
   });
-  const today = new Date().getDay();
+  const [schedulingDay,setSchedulingDay] = useState('');
+  const today = schedulingDay ? new Date(`${schedulingDay}T12:00:00Z`).getUTCDay() : 0;
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      setTasks(await fetcher(`/api/tasks?date=${getLocalDateKey()}&weekday=${new Date().getDay()}`));
+      const context = await fetcher('/api/daily-records/context');
+      setSchedulingDay(context.day);
+      setTasks(await fetcher(`/api/tasks?date=${context.day}`));
     } catch (e: any) {
       setError(e.message || 'Failed to load tasks');
     } finally {
@@ -91,7 +94,8 @@ export default function TasksPage() {
   const toggleTaskCompletion = async (taskId: string) => {
     setError('');
     try {
-      await post(`/api/tasks/${taskId}/occurrences/${getLocalDateKey()}/toggle`, {});
+      const task = tasks.find(item => item.id === taskId);
+      await post(`/api/tasks/${taskId}/occurrences/${schedulingDay}/toggle`, {desiredStatus:task?.today_status === 'completed' ? 'pending' : 'completed',expectedRevision:task?.daily_revision,requestId:crypto.randomUUID()});
       await loadTasks();
       window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
@@ -102,7 +106,8 @@ export default function TasksPage() {
   const toggleTaskSkip = async (taskId: string) => {
     setError('');
     try {
-      await post(`/api/tasks/${taskId}/occurrences/${getLocalDateKey()}/skip`, {});
+      const task = tasks.find(item => item.id === taskId);
+      await post(`/api/tasks/${taskId}/occurrences/${schedulingDay}/skip`, {desiredStatus:task?.today_status === 'skipped' ? 'pending' : 'skipped',expectedRevision:task?.daily_revision,requestId:crypto.randomUUID()});
       await loadTasks();
       window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
@@ -138,7 +143,7 @@ export default function TasksPage() {
   };
 
   const deleteTask = async (task: any) => {
-    if (!window.confirm(`Delete "${task.title}" permanently? Its schedules, occurrences and reminders will be removed.`)) return;
+    if (!window.confirm(`Delete "${task.title}" from future days? Your recorded history and today’s plan will be kept.`)) return;
     setError('');
     try {
       await del(`/api/tasks/${task.id}`);
@@ -341,7 +346,7 @@ export default function TasksPage() {
                       type="button"
                       onClick={() => void deleteTask(task)}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20"
-                      title="Delete task permanently"
+                      title="Remove routine from future days"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Delete</span>

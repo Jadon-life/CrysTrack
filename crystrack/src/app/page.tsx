@@ -115,8 +115,9 @@ export default function DashboardPage() {
 
       // Use the saved profile timezone for the daily date and task schedule.
       const profile = await fetcher('/api/profile').catch(() => null);
-      const timezone = profile?.timezone || profile?.current_timezone || environment.timezone || 'UTC';
-      const context = { ...dayInTimezone(timezone), timezone };
+      const timezone = profile?.scheduling_timezone || profile?.timezone || profile?.current_timezone || environment.timezone || 'UTC';
+      const saved = await fetcher('/api/daily-records/context').catch(() => null);
+      const context = saved ? {dateKey:saved.day,weekday:new Date(`${saved.day}T12:00:00Z`).getUTCDay(),timezone:saved.timezone} : { ...dayInTimezone(timezone), timezone };
       const date = context.dateKey;
       const weekday = context.weekday;
 
@@ -187,10 +188,10 @@ export default function DashboardPage() {
 
     try {
       const occurrence = await post(
-        `/api/tasks/${encodeURIComponent(task.id)}/occurrences/${date}/${action}`, {},
+        `/api/tasks/${encodeURIComponent(task.id)}/occurrences/${date}/${action}`, {desiredStatus:next,expectedRevision:task.daily_revision,requestId:crypto.randomUUID()},
       );
       setTasks((current) => current.map((entry) =>
-        entry.id === task.id ? { ...entry, today_status: occurrence?.status || next } : entry));
+        entry.id === task.id ? { ...entry, today_status: occurrence?.status || next, daily_revision:occurrence.revision } : entry));
       const refreshed = await fetcher(
         `/api/tasks?date=${dayContext.dateKey}&weekday=${dayContext.weekday}`,
       ).catch(() => null);

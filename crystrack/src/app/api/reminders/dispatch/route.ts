@@ -9,8 +9,6 @@ import {
   localClock,
   minuteMatches,
   normaliseChannels,
-  previousDateKey,
-  weekdayForDateKey,
 } from '@/lib/reminders';
 
 export const runtime = 'nodejs';
@@ -240,37 +238,9 @@ async function occurrenceStatus(admin: ReturnType<typeof createAdminClient>, tas
   return data || null;
 }
 
-async function closeMissedTasks(admin: ReturnType<typeof createAdminClient>, userId: string, todayKey: string) {
-  const yesterdayKey = previousDateKey(todayKey);
-  const yesterdayWeekday = weekdayForDateKey(yesterdayKey);
-  const { data: tasks } = await admin
-    .from('recurring_tasks')
-    .select('id, title, task_schedules(weekday)')
-    .eq('user_id', userId)
-    .eq('active', true)
-    .is('archived_at', null);
-
-  for (const task of tasks || []) {
-    if (!(task.task_schedules || []).some((item: any) => item.weekday === yesterdayWeekday)) continue;
-    const existing = await occurrenceStatus(admin, task.id, yesterdayKey);
-    if (existing) continue;
-
-    const { data: occurrence, error } = await admin.from('task_occurrences').insert({
-      task_id: task.id,
-      date: `${yesterdayKey}T00:00:00.000Z`,
-      status: 'missed',
-    }).select('id').single();
-
-    if (!error && occurrence) {
-      await admin.from('activity_events').insert({
-        user_id: userId,
-        type: 'task_missed',
-        entity_type: 'task',
-        entity_id: task.id,
-        metadata_json: { title: task.title, date: yesterdayKey, status: 'missed' },
-      });
-    }
-  }
+async function closeMissedTasks(admin: ReturnType<typeof createAdminClient>, userId: string) {
+  const {error} = await admin.rpc('recover_daily_records',{p_user_id:userId,p_limit:31});
+  if (error) console.error('Daily closure recovery failed', {code:error.code});
 }
 
 export async function POST(request: Request) {
@@ -294,7 +264,7 @@ export async function POST(request: Request) {
     const inDnd = isWithinDnd(clock.minuteOfDay, Boolean(preferences?.dnd_enabled), preferences?.dnd_start_time, preferences?.dnd_end_time);
     const defaultChannels = normaliseChannels(preferences?.default_reminder_channels, ['push']);
 
-    if (clock.minuteOfDay < 10) await closeMissedTasks(admin, userId, clock.dateKey);
+    await closeMissedTasks(admin, userId);
 
     const { data: tasks } = await admin
       .from('recurring_tasks')

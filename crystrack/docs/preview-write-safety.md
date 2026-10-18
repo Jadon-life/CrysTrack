@@ -27,7 +27,7 @@ inventory drift. This scanner is a review aid, not a proof of absence of side ef
 
 | Surface | Current write paths / implications |
 |---|---|
-| Tasks | POST `/api/tasks`, DELETE `/api/tasks/[taskId]`, POST archive, occurrence toggle/skip; schedules, occurrences, reminders and activity cleanup. Read-then-write races remain. |
+| Tasks | POST `/api/tasks`, DELETE `/api/tasks/[taskId]`, POST archive, occurrence toggle/skip; atomic local-first daily outcome RPCs, future schedule versions, reminders and activity. Hosted compatibility is not yet verified. |
 | Goals | POST goals, DELETE goal, POST checkins/analyze; progress, checkins, AI analysis and activity. |
 | Assignments | POST assignments, DELETE assignment, PATCH complete; completion and related activity/reminder cleanup. |
 | Finance | POST finance, entries, targets, debts; PATCH debt repayment/expected confirmation/state, POST expected; legacy target-adjustment RPCs and ledger writes. Double-credit risk against newer triggers remains separate. |
@@ -39,13 +39,15 @@ inventory drift. This scanner is a review aid, not a proof of absence of side ef
 | Profile | PUT profile and POST/DELETE avatar; profile upsert, Auth metadata changes and storage operations. **AppLayout automatically PUTs profile on authenticated page load.** |
 | Preferences/location | PUT preferences/profile from theme provider; switching appearance and location updates can persist. Approved Three.js switch remains unchanged. |
 | Browser storage writes | Settings directly uploads/removes avatars through Supabase Storage; blocking Next API POSTs cannot stop this. |
-| Daily notes | No application endpoint/UI yet. Local draft notes are not deployed or exposed in public REST. |
+| Daily notes | Owner GET/PUT backend with revisions; no UI. Notes are private, excluded from AI/activity. New daily context/read GETs can materialize capture records; do not treat GET as read-only. |
 | RPC/direct clients | Finance RPCs: `increment_target`, `adjust_target`, `create_wealth_debt`, `repay_wealth_debt`, `confirm_expected_flow`; privileged Telegram RPC. Public client bindings can reach Supabase directly according to grants/RLS. Owner RLS permits writes to that owner's real records; it is not preview isolation. |
 
 The executable profile test proves a synthetic authenticated request still invokes
 the existing writer with `VERCEL_ENV=preview`. No application guard was added.
 Likewise hiding buttons, blocking only finance, disallowing API mutation verbs, or
 adding a cosmetic "read only" label cannot protect all these paths.
+
+Issue #10 adds daily outcome/note/timezone/create/retire RPCs. These are writers even if invoked through an authenticated read/materialization path; their existence does not make shared Preview safe. Preview Branch Tracking must remain OFF. No Vercel settings are changed by this PR.
 
 The issue reports RLS disabled on two empty repair-backup tables. That is a separate
 production security remediation requiring authorization; no DDL was attempted.
