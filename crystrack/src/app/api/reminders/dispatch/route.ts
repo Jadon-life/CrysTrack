@@ -39,7 +39,7 @@ const RETRY_DELAY_MS = 45 * 1000;
 
 async function reserveDelivery(
   admin: ReturnType<typeof createAdminClient>,
-  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload; assignmentVersion?: number; assignmentOffset?: number },
+  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload; assignmentVersion?: number; assignmentOffset?: number; billRevision?: number },
 ) {
   const { data: inserted, error: insertError } = await admin
     .from('reminder_deliveries')
@@ -117,7 +117,7 @@ async function reserveDelivery(
 
 async function deliver(
   admin: ReturnType<typeof createAdminClient>,
-  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload; assignmentVersion?: number; assignmentOffset?: number },
+  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload; assignmentVersion?: number; assignmentOffset?: number; billRevision?: number },
 ) {
   // Assignment claims re-read and lock the live schedule in one database transaction.
   let reservation;
@@ -127,6 +127,19 @@ async function deliver(
     if (!claim) return { duplicate: true, sent: [] as string[], failed: [] as string[] };
     input = { ...input, userId: claim.userId, payload: claim.payload, deliveryKey: claim.deliveryKey };
     reservation = { duplicate: false, id: claim.id as string, priorSent: claim.priorSent as string[], channelsToAttempt: claim.channelsToAttempt as string[] };
+  } else if (input.entityType === 'bill') {
+    const { data: claim, error } = await admin.rpc('bill_claim_reminder', {
+      p_id: input.entityId, p_revision: input.billRevision,
+    });
+    if (error) {
+      console.error('Bill reminder claim not confirmed', { code: error.code });
+      return { duplicate: false, sent: [] as string[], failed: input.channels };
+    }
+    if (!claim) return { duplicate: true, sent: [] as string[], failed: [] as string[] };
+    input = { ...input, userId: claim.userId, payload: claim.payload, deliveryKey: claim.deliveryKey,
+      channels: claim.channelsToAttempt };
+    reservation = { duplicate: false, id: claim.id as string, priorSent: claim.priorSent as string[],
+      channelsToAttempt: claim.channelsToAttempt as string[] };
   } else reservation = await reserveDelivery(admin, input);
   if (reservation.duplicate || !reservation.id) {
     return { duplicate: true, sent: reservation.priorSent, failed: [] as string[] };
@@ -217,6 +230,15 @@ async function deliver(
   if (input.entityType === 'assignment') {
     const { error } = await admin.rpc('assignment_finish_delivery', { p_delivery: reservation.id, p_sent: uniqueSent, p_failed: uniqueFailed, p_error: errors.join('; ') || null });
     if (error) console.error('Assignment reminder result was not confirmed', { code: error.code });
+    return { duplicate: false, sent: uniqueSent, failed: uniqueFailed };
+  }
+
+  if (input.entityType === 'bill') {
+    const { error } = await admin.rpc('bill_finish_delivery', {
+      p_delivery: reservation.id, p_sent: uniqueSent, p_failed: uniqueFailed,
+      p_error: errors.join('; ') || null,
+    });
+    if (error) console.error('Bill reminder result not confirmed', { code: error.code });
     return { duplicate: false, sent: uniqueSent, failed: uniqueFailed };
   }
 
@@ -370,6 +392,22 @@ export async function POST(request: Request) {
         summary.sent += result.sent.length ? 1 : 0;
         summary.failed += !result.sent.length && !result.duplicate ? 1 : 0;
       }
+    }
+
+    // Same dispatcher; opt-in, saved-zone DND and live payment checks are revalidated in SQL.
+    const { data: billSlots, error: billError } = await admin.rpc('bill_reminder_candidates', {
+      p_user: userId,
+    });
+    if (billError) console.error('Bill reminders unavailable', { code: billError.code });
+    for (const slot of billSlots || []) {
+      summary.attempted += 1;
+      const result = await deliver(admin, {
+        userId, entityType: 'bill', entityId: slot.id, billRevision: slot.revision,
+        deliveryKey: 'bill:' + slot.id, scheduledFor: now.toISOString(), channels: defaultChannels,
+        payload: { title: 'Planned bill', body: 'Payment is not confirmed.', url: '/finance', tag: 'bill:' + slot.id },
+      });
+      summary.sent += result.sent.length ? 1 : 0;
+      summary.failed += !result.sent.length && !result.duplicate ? 1 : 0;
     }
 
     const { data: goals } = await admin

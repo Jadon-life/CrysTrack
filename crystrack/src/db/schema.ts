@@ -1,6 +1,6 @@
 import { 
   pgTable, uuid, varchar, text, timestamp, boolean, 
-  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex, foreignKey, pgSchema
+  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex, foreignKey, pgSchema, type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 
 // Enums
@@ -156,6 +156,8 @@ export const moneyEntries = pgTable('money_entries', {
   type: moneyTypeEnum('type').notNull(),
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   date: timestamp('date', { withTimezone: true }).defaultNow(),
+  billId: uuid('bill_id').references(()=>wealthRecurringBills.id),
+  billOccurrenceId: uuid('bill_occurrence_id').references(()=>wealthBillOccurrences.id),
   source: varchar('source', { length: 255 }),
   category: varchar('category', { length: 100 }),
   note: text('note'),
@@ -325,3 +327,27 @@ export const wealthBudgetRequests = pgSchema('crystrack_budgets').table('request
 }, t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
 export type WealthMonthlyBudget = typeof wealthMonthlyBudgets.$inferSelect;
 export type WealthBudgetRequest = typeof wealthBudgetRequests.$inferSelect;
+
+
+// Piece 6B local-only bill plans, immutable occurrence/payment proof and private authority.
+export const wealthRecurringBills = pgTable('wealth_recurring_bills', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),title:text('title').notNull(),category:text('category').notNull(),merchant:text('merchant'),
+ amount:decimal('amount',{precision:12,scale:2}).notNull(),frequency:text('frequency').notNull(),firstDue:date('first_due').notNull(),endDate:date('end_date'),
+ status:text('status').notNull().default('active'),reminderEnabled:boolean('reminder_enabled').notNull().default(false),revision:integer('revision').notNull().default(1),
+ createdAt:timestamp('created_at',{withTimezone:true}).notNull(),updatedAt:timestamp('updated_at',{withTimezone:true}).notNull(),
+},t=>({owner:index('bill_owner_idx').on(t.userId,t.id),ownerIdentity:uniqueIndex('bill_owner_identity').on(t.id,t.userId)}));
+export const wealthBillOccurrences=pgTable('wealth_bill_occurrences',{
+ id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),billId:uuid('bill_id').notNull(),dueDay:date('due_day').notNull(),timezone:text('timezone').notNull(),
+ title:text('title').notNull(),category:text('category').notNull(),merchant:text('merchant'),expectedAmount:decimal('expected_amount',{precision:12,scale:2}).notNull(),
+ status:text('status').notNull().default('pending'),revision:integer('revision').notNull().default(1),paidAt:timestamp('paid_at',{withTimezone:true}),actualAmount:decimal('actual_amount',{precision:12,scale:2}),entryId:uuid('entry_id').unique().references((): AnyPgColumn=>moneyEntries.id),
+},t=>({due:uniqueIndex('bill_due_unique').on(t.billId,t.dueDay),ownerDay:index('bill_occurrence_owner_day_idx').on(t.userId,t.dueDay,t.id),
+ owner:foreignKey({columns:[t.billId,t.userId],foreignColumns:[wealthRecurringBills.id,wealthRecurringBills.userId]})}));
+const billPrivate=pgSchema('crystrack_bills');
+export const billOwnerStates=billPrivate.table('states',{userId:uuid('user_id').primaryKey(),revision:bigint('revision',{mode:'bigint'}).notNull().default(BigInt(1))});
+export const billRequests=billPrivate.table('requests',{userId:uuid('user_id').notNull(),requestId:uuid('request_id').notNull(),payload:jsonb('payload').notNull(),result:jsonb('result').notNull()},t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export const billEntryPermits=billPrivate.table('entry_permits',{entryId:uuid('entry_id').primaryKey(),userId:uuid('user_id').notNull(),billId:uuid('bill_id').notNull(),occurrenceId:uuid('occurrence_id').notNull().unique()});
+export type WealthRecurringBill=typeof wealthRecurringBills.$inferSelect;
+export type WealthBillOccurrence=typeof wealthBillOccurrences.$inferSelect;
+export type BillOwnerState=typeof billOwnerStates.$inferSelect;
+export type BillMutationRequest=typeof billRequests.$inferSelect;
+export type BillEntryPermit=typeof billEntryPermits.$inferSelect;
