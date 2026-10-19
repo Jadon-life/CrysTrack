@@ -22,7 +22,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       .single(),
     supabase
       .from('profiles')
-      .select('timezone, current_timezone')
+      .select('timezone, scheduling_timezone')
       .eq('user_id', user.id)
       .maybeSingle(),
   ]);
@@ -31,7 +31,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return NextResponse.json({ error: 'Goal deadline has passed; check-ins are closed' }, { status: 409 });
   }
 
-  const timezone = profile?.current_timezone || profile?.timezone || 'UTC';
+  const timezone = profile?.scheduling_timezone || profile?.timezone || 'UTC';
   const window = goalCheckinWindow(goal.checkin_config, new Date(), timezone);
   if (!window.available || !window.occurrenceKey || !window.startDate || !window.endDate) {
     return NextResponse.json({ error: 'No check-in is scheduled for this goal today' }, { status: 409 });

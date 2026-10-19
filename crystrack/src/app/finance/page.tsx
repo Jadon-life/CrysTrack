@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -88,6 +88,7 @@ export default function WealthPage() {
   const { currency, setCurrency, rate, loadingRate } = useWealthCurrency();
 
   const [showEntry, setShowEntry] = useState(false);
+  const expenseIntent = useRef<{key:string;id:string;date:string}|null>(null);
   const [showTarget, setShowTarget] = useState(false);
   const [showDebt, setShowDebt] = useState(false);
   const [showExpected, setShowExpected] = useState(false);
@@ -154,12 +155,16 @@ export default function WealthPage() {
     const amount = Number(entry.amount);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error('Amount must be greater than zero');
 
+    const key = JSON.stringify(entry);
+    if (!expenseIntent.current || expenseIntent.current.key !== key) expenseIntent.current = {key,id:crypto.randomUUID(),date:entry.date || new Date().toISOString()};
     await post('/api/finance/entries', {
       ...entry,
       amount,
       targetId: entry.targetId || null,
-      date: entry.date || new Date().toISOString(),
+      date: entry.flowKind === 'expense' ? expenseIntent.current.date : entry.date || new Date().toISOString(),
+      ...(entry.flowKind === 'expense' ? {requestId:expenseIntent.current.id} : {}),
     });
+    expenseIntent.current = null;
     setEntry({ flowKind: 'expense', amount: '', date: '', source: '', category: '', note: '', targetId: '' });
     await load();
   };

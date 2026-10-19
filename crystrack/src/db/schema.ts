@@ -1,6 +1,6 @@
 import { 
   pgTable, uuid, varchar, text, timestamp, boolean, 
-  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex
+  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex, foreignKey
 } from 'drizzle-orm/pg-core';
 
 // Enums
@@ -265,3 +265,30 @@ export type DailyMutationRequest = typeof dailyMutationRequests.$inferSelect;
 export type DailyNote = typeof dailyNotes.$inferSelect;
 export type DailyTrackingState = typeof dailyTrackingStates.$inferSelect;
 export type DailyTimezoneTransition = typeof dailyTimezoneTransitions.$inferSelect;
+
+// September crystal ledger; separate from all legacy hosted gamification objects.
+export const sep28CrystalPreferences = pgTable('sep28_crystal_preferences', {
+ userId: uuid('user_id').primaryKey(), enabled: boolean('enabled').notNull().default(true),
+ activatedAt: timestamp('activated_at',{withTimezone:true}).notNull(), enabledSince: timestamp('enabled_since',{withTimezone:true}).notNull(),
+ revision: integer('revision').notNull().default(1),
+});
+export type CrystalAwardKind = 'task'|'day'|'goal'|'assignment'|'spending';
+export const sep28CrystalAwards = pgTable('sep28_crystal_awards', {
+ userId: uuid('user_id').notNull().references(()=>sep28CrystalPreferences.userId,{onDelete:'cascade'}),
+ kind: text('kind').$type<CrystalAwardKind>().notNull(), sourceKey: text('source_key').notNull(),
+ eligible: boolean('eligible').notNull(), allowedSource: boolean('allowed_source').notNull().default(true),
+ balance: integer('balance').notNull(), revision: integer('revision').notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.kind,t.sourceKey]})}));
+export const sep28CrystalEvents = pgTable('sep28_crystal_events', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), kind: text('kind').$type<CrystalAwardKind>().notNull(),
+ sourceKey: text('source_key').notNull(), revision: integer('revision').notNull(), delta: integer('delta').notNull(),
+ createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({eventUnique:uniqueIndex('sep28_crystal_events_user_id_kind_source_key_revision_key').on(t.userId,t.kind,t.sourceKey,t.revision), ownerIdx:index('sep28_crystal_events_owner').on(t.userId), sourceFk:foreignKey({columns:[t.userId,t.kind,t.sourceKey],foreignColumns:[sep28CrystalAwards.userId,sep28CrystalAwards.kind,sep28CrystalAwards.sourceKey]}).onDelete('cascade')}));
+export const sep28CrystalMoments = pgTable('sep28_crystal_moments', {
+ userId: uuid('user_id').notNull().references(()=>sep28CrystalPreferences.userId,{onDelete:'cascade'}),
+ level: integer('level').notNull(), reachedAt: timestamp('reached_at',{withTimezone:true}).notNull(), claimedAt: timestamp('claimed_at',{withTimezone:true}),
+},t=>({pk:primaryKey({columns:[t.userId,t.level]})}));
+export type Sep28CrystalPreference = typeof sep28CrystalPreferences.$inferSelect;
+export type Sep28CrystalAward = typeof sep28CrystalAwards.$inferSelect;
+export type Sep28CrystalEvent = typeof sep28CrystalEvents.$inferSelect;
+export type Sep28CrystalMoment = typeof sep28CrystalMoments.$inferSelect;

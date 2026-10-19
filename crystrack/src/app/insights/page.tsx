@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GlassCard } from '@/components/shared/glass-card';
+import { CrystalCard } from '@/components/crystals/crystal-card';
 import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { fetcher } from '@/lib/api';
 import { BrainCircuit, AlertTriangle, Lightbulb, Target, CheckSquare, Wallet, Loader2, History } from 'lucide-react';
@@ -46,6 +47,7 @@ export default function InsightsPage() {
         </Link>
       </div>
 
+      <CrystalCard />
       <DomainInsightCard domain="overview" />
 
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}

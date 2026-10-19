@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const VALID_FLOW_KINDS = new Set([
   'income',
@@ -52,7 +53,26 @@ export async function POST(request: Request) {
     }
   }
 
+  // Optional expense-only receipt ID. Replays return the real persisted source;
+  // clients cannot pass shard values or create a second award for this submission.
+  const parsedRequest = flowKind !== 'expense' || body.requestId == null ? null : z.string().uuid().safeParse(body.requestId);
+  if (parsedRequest && !parsedRequest.success) return NextResponse.json({ error: 'Invalid expense submission ID' }, { status: 400 });
+  const expenseId = flowKind === 'expense' && parsedRequest?.success ? parsedRequest.data : null;
   const targetId: string | null = body.targetId || null;
+  const replay = async () => {
+    const { data: existing, error: readError } = await supabase.from('money_entries').select('*').eq('id', expenseId!).eq('user_id', user.id).maybeSingle();
+    if (readError) return NextResponse.json({ error: 'Could not verify this expense submission' }, { status: 503 });
+    if (!existing) return null;
+    // Decimal text comparison only: no rounding or financial arithmetic is added.
+    const decimalKey = (value: unknown) => String(value).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+    const same = existing.type === 'expense' && (existing.flow_kind || existing.type) === 'expense' &&
+      decimalKey(existing.amount) === decimalKey(amount) && existing.source === (body.source || null) &&
+      existing.category === (body.category || null) && existing.note === (body.note || null) && existing.target_id === targetId &&
+      (!body.date || new Date(existing.date).getTime() === new Date(body.date).getTime());
+    return same ? NextResponse.json(existing) : NextResponse.json({ error: 'This expense submission changed. Start a new entry.' }, { status: 409 });
+  };
+  if (expenseId) { const existing = await replay(); if (existing) return existing; }
+
   if (targetId) {
     const { data: target } = await supabase
       .from('finance_targets')
@@ -71,6 +91,7 @@ export async function POST(request: Request) {
   const { data: entry, error } = await supabase
     .from('money_entries')
     .insert({
+      ...(expenseId ? { id: expenseId } : {}),
       user_id: user.id,
       type: storageTypeFor(flowKind),
       flow_kind: flowKind,
@@ -84,6 +105,10 @@ export async function POST(request: Request) {
     .select()
     .single();
 
+  if (error?.code === '23505' && expenseId) {
+    const existing = await replay();
+    return existing || NextResponse.json({ error: 'Expense submission is unavailable' }, { status: 409 });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   if (targetId && (flowKind === 'saving' || flowKind === 'savings_release')) {

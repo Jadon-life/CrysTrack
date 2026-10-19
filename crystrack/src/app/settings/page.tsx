@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Bell, Camera, ChevronRight, Database, ExternalLink, Loader2, MapPin, Monitor, Moon, Palette, Send, Shield, Sun, Trash2, User, Zap,
 } from 'lucide-react';
+import { CrystalSettings } from '@/components/crystals/crystal-card';
 import { GlassCard } from '@/components/shared/glass-card';
 import { ImmersiveIntroToggle } from '@/components/settings/immersive-intro-toggle';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ const sections = [
   { id: 'reminders', label: 'Reminders', icon: Bell },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'location', label: 'Location & Weather', icon: MapPin },
+  { id: 'rewards', label: 'Crystal rewards', icon: Zap },
   { id: 'privacy', label: 'Privacy & Data', icon: Shield },
 ];
 
@@ -466,6 +468,7 @@ export default function SettingsPage() {
   ? ` · Accuracy ±${Math.round(environment.locationAccuracyM)} m`
   : ''} </p></div><Button variant="default" onClick={() => void requestLocation({ prompt: true })}>{environmentLoading ? 'Updating…' : 'Use current location'}</Button></div></div><p className="text-xs text-slate-500 mt-4">When you travel, CrysTrack can update after you open the site and location access succeeds. A website cannot continue tracking your physical location after it is closed.</p></GlassCard>}
 
+          {active === 'rewards' && <CrystalSettings />}
           {active === 'privacy' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-4">Privacy & data</h2><div className="space-y-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex gap-2"><Shield className="w-4 h-4 text-emerald-300" /><div><p className="text-sm font-medium text-white">Private-first location</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack does not persist precise GPS coordinates in your database. Location requests are sent directly from your browser to the configured weather/geocoding services.</p></div></div></div><Button variant="outline" className="w-full justify-start"><Database className="w-4 h-4 mr-2" /> Export data</Button></div></GlassCard>}
         </div>
       </div>

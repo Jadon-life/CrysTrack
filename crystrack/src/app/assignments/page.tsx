@@ -172,19 +172,13 @@ export default function AssignmentsPage() {
           return (
             <GlassCard key={assignment.id} hover={!overdue} padding="md" className={cn('animate-enter border-l-4', priorityColors[assignment.priority as keyof typeof priorityColors], overdue && 'opacity-55 grayscale border-l-slate-500')} style={{ animationDelay: `${index * 60}ms` }}>
               <div className="flex items-start gap-4">
-                {overdue ? (
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-white/10 bg-white/[0.03]" title="Deadline passed">
-                    <AlertTriangle className="h-3.5 w-3.5 text-slate-500" />
-                  </div>
-                ) : (
-                  <Checkbox onCheckedChange={() => void handleComplete(assignment.id)} className="mt-1 border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500" />
-                )}
+                <Checkbox aria-label={`Complete ${assignment.title}`} onCheckedChange={() => void handleComplete(assignment.id)} className="mt-1 h-10 w-10 shrink-0 border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap"><h3 className={cn('text-base font-semibold', overdue ? 'text-slate-400' : 'text-white')}>{assignment.title}</h3><StatusBadge status={assignment.computed_status} /><StatusBadge status={assignment.priority} /></div>
                   {assignment.description && <p className="text-sm text-[var(--theme-text-muted)] mt-1">{assignment.description}</p>}
                   <div className="flex items-center gap-4 mt-3 flex-wrap">
                     <div className="flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)]"><Clock className="w-3.5 h-3.5" /><span>{formatDateTime(assignment.deadline)}</span></div>
-                    <div className={cn('flex items-center gap-1.5 text-xs font-medium', overdue ? 'text-slate-400' : assignment.computed_status === 'due_today' ? 'text-orange-300' : 'text-[var(--theme-text-muted)]')}>{overdue && <AlertTriangle className="w-3.5 h-3.5" />}<span>{overdue ? 'Deadline passed — completion closed' : getRelativeTime(assignment.deadline)}</span></div>
+                    <div className={cn('flex items-center gap-1.5 text-xs font-medium', overdue ? 'text-slate-400' : assignment.computed_status === 'due_today' ? 'text-orange-300' : 'text-[var(--theme-text-muted)]')}>{overdue && <AlertTriangle className="w-3.5 h-3.5" />}<span>{overdue ? 'Ready to finish when you are' : getRelativeTime(assignment.deadline)}</span></div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
