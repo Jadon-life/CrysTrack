@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { TaskWeekGrid } from '@/components/tasks/task-week-grid';
 import { GlassCard } from '@/components/shared/glass-card';
 import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { StatusBadge } from '@/components/shared/status-badge';
@@ -17,6 +18,7 @@ const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function TasksPage() {
   const searchParams = useSearchParams();
+  const [taskView,setTaskView] = useState<'today'|'week'>('today');
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -97,10 +99,10 @@ export default function TasksPage() {
       const task = tasks.find(item => item.id === taskId);
       await post(`/api/tasks/${taskId}/occurrences/${schedulingDay}/toggle`, {desiredStatus:task?.today_status === 'completed' ? 'pending' : 'completed',expectedRevision:task?.daily_revision,requestId:crypto.randomUUID()});
       await loadTasks();
-      window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
+      await loadTasks();
       setError(e.message || 'Failed to update task');
-    }
+    } finally { window.dispatchEvent(new Event('crystrack-activity-updated')); }
   };
 
   const toggleTaskSkip = async (taskId: string) => {
@@ -109,10 +111,10 @@ export default function TasksPage() {
       const task = tasks.find(item => item.id === taskId);
       await post(`/api/tasks/${taskId}/occurrences/${schedulingDay}/skip`, {desiredStatus:task?.today_status === 'skipped' ? 'pending' : 'skipped',expectedRevision:task?.daily_revision,requestId:crypto.randomUUID()});
       await loadTasks();
-      window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
+      await loadTasks();
       setError(e.message || 'Failed to skip task');
-    }
+    } finally { window.dispatchEvent(new Event('crystrack-activity-updated')); }
   };
 
   const archiveRoutine = async () => {
@@ -183,6 +185,13 @@ export default function TasksPage() {
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
       <DomainInsightCard domain="tasks" />
+
+      <div className="flex flex-wrap gap-2 scenic-readable-strip" aria-label="Task views">
+        <Button variant={taskView==='today'?'primary':'ghost'} aria-pressed={taskView==='today'} onClick={()=>setTaskView('today')}>Today’s routines</Button>
+        <Button variant={taskView==='week'?'primary':'ghost'} aria-pressed={taskView==='week'} onClick={()=>setTaskView('week')}>Week grid</Button>
+      </div>
+      {taskView==='week' ? <TaskWeekGrid onChange={loadTasks} /> : <>
+
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-4 scenic-readable-strip">
@@ -407,6 +416,8 @@ export default function TasksPage() {
           </GlassCard>
         </div>
       )}
+
+      </>}
 
       <CreateModal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create recurring task" onSubmit={handleCreate}>
         <div className="space-y-4">

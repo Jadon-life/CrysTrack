@@ -204,3 +204,27 @@ The local DB command includes assignment ownership, revisions, atomic source/eve
 reminder/reward behavior and concurrency tests. With a sanitized normal build and
 this stack running, `node scripts/test-assignments.mjs` runs the signed-in Chromium
 workflow using new synthetic identities; it accepts no URL or target arguments.
+
+## Piece 5 Week Grid candidate (Issue #26)
+
+The explicit local bootstrap now adds `0017_task_week_grid.sql` after 0016:
+eleven files total (0000–0005 and 0013–0017). This candidate adds an
+owner-authorized bounded week read; no table, outcome or reward rule changes.
+It remains local-only, with hosted compatibility/history UNKNOWN and Issue #18
+still blocking release. The full local DB command includes Week Grid evidence,
+schedule-version, timezone, 1,001-child pagination, RLS and race tests.
+
+After building a sanitized normal artifact against the guarded local stack,
+`node scripts/test-week-grid.mjs` exercises real signed-in Chromium with new
+synthetic identities, blocked external browser transport, all five viewport
+widths and scoped axe checks. Set `CRYSTRACK_CHROMIUM_PATH=/usr/bin/chromium`
+when using the system browser; otherwise install Playwright's pinned browser.
+It accepts no URL/database target. Screenshots and sanitized evidence go under
+ignored `.preview-test/week-grid/`. Its optional `--baseline` captures the
+pre-change Tasks view and is not a substitute for the full workflow.
+
+Run existing `test-assignments.mjs`, `test-today-streak.mjs` and
+`test-crystals.mjs` separately, not concurrently: these suites share the private
+sandbox clock. `npm run test:preview` rebuilds the artifact for synthetic mode;
+rebuild normal mode before running normal-mode browser scripts. Never run
+`npm ci` concurrently with build/test commands.

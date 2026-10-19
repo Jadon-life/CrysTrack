@@ -402,6 +402,13 @@ try {
   await page.getByRole('dialog', { name: 'Create assignment', exact: true }).waitFor();
   await page.keyboard.press('Escape');
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  // Radix restores focus after its close lifecycle, which can follow DOM removal.
+  // Wait for the required behavior rather than sampling the transient body focus.
+  await page.waitForFunction(
+    () => document.activeElement?.textContent?.trim() === 'New assignment',
+    null,
+    { timeout: 5000 },
+  );
   assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'New assignment');
   evidence.checks.push(
     'Modal Escape closes and restores keyboard focus; edit modal traps keyboard focus and restores its trigger',

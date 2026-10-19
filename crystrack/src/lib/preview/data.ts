@@ -33,6 +33,12 @@ export function demoRead(pathname: string, search = new URLSearchParams()): unkn
   if (pathname === '/api/crystals') return {enabled:false,revision:1,total:'0',pendingMoment:false};
   if (pathname === '/api/profile') return profile;
   if (pathname === '/api/preferences') return preferences;
+  if (pathname === '/api/tasks/week') {
+    const dates=['2026-09-27','2026-09-28','2026-09-29','2026-09-30','2026-10-01','2026-10-02','2026-10-03'];
+    return {context,from:dates[0],to:dates[6],minimum:dates[0],maximum:dates[0],revision:'00000000000000000000000000000000',nextCursor:null,
+      days:dates.map(day=>({day,timezone:'Africa/Lagos',mode:day<DEMO_DAY?'past':day===DEMO_DAY?'today':'future',evidence:day<DEMO_DAY?'missing':day===DEMO_DAY?'incomplete':'planned',count:null})),
+      rows:[{id:taskId,title:tasks[0].title,nameSource:'current',active:true,cells:dates.map(day=>({day,state:day<DEMO_DAY?'unverified':day===DEMO_DAY?'pending':'planned',title:day<DEMO_DAY?null:tasks[0].title,revision:day===DEMO_DAY?1:null,editable:day===DEMO_DAY}))}]};
+  }
   if (pathname === '/api/tasks') return tasks;
   if (pathname === '/api/goals') return goals;
   if (pathname === '/api/assignments') return search.has('page') ? {items:[],hasMore:false,page:0,timezone:'Africa/Lagos',now:'2026-09-28T12:00:00Z',counts:{},week:['2026-09-28','2026-09-29','2026-09-30','2026-10-01','2026-10-02','2026-10-03','2026-10-04'].map(day=>({day,count:0}))} : [];
