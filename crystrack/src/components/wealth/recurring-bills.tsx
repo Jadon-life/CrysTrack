@@ -16,9 +16,10 @@ import {
   type BillOccurrence,
 } from '@/lib/bills';
 import { budgetCategories } from '@/lib/budgets';
-import { exactMoney, indicativeUsd } from '@/lib/budget-money';
+import { exactMoney } from '@/lib/budget-money';
 import { isRestrictedPreview } from '@/lib/preview/mode';
 import { latestDailyRead, nextDailyBoundary } from '@/lib/today-streak';
+import { moneyPresentation, editableMoney, manualMoneyHint } from '@/lib/money-presentation';
 import type { ExchangeRateSnapshot } from '@/lib/wealth';
 const input =
   'mt-1 min-h-10 w-full [color-scheme:dark] rounded-xl border border-white/25 bg-slate-950/90 px-3 py-2 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200';
@@ -160,11 +161,7 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
     else document.getElementById('bill-refresh')?.focus();
     focusAfter.current = null;
   }, [busy, writing, view]);
-  const money = (n: string) => {
-    if (currency === 'NGN') return exactMoney(n);
-    const usd = indicativeUsd(n, rate?.usdNgn);
-    return usd === null ? exactMoney(n) + ' · USD unavailable' : '≈ ' + exactMoney(usd, 'USD');
-  };
+  const money = (value: string) => moneyPresentation(value, currency, rate?.usdNgn).text;
   const open = (
     button: HTMLElement,
     action: Editor['action'],
@@ -187,7 +184,7 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
             title: b.title,
             category: b.category,
             merchant: b.merchant,
-            amount: b.amount,
+            amount: editableMoney(b.amount),
             frequency: b.frequency,
             firstDue: b.firstDue,
             endDate: b.endDate,
@@ -204,7 +201,7 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
             reminderEnabled: false,
           },
     );
-    setActual(o?.expected ?? '');
+    setActual(o ? editableMoney(o.expected) : '');
   };
   const close = () => {
     if (!locked.current) {
@@ -667,11 +664,13 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
                       <input
                         required
                         inputMode="decimal"
+                        placeholder="e.g. 2500"
                         value={fields.amount}
                         onChange={(e) => setFields((f) => ({ ...f, amount: e.target.value }))}
                         className={input + ' tabular-nums'}
                       />
                     </label>
+                    <p className="text-xs text-slate-200">{manualMoneyHint}</p>
                     <label className="block text-sm">
                       Recurrence
                       <select

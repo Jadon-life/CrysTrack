@@ -53,7 +53,7 @@ try {
   const committed=await route.fetch();assert.equal(committed.status(),201);
   await route.abort('failed');
  });
- const entry=page.locator('form').filter({has:page.locator('input[placeholder="0"]')});await entry.locator('select').first().selectOption('expense');await entry.locator('input[type=number]').fill('2500.25');await entry.getByRole('button',{name:'Save',exact:true}).click();
+ const entry=page.locator('form').filter({has:page.getByLabel('Amount (NGN)',{exact:true})});await entry.locator('select').first().selectOption('expense');await entry.locator('input[type=number]').fill('2500.25');await entry.getByRole('button',{name:'Save',exact:true}).click();
  await page.getByText('Failed to fetch',{exact:true}).waitFor();
  await page.unroute('**/api/finance/entries');
  assert.equal(state().total,'65');

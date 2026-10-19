@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Button } from '@/components/ui/button';
+import { MoneyAmount } from '@/components/wealth/money-amount';
+import { manualMoneyHint, editableMoney, moneyPresentation } from '@/lib/money-presentation';
 import { CsvTools } from '@/components/wealth/csv-tools';
 import { RecurringBills } from '@/components/wealth/recurring-bills';
 import { MonthlyBudgets } from '@/components/wealth/monthly-budgets';
@@ -40,7 +42,7 @@ import { CreateModal } from '@/components/shared/create-modal';
 import { EXPERIENCE_CONFIG } from '@/config/experience';
 import { fetcher, patch, post } from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
-import { formatWealthMoney, suggestCategory } from '@/lib/wealth';
+import { suggestCategory } from '@/lib/wealth';
 import { useWealthCurrency } from '@/lib/wealth-currency';
 
 const emptyData = {
@@ -147,8 +149,8 @@ export default function WealthPage() {
     });
   }, [load]);
 
-  const money = (value: number, compact = false, sign = false) =>
-    formatWealthMoney(Number(value || 0), currency, rate?.usdNgn, { compact, sign });
+  const money = (value: number | string) =>
+    moneyPresentation(value, currency, rate?.usdNgn, {}).text;
 
   const summary = data.summary;
   const series = useMemo(() => cashflowSeries(data.entries), [data.entries]);
@@ -312,7 +314,7 @@ export default function WealthPage() {
               <span className="text-xs text-[var(--theme-text-muted)]">{currency}</span>
             </div>
             <p className="text-xs text-[var(--theme-text-muted)] mt-4">{label}</p>
-            <p className="wealth-number text-xl sm:text-2xl font-semibold text-white mt-1 truncate">{money(value, true)}</p>
+            <div className="wealth-number text-xl sm:text-2xl font-semibold text-white mt-1 break-words"><MoneyAmount amount={value} currency={currency} rate={rate?.usdNgn} mode="summary" /></div>
             <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
           </GlassCard>
         ))}
@@ -345,7 +347,7 @@ export default function WealthPage() {
                 <YAxis hide />
                 <Tooltip
                   contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
-                  formatter={(value: any) => money(Number(value))}
+                  formatter={(value: any) => money(value)}
                 />
                 <Area type="monotone" dataKey="income" stroke="#4ade80" fill="url(#incomeFill)" strokeWidth={2} />
                 <Area type="monotone" dataKey="expenses" stroke="#fb7185" fill="url(#expenseFill)" strokeWidth={2} />
@@ -405,7 +407,7 @@ export default function WealthPage() {
                     </Pie>
                     <Tooltip
                       contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
-                      formatter={(value: any) => money(Number(value))}
+                      formatter={(value: any) => money(value)}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -425,7 +427,7 @@ export default function WealthPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="wealth-number text-xs font-semibold text-white">{money(item.current, true)}</p>
+                    <p className="wealth-number text-xs font-semibold text-white">{money(item.current)}</p>
                     <p className={cn('text-xs mt-1', (item.vsBaselinePct ?? 0) > 15 ? 'text-red-300' : (item.vsBaselinePct ?? 0) < -15 ? 'text-emerald-300' : 'text-[var(--theme-text-muted)]')}>
                       {item.vsBaselinePct == null ? 'learning' : `${item.vsBaselinePct > 0 ? '+' : ''}${Math.round(item.vsBaselinePct)}% vs baseline`}
                     </p>
@@ -443,7 +445,7 @@ export default function WealthPage() {
           <div className="rounded-xl border border-white/10 bg-black/12 p-4 mt-4">
             <p className="text-xs uppercase tracking-wide text-[var(--theme-text-muted)]">Projected month-end available</p>
             <p className="wealth-number text-2xl font-semibold text-white mt-2">
-              {money(summary?.projectedMonthEndLow || 0, true)} – {money(summary?.projectedMonthEndHigh || 0, true)}
+              {money(summary?.projectedMonthEndLow || 0)} – {money(summary?.projectedMonthEndHigh || 0)}
             </p>
             <p className="text-xs text-[var(--theme-text-muted)] mt-2">Range reflects unconfirmed expected income/expenses and liabilities due this month.</p>
           </div>
@@ -451,11 +453,11 @@ export default function WealthPage() {
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="rounded-xl border border-white/10 bg-black/10 p-3">
               <p className="text-xs text-[var(--theme-text-muted)]">Owed to you</p>
-              <p className="wealth-number text-lg font-semibold text-sky-300 mt-1">{money(summary?.receivables || 0, true)}</p>
+              <p className="wealth-number text-lg font-semibold text-sky-300 mt-1">{money(summary?.receivables || 0)}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/10 p-3">
               <p className="text-xs text-[var(--theme-text-muted)]">You owe</p>
-              <p className="wealth-number text-lg font-semibold text-orange-300 mt-1">{money(summary?.liabilities || 0, true)}</p>
+              <p className="wealth-number text-lg font-semibold text-orange-300 mt-1">{money(summary?.liabilities || 0)}</p>
             </div>
           </div>
         </GlassCard>
@@ -480,12 +482,12 @@ export default function WealthPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{flow.title}</p>
                   <p className="text-xs text-[var(--theme-text-muted)] mt-1">
-                    {money(Number(flow.amount_min), true)}
-                    {flow.amount_max && Number(flow.amount_max) !== Number(flow.amount_min) ? ` – ${money(Number(flow.amount_max), true)}` : ''}
+                    {money(flow.amount_min)}
+                    {flow.amount_max && Number(flow.amount_max) !== Number(flow.amount_min) ? ` – ${money(flow.amount_max)}` : ''}
                     {' · '}{flow.timing_hint || flow.frequency.replace('_', ' ')}
                   </p>
                 </div>
-                <button type="button" onClick={() => { setConfirmingFlow(flow); setActualAmount(String(flow.amount_min)); }} className="text-xs font-semibold text-[var(--theme-primary)]">
+                <button type="button" onClick={() => { setConfirmingFlow(flow); setActualAmount(editableMoney(String(flow.amount_min))); }} className="text-xs font-semibold text-[var(--theme-primary)]">
                   {flow.direction === 'income' ? 'Received' : 'Paid'}
                 </button>
               </div>
@@ -512,11 +514,11 @@ export default function WealthPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{item.counterparty}</p>
                   <p className="text-xs text-[var(--theme-text-muted)] mt-1">
-                    {item.kind === 'receivable' ? 'Owes you' : 'You owe'} {money(Number(item.outstanding_amount), true)}
+                    {item.kind === 'receivable' ? 'Owes you' : 'You owe'} {money(item.outstanding_amount)}
                     {item.due_date ? ` · ${formatDate(item.due_date)}` : ''}
                   </p>
                 </div>
-                <button type="button" onClick={() => { setRepayingDebt(item); setRepaymentAmount(String(item.outstanding_amount)); }} className="text-xs font-semibold text-[var(--theme-primary)]">Repay</button>
+                <button type="button" onClick={() => { setRepayingDebt(item); setRepaymentAmount(editableMoney(String(item.outstanding_amount))); }} className="text-xs font-semibold text-[var(--theme-primary)]">Repay</button>
               </div>
             ))}
             {!data.debts.some((item: any) => item.status === 'open') && <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">No open debts or receivables.</p>}
@@ -551,8 +553,8 @@ export default function WealthPage() {
                   <div className="h-full bg-[var(--theme-primary)] rounded-full" style={{ width: `${percent}%` }} />
                 </div>
                 <div className="flex justify-between gap-3 mt-2">
-                  <p className="wealth-number text-xs text-white">{money(current, true)}</p>
-                  <p className="text-xs text-[var(--theme-text-muted)]">{percent}% of {money(targetAmount, true)}</p>
+                  <p className="wealth-number text-xs text-white">{money(item.current_amount || 0)}</p>
+                  <p className="text-xs text-[var(--theme-text-muted)]">{percent}% of {money(item.target_amount || 0)}</p>
                 </div>
               </GlassCard>
             );
@@ -588,7 +590,7 @@ export default function WealthPage() {
                   <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.category || 'Uncategorised'} · {formatDate(item.date)}</p>
                 </div>
                 <p className={cn('wealth-number text-xs font-semibold', positive ? 'text-emerald-300' : neutral ? 'text-white/70' : 'text-red-300')}>
-                  {positive ? '+' : neutral ? '' : '-'}{money(Number(item.amount), true)}
+                  {positive ? '+' : neutral ? '' : '-'}{money(item.amount)}
                 </p>
               </div>
             );
@@ -611,7 +613,8 @@ export default function WealthPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Amount (NGN) *</label>
-            <input type="number" step="0.01" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <input aria-label="Amount (NGN)" aria-describedby="manual-money-hint" inputMode="decimal" type="number" min="0.01" step="0.01" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder="e.g. 2500" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <p id="manual-money-hint" className="mt-2 text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Source / description</label>
@@ -651,8 +654,9 @@ export default function WealthPage() {
 
       <CreateModal isOpen={showTarget} onClose={() => setShowTarget(false)} title="Create savings goal" onSubmit={saveTarget}>
         <div className="space-y-4">
+          <p className="text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
           <input value={target.title} onChange={(event) => setTarget((current) => ({ ...current, title: event.target.value }))} placeholder="Goal name" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-          <input type="number" value={target.targetAmount} onChange={(event) => setTarget((current) => ({ ...current, targetAmount: event.target.value }))} placeholder="Target amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" inputMode="decimal" value={target.targetAmount} onChange={(event) => setTarget((current) => ({ ...current, targetAmount: event.target.value }))} placeholder="Target amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <input type="date" value={target.deadline} onChange={(event) => setTarget((current) => ({ ...current, deadline: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           <textarea value={target.description} onChange={(event) => setTarget((current) => ({ ...current, description: event.target.value }))} placeholder="What is this savings goal for?" className="w-full h-20 resize-none bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
         </div>
@@ -660,12 +664,13 @@ export default function WealthPage() {
 
       <CreateModal isOpen={showDebt} onClose={() => setShowDebt(false)} title="Record money owed" onSubmit={saveDebt}>
         <div className="space-y-4">
+          <p className="text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
           <select value={debt.kind} onChange={(event) => setDebt((current) => ({ ...current, kind: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
             <option value="receivable" className="bg-slate-950">Someone owes me</option>
             <option value="liability" className="bg-slate-950">I owe someone</option>
           </select>
           <input value={debt.counterparty} onChange={(event) => setDebt((current) => ({ ...current, counterparty: event.target.value }))} placeholder="Name" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-          <input type="number" value={debt.amount} onChange={(event) => setDebt((current) => ({ ...current, amount: event.target.value }))} placeholder="Amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" inputMode="decimal" value={debt.amount} onChange={(event) => setDebt((current) => ({ ...current, amount: event.target.value }))} placeholder="Amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <input type="date" value={debt.dueDate} onChange={(event) => setDebt((current) => ({ ...current, dueDate: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           <textarea value={debt.note} onChange={(event) => setDebt((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note" className="w-full h-20 resize-none bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
         </div>
@@ -673,21 +678,22 @@ export default function WealthPage() {
 
       <CreateModal isOpen={Boolean(repayingDebt)} onClose={() => setRepayingDebt(null)} title={repayingDebt?.kind === 'receivable' ? 'Record repayment received' : 'Record debt repayment'} onSubmit={repayDebt}>
         <div className="space-y-3">
-          <p className="text-xs text-[var(--theme-text-muted)]">Outstanding: {repayingDebt ? money(Number(repayingDebt.outstanding_amount)) : '—'}</p>
-          <input type="number" value={repaymentAmount} onChange={(event) => setRepaymentAmount(event.target.value)} placeholder="Actual repayment amount" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <p className="text-xs text-[var(--theme-text-muted)]">Outstanding: {repayingDebt ? money(repayingDebt.outstanding_amount) : '—'}</p>
+          <input type="number" step="0.01" inputMode="decimal" value={repaymentAmount} onChange={(event) => setRepaymentAmount(event.target.value)} placeholder="Actual repayment amount" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
         </div>
       </CreateModal>
 
       <CreateModal isOpen={showExpected} onClose={() => setShowExpected(false)} title="Add expected money" onSubmit={saveExpected}>
         <div className="space-y-4">
+          <p className="text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
           <select value={expected.direction} onChange={(event) => setExpected((current) => ({ ...current, direction: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
             <option value="income" className="bg-slate-950">Expected income</option>
             <option value="expense" className="bg-slate-950">Expected expense</option>
           </select>
           <input value={expected.title} onChange={(event) => setExpected((current) => ({ ...current, title: event.target.value }))} placeholder="e.g. Salary, Rent, Freelance payment" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <div className="grid grid-cols-2 gap-3">
-            <input type="number" value={expected.amountMin} onChange={(event) => setExpected((current) => ({ ...current, amountMin: event.target.value }))} placeholder="Minimum NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-            <input type="number" value={expected.amountMax} onChange={(event) => setExpected((current) => ({ ...current, amountMax: event.target.value }))} placeholder="Maximum NGN (optional)" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
+            <input type="number" step="0.01" inputMode="decimal" value={expected.amountMin} onChange={(event) => setExpected((current) => ({ ...current, amountMin: event.target.value }))} placeholder="Minimum NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <input type="number" step="0.01" inputMode="decimal" value={expected.amountMax} onChange={(event) => setExpected((current) => ({ ...current, amountMax: event.target.value }))} placeholder="Maximum NGN (optional)" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           </div>
           <select value={expected.frequency} onChange={(event) => setExpected((current) => ({ ...current, frequency: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
             <option value="one_off" className="bg-slate-950">One off</option>
@@ -709,11 +715,11 @@ export default function WealthPage() {
       <CreateModal isOpen={Boolean(confirmingFlow)} onClose={() => setConfirmingFlow(null)} title={confirmingFlow?.direction === 'income' ? 'Confirm income received' : 'Confirm expense paid'} onSubmit={confirmFlow}>
         <div className="space-y-3">
           <p className="text-xs text-[var(--theme-text-muted)]">
-            Forecast: {confirmingFlow ? money(Number(confirmingFlow.amount_min)) : '—'}
-            {confirmingFlow?.amount_max && Number(confirmingFlow.amount_max) !== Number(confirmingFlow.amount_min) ? ` – ${money(Number(confirmingFlow.amount_max))}` : ''}
+            Forecast: {confirmingFlow ? money(confirmingFlow.amount_min) : '—'}
+            {confirmingFlow?.amount_max && Number(confirmingFlow.amount_max) !== Number(confirmingFlow.amount_min) ? ` – ${money(confirmingFlow.amount_max)}` : ''}
           </p>
           <p className="text-xs text-white/70">The actual amount can be below or above the forecast range. CrysTrack records what really happened.</p>
-          <input type="number" value={actualAmount} onChange={(event) => setActualAmount(event.target.value)} placeholder="Actual amount received / paid" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" inputMode="decimal" value={actualAmount} onChange={(event) => setActualAmount(event.target.value)} placeholder="Actual amount received / paid" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
         </div>
       </CreateModal>
     </div>
