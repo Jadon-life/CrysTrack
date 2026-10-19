@@ -70,7 +70,7 @@ Over-limit or unclassifiable history explicitly fails before CSV bytes are sent.
 Exact NUMERIC strings, ISO instants, canonical NGN, flow kind, category/source,
 optional notes and provenance identity. UTF-8 BOM, comma/CRLF, RFC quotes and
 spreadsheet-formula neutralization in every untrusted text field. Notes omitted
-by default; max 4,096 UTF-8 bytes each and 8 MiB DB payload/16 MiB CSV response,
+by default; max 4,096 UTF-8 bytes each and 8 MiB DB payload/4 MiB CSV response,
 otherwise narrow the interval. Filenames contain only validated dates. Ledger
 exports are archival, not new bank statements; identify and reject reimport of
 CrysTrack entry IDs/origins to avoid double accounting.

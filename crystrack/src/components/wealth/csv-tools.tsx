@@ -250,7 +250,7 @@ function OwnedCsv({ owner, onChange }: { owner: string; onChange: () => Promise<
           </div>
           <label className="mt-3 flex min-h-10 items-center gap-3 text-sm">
             <input
-              className="h-5 w-5"
+              className="h-5 w-5 shrink-0"
               type="checkbox"
               checked={notes}
               onChange={(e) => setNotes(e.target.checked)}
@@ -755,7 +755,7 @@ function ImportDialog({
                   </p>
                   <label className="mt-4 flex min-h-10 items-center gap-3 text-sm">
                     <input
-                      className="h-5 w-5"
+                      className="h-5 w-5 shrink-0"
                       type="checkbox"
                       checked={currencyConfirmed}
                       disabled={frozen}
@@ -809,7 +809,7 @@ function ImportDialog({
                           <label className="mt-2 flex min-h-10 items-center gap-3">
                             <input
                               type="checkbox"
-                              className="h-5 w-5"
+                              className="h-5 w-5 shrink-0"
                               checked={d.selected}
                               disabled={frozen || !currencyConfirmed}
                               onChange={(e) => {
@@ -861,20 +861,31 @@ function ImportDialog({
                             ).map((key) => (
                               <label key={key}>
                                 {key === 'amount' ? 'Amount NGN' : key}
-                                <input
-                                  aria-label={key === 'amount' ? 'Amount NGN' : key}
-                                  className={control + (key === 'amount' ? ' tabular-nums' : '')}
-                                  disabled={frozen}
-                                  value={String(d.data[key] ?? '')}
-                                  onChange={(e) =>
-                                    edit(
-                                      i,
-                                      key,
-                                      e.target.value ||
-                                        (['reference', 'account'].includes(key) ? null : ''),
-                                    )
-                                  }
-                                />
+                                {key === 'description' ? (
+                                  <textarea
+                                    aria-label="description"
+                                    className={control + ' resize-y'}
+                                    rows={2}
+                                    disabled={frozen}
+                                    value={String(d.data.description ?? '')}
+                                    onChange={(e) => edit(i, 'description', e.target.value)}
+                                  />
+                                ) : (
+                                  <input
+                                    aria-label={key === 'amount' ? 'Amount NGN' : key}
+                                    className={control + (key === 'amount' ? ' tabular-nums' : '')}
+                                    disabled={frozen}
+                                    value={String(d.data[key] ?? '')}
+                                    onChange={(e) =>
+                                      edit(
+                                        i,
+                                        key,
+                                        e.target.value ||
+                                          (['reference', 'account'].includes(key) ? null : ''),
+                                      )
+                                    }
+                                  />
+                                )}
                               </label>
                             ))}
                             <label>
@@ -918,7 +929,7 @@ function ImportDialog({
                                 <label className="mt-2 flex min-h-10 items-center gap-3">
                                   <input
                                     type="checkbox"
-                                    className="h-5 w-5"
+                                    className="h-5 w-5 shrink-0"
                                     checked={Boolean(d.data.keepDuplicate)}
                                     onChange={(e) => {
                                       generation.current++;
@@ -996,7 +1007,7 @@ function ImportDialog({
                       </p>
                       <label className="mt-3 flex min-h-10 items-center gap-3 text-sm">
                         <input
-                          className="h-5 w-5"
+                          className="h-5 w-5 shrink-0"
                           type="checkbox"
                           checked={confirmed}
                           onChange={(e) => setConfirmed(e.target.checked)}

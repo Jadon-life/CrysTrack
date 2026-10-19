@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { exportQuerySchema, exportRowSchema, ledgerCsv } from '@/lib/csv/statement';
+import { CSV_LIMITS, exportQuerySchema, exportRowSchema, ledgerCsv } from '@/lib/csv/statement';
 import { csvFailure, csvHeaders } from '@/lib/csv/server';
 export async function GET(request: Request) {
   const c = await createClient();
@@ -20,7 +20,8 @@ export async function GET(request: Request) {
     if (error) throw error;
     const rows = z.array(exportRowSchema).max(10000).parse(data),
       text = ledgerCsv(rows, q.notes === 'true');
-    if (Buffer.byteLength(text, 'utf8') > 16777216) throw Error('Export bounded limit');
+    if (Buffer.byteLength(text, 'utf8') > CSV_LIMITS.exportBytes)
+      throw Error('Export bounded limit');
     return new Response(text, {
       headers: {
         ...csvHeaders,

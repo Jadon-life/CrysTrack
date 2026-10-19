@@ -131,7 +131,17 @@ test('positive exact cents and separated grouping never use raw floating arithme
   assert.equal(moneyCell('9999999999.99').amount, '9999999999.99');
 });
 test('spreadsheet formula protection covers all untrusted text, quotes/newlines and hidden prefixes', () => {
-  for (const s of ['=1+1', '+SUM(A1)', '-2+3', '@SUM(A1)', '\ttext', '\u200b=1'])
+  for (const s of [
+    '=1+1',
+    '+SUM(A1)',
+    '-2+3',
+    '@SUM(A1)',
+    '\ttext',
+    '\u200b=1',
+    '\u0001=1',
+    '\u007f@SUM(A1)',
+    '\uFEFF+1',
+  ])
     assert.ok(csvCell(s).startsWith('"\''));
   assert.equal(csvCell('a"b\nc'), '"a""b\nc"');
   assert.equal(csvCell('2500.25', false), '"2500.25"');

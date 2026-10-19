@@ -202,7 +202,12 @@ try {
       const row2 = dialog.getByRole('article', { name: 'Statement row 2', exact: true });
       await row2.getByLabel('description', { exact: true }).fill('Synthetic corrected income');
       await row2.getByLabel('Category', { exact: true }).selectOption('Business');
-      await dialog.getByRole('checkbox', { name: 'Include row 3', exact: true }).uncheck();
+      await dialog
+        .getByRole('checkbox', {
+          name: width === 1280 ? 'Include row 2' : 'Include row 3',
+          exact: true,
+        })
+        .uncheck();
       await dialog.getByRole('button', { name: 'Check selected rows', exact: true }).click();
       await dialog
         .getByRole('heading', { name: 'Authoritative duplicate review', exact: true })
@@ -219,6 +224,14 @@ try {
       await dialog.getByRole('button', { name: 'Check selected rows', exact: true }).waitFor();
     }
     await reviewSelected();
+    if (width === 1280)
+      assert.equal(
+        await dialog
+          .getByRole('article', { name: 'Statement row 3', exact: true })
+          .getByLabel('description', { exact: true })
+          .inputValue(),
+        'Synthetic multiline\nmemo',
+      );
     assert.equal(count('money_entries'), '2');
     assert.equal(count('wealth_csv_batches'), '0');
     await page.addScriptTag({ path: ROOT + '/node_modules/axe-core/axe.min.js' });
@@ -276,7 +289,12 @@ try {
         try {
           const r = await route.fetch();
           assert.equal(r.status(), 200);
-          await route.abort('failed');
+          if (width === 768)
+            await route.fulfill({
+              response: r,
+              json: { batchId: 'invalid-acknowledgement', count: 2 },
+            });
+          else await route.abort('failed');
         } finally {
           settle();
         }
@@ -331,7 +349,12 @@ try {
     dialog = page.getByRole('dialog', { name: 'Review a CSV statement', exact: true });
     await selectFile();
     await dialog.getByRole('button', { name: 'Select valid rows', exact: true }).click();
-    await dialog.getByRole('checkbox', { name: 'Include row 3', exact: true }).uncheck();
+    await dialog
+      .getByRole('checkbox', {
+        name: width === 1280 ? 'Include row 2' : 'Include row 3',
+        exact: true,
+      })
+      .uncheck();
     await dialog.getByRole('button', { name: 'Check selected rows', exact: true }).click();
     await dialog.getByText('2 blocked duplicates', { exact: false }).waitFor();
     assert.equal(
@@ -361,6 +384,11 @@ try {
     assert.ok(isLedgerArchive(opened.headers));
     assert.ok(csv.includes("'=Synthetic formula"));
     assert.equal(csv.includes('Synthetic private note'), width === 1280);
+    if (width === 1280)
+      assert.ok(
+        opened.rows.some((r) => r[5] === 'Synthetic multiline\nmemo'),
+        'multiline description round trip',
+      );
     assert.ok(opened.rows.every((r) => r[3] === 'NGN'));
     evidence.exports.push({
       width,
@@ -368,6 +396,22 @@ try {
       sha256: createHash('sha256').update(bytes).digest('hex'),
       notes: width === 1280,
     });
+    if (width === 1440) {
+      localSql(
+        `INSERT INTO money_entries(user_id,type,flow_kind,amount,date,source,note) SELECT '${uid}','income','income',0.01,'2026-10-03','Synthetic oversized export',repeat('x',4000) FROM generate_series(1,1100)`,
+      );
+      const beforeExport = count('money_entries');
+      const tooLarge = await page.request.get(
+        origin + '/api/wealth/csv/export?from=2026-10-01&to=2026-10-31&notes=true',
+      );
+      assert.equal(tooLarge.status(), 503);
+      assert.ok(tooLarge.headers()['content-type'].startsWith('application/json'));
+      assert.equal(tooLarge.headers()['content-disposition'], undefined);
+      assert.equal(count('money_entries'), beforeExport);
+      evidence.checks.push(
+        'Oversized CSV response fails before attachment bytes; no truncation or export-side writes',
+      );
+    }
     if (width === 375) {
       await section.getByRole('button', { name: 'Import CSV', exact: true }).click();
       dialog = page.getByRole('dialog', { name: 'Review a CSV statement', exact: true });

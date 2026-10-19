@@ -2,7 +2,13 @@ import { z } from 'zod';
 import { dayKeySchema } from '../daily-records';
 import { budgetCategorySchema, limitSchema, exactAmountSchema } from '../budgets';
 import { decimal, kobo } from '../budget-money';
-export const CSV_LIMITS = { bytes: 1048576, rows: 500, columns: 40, field: 2000 } as const;
+export const CSV_LIMITS = {
+  bytes: 1048576,
+  exportBytes: 4194304,
+  rows: 500,
+  columns: 40,
+  field: 2000,
+} as const;
 export const delimiters = [',', ';', '\t', '|'] as const;
 export type Delimiter = (typeof delimiters)[number];
 export type Mapping = Partial<
@@ -126,7 +132,10 @@ export function parseCsv(
   delimiter: Delimiter,
   purpose: 'import' | 'archive' = 'import',
 ): { headers: string[]; rows: string[][] } {
-  if (new TextEncoder().encode(text).length > (purpose === 'archive' ? 16777216 : CSV_LIMITS.bytes))
+  if (
+    new TextEncoder().encode(text).length >
+    (purpose === 'archive' ? CSV_LIMITS.exportBytes : CSV_LIMITS.bytes)
+  )
     throw Error('CSV exceeds 1 MiB. Split the statement before importing.');
   text = text.replace(/^\uFEFF/, '');
   if (!text.trim()) throw Error('Choose a CSV with a header and transactions.');
@@ -348,7 +357,8 @@ export function mappedRow(
 // All untrusted text, including leading control/format characters, is neutralized.
 export function csvCell(value: string, untrusted = true) {
   let s = value;
-  if (untrusted && (/^[\s\p{Cf}]*[=+\-@]/u.test(s) || /^[\t\r\n]/.test(s))) s = "'" + s;
+  if (untrusted && (/^[\s\p{Cc}\p{Cf}]*[=+\-@]/u.test(s) || /^[\p{Cc}\p{Cf}]/u.test(s)))
+    s = "'" + s;
   return '"' + s.replaceAll('"', '""') + '"';
 }
 export const exportQuerySchema = z
