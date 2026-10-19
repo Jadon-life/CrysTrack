@@ -84,8 +84,12 @@ try {
   server = spawn(
     process.execPath,
     ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)],
-    { cwd: ROOT, env, stdio: 'ignore' },
+    { cwd: ROOT, env, stdio: ['ignore', 'ignore', 'pipe'] },
   );
+  server.stderr.on('data', (chunk) => {
+    for (const line of String(chunk).split('\n'))
+      if (line.startsWith('Statement operation not confirmed')) console.log(line);
+  });
   let ready = false;
   for (let i = 0; i < 100; i++) {
     try {
@@ -156,6 +160,10 @@ try {
     );
     page = await context.newPage();
     page.on('pageerror', (e) => evidence.browserErrors.push(e.message));
+    page.on('response', (r) => {
+      if (r.url().includes('/api/wealth/csv/review'))
+        console.log('Review boundary', r.status(), new URL(r.url()).origin);
+    });
     await page.clock.setSystemTime(new Date('2026-10-19T12:00Z'));
     await page.goto(origin + '/auth');
     await page.locator('input[type=email]').fill(email);
@@ -206,8 +214,9 @@ try {
       await dialog.getByRole('checkbox', { name: /Keep this intended transaction/ }).check();
       await dialog.getByRole('button', { name: 'Check selected rows', exact: true }).click();
       await dialog
-        .getByRole('heading', { name: 'Authoritative duplicate review', exact: true })
-        .waitFor();
+        .getByText('Review changed. Check selected rows again before confirming.', { exact: true })
+        .waitFor({ state: 'hidden' });
+      await dialog.getByRole('button', { name: 'Check selected rows', exact: true }).waitFor();
     }
     await reviewSelected();
     assert.equal(count('money_entries'), '2');
@@ -227,6 +236,20 @@ try {
       };
     });
     assert.deepEqual(a11y.violations, []);
+    for (const b of await dialog.getByRole('button').all()) {
+      const box = await b.boundingBox();
+      assert.ok(box && box.width >= 40 && box.height >= 40, '40px control at ' + width);
+    }
+    if (width === 375 || width === 1440) {
+      await dialog
+        .getByRole('article', { name: 'Statement row 1', exact: true })
+        .scrollIntoViewIfNeeded();
+      await page.screenshot({ path: output + '/transactions-' + width + '.png', fullPage: false });
+      await dialog
+        .getByRole('heading', { name: 'Authoritative duplicate review', exact: true })
+        .scrollIntoViewIfNeeded();
+      await page.screenshot({ path: output + '/confirmation-' + width + '.png', fullPage: false });
+    }
     evidence.accessibility.push({ width, ...a11y });
     assert.ok(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1));
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -246,7 +269,7 @@ try {
     let captured = null,
       settle;
     const settled = new Promise((r) => (settle = r));
-    if (width === 430 || width === 1440) {
+    if (width === 430 || width === 768 || width === 1440) {
       await page.route('**/api/wealth/csv/imports', async (route) => {
         if (route.request().method() !== 'POST') return route.continue();
         captured = route.request().postDataJSON();
@@ -260,7 +283,7 @@ try {
       });
     }
     await dialog.getByRole('button', { name: 'Confirm import', exact: true }).click();
-    if (width === 430 || width === 1440) {
+    if (width === 430 || width === 768 || width === 1440) {
       await settled;
       await page.unroute('**/api/wealth/csv/imports');
       await dialog.getByRole('button', { name: 'Retry exact import', exact: true }).waitFor();
@@ -357,6 +380,24 @@ try {
       await dialog.getByLabel('Date convention', { exact: true }).selectOption('dmy');
       await dialog.getByRole('button', { name: 'Select valid rows', exact: true }).click();
       assert.match(await dialog.getByRole('status').textContent(), /2 chosen/);
+      await dialog.getByRole('button', { name: 'Cancel import', exact: true }).click();
+      assert.equal(count('money_entries'), '4');
+    }
+    if (width === 375) {
+      await section.getByRole('button', { name: 'Import CSV', exact: true }).click();
+      dialog = page.getByRole('dialog', { name: 'Review a CSV statement', exact: true });
+      await selectFile('synthetic-rejected-rows.csv');
+      assert.match(await dialog.getByRole('status').first().textContent(), /0 valid/);
+      await dialog.getByRole('button', { name: 'Select valid rows', exact: true }).click();
+      assert.equal(
+        await dialog.getByRole('button', { name: 'Check selected rows', exact: true }).isDisabled(),
+        true,
+      );
+      await dialog.getByLabel('Map currency', { exact: true }).selectOption('');
+      assert.equal(
+        await dialog.getByRole('button', { name: 'Select valid rows', exact: true }).isDisabled(),
+        true,
+      );
       await dialog.getByRole('button', { name: 'Cancel import', exact: true }).click();
       assert.equal(count('money_entries'), '4');
     }

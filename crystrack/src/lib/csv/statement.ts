@@ -216,7 +216,7 @@ export function suggestMapping(headers: string[]): Mapping {
     debit: /^(debit|debits|withdrawal)$/,
     credit: /^(credit|credits|deposit)$/,
     type: /^(type|flow_kind|flow kind|direction)$/,
-    currency: /^currency$/,
+    currency: /^(currency|ccy|transaction currency)$/,
     category: /^category$/,
     reference: /^(reference|transaction id|transaction reference)$/,
     account: /^(account|account\/source|account name)$/,
@@ -258,6 +258,20 @@ export function moneyCell(raw: string, allowZero = false): { amount: string; neg
     throw Error('Use a positive amount below ₦10 billion; negative zero is not supported.');
   return { amount: decimal(n), negative };
 }
+export function observedCurrency(cells: string[], headers: string[], map: Mapping) {
+  const known = headers
+    .flatMap((h, i) =>
+      /^(currency|ccy|transaction currency)$/i.test(h.trim())
+        ? [cells[i].trim().toUpperCase()]
+        : [],
+    )
+    .filter(Boolean);
+  return (
+    known.find((c) => c !== 'NGN') ||
+    (map.currency === undefined ? '' : cells[map.currency].trim().toUpperCase()) ||
+    'NGN'
+  );
+}
 export function mappedRow(
   cells: string[],
   headers: string[],
@@ -272,6 +286,11 @@ export function mappedRow(
       ? ['date', 'description', 'amount']
       : ['date', 'description', 'debit', 'credit'];
   if (required.some((k) => map[k] === undefined)) throw Error('Map all required columns.');
+  if (
+    headers.some((h) => /^(currency|ccy|transaction currency)$/i.test(h.trim())) &&
+    map.currency === undefined
+  )
+    throw Error('Map the statement currency column.');
   const chosen = Object.values(map).filter((v) => v !== undefined);
   if (new Set(chosen).size !== chosen.length)
     throw Error('Map each selected column to one role only.');
@@ -319,7 +338,7 @@ export function mappedRow(
     description: get('description'),
     amount,
     type,
-    currency: get('currency').toUpperCase() || 'NGN',
+    currency: observedCurrency(cells, headers, map),
     category: get('category') || 'Other',
     reference: get('reference') || null,
     account: get('account') || null,

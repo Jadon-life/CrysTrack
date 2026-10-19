@@ -14,6 +14,7 @@ import {
   detectDelimiter,
   suggestMapping,
   mappedRow,
+  observedCurrency,
   csvRowSchema,
   csvContextSchema,
   csvReviewRequestSchema,
@@ -315,6 +316,7 @@ function ImportDialog({
     [fileHash, setFileHash] = useState(''),
     [drafts, setDrafts] = useState<Draft[]>([]),
     [review, setReview] = useState<CsvReview | null>(null),
+    [reviewStale, setReviewStale] = useState(false),
     [error, setError] = useState(''),
     [working, setWorking] = useState(false),
     [intent, setIntent] = useState<Intent | null>(null),
@@ -352,6 +354,8 @@ function ImportDialog({
     parsed &&
     map.date !== undefined &&
     map.description !== undefined &&
+    (!parsed.headers.some((h) => /^(currency|ccy|transaction currency)$/i.test(h.trim())) ||
+      map.currency !== undefined) &&
     (mode === 'signed'
       ? map.amount !== undefined
       : map.debit !== undefined && map.credit !== undefined) &&
@@ -370,6 +374,7 @@ function ImportDialog({
   function invalidate() {
     generation.current++;
     setReview(null);
+    setReviewStale(false);
     setConfirmed(false);
     setError('');
   }
@@ -399,7 +404,7 @@ function ImportDialog({
               type:
                 get('type') ||
                 (kind === 'split' && get('credit') && !get('debit') ? 'income' : 'expense'),
-              currency: get('currency').toUpperCase() || 'NGN',
+              currency: observedCurrency(cells, p.headers, m),
               category: get('category') || 'Other',
               reference: get('reference') || null,
               account: get('account') || null,
@@ -464,6 +469,7 @@ function ImportDialog({
   async function check() {
     if (!eligible || frozen) return;
     const gen = generation.current;
+    setReviewStale(true);
     setWorking(true);
     setError('');
     try {
@@ -480,7 +486,10 @@ function ImportDialog({
       });
       if (!r.ok) throw Error();
       const v = csvReviewSchema.parse(await r.json());
-      if (alive.current && generation.current === gen) setReview(v);
+      if (alive.current && generation.current === gen) {
+        setReview(v);
+        setReviewStale(false);
+      }
     } catch {
       if (alive.current && generation.current === gen)
         setError(
@@ -519,6 +528,7 @@ function ImportDialog({
   }
   const canConfirm =
     review &&
+    !reviewStale &&
     eligible &&
     confirmed &&
     !review.rows.some(
@@ -545,7 +555,7 @@ function ImportDialog({
             if (working) e.preventDefault();
           }}
           onInteractOutside={(e) => e.preventDefault()}
-          className="fixed left-1/2 top-[4dvh] z-[71] flex max-h-[92dvh] w-[calc(100vw_-_1rem)] max-w-[1400px] -translate-x-1/2 flex-col overflow-y-auto rounded-2xl border border-white/25 bg-slate-950/95 p-4 text-white shadow-xl sm:p-6"
+          className="fixed left-1/2 top-[4dvh] z-[71] flex max-h-[92dvh] w-[calc(100vw_-_1rem)] max-w-[1400px] -translate-x-1/2 flex-col overflow-y-auto [&_button]:min-h-10 [&_button]:shrink-0 rounded-2xl border border-white/25 bg-slate-950/95 p-4 text-white shadow-xl sm:p-6"
         >
           <Dialog.Title className="text-xl font-semibold">Review a CSV statement</Dialog.Title>
           <Dialog.Description className="mt-2 text-sm text-slate-200">
@@ -910,7 +920,24 @@ function ImportDialog({
                                     type="checkbox"
                                     className="h-5 w-5"
                                     checked={Boolean(d.data.keepDuplicate)}
-                                    onChange={(e) => edit(i, 'keepDuplicate', e.target.checked)}
+                                    onChange={(e) => {
+                                      generation.current++;
+                                      setConfirmed(false);
+                                      setReviewStale(true);
+                                      setDrafts((ds) =>
+                                        ds.map((x, j) =>
+                                          j === i
+                                            ? {
+                                                ...x,
+                                                data: {
+                                                  ...x.data,
+                                                  keepDuplicate: e.target.checked,
+                                                },
+                                              }
+                                            : x,
+                                        ),
+                                      );
+                                    }}
                                   />
                                   Keep this intended transaction despite the warning; check selected
                                   rows again
@@ -951,6 +978,11 @@ function ImportDialog({
                   {review && (
                     <div className="mt-4 rounded-xl border border-cyan-200/30 bg-slate-950/95 p-4">
                       <h3 className="font-semibold">Authoritative duplicate review</h3>
+                      {reviewStale && (
+                        <p role="status" className="mt-2 text-sm text-amber-100">
+                          Review changed. Check selected rows again before confirming.
+                        </p>
+                      )}
                       <p className="mt-2 tabular-nums text-sm">
                         {review.rows.length} chosen ·{' '}
                         {review.rows.filter((r) => r.duplicate).length} blocked duplicates ·{' '}

@@ -31,7 +31,16 @@ export async function boundedJson(request: Request) {
   if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))
     throw new z.ZodError([]);
   const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin) throw new z.ZodError([]);
+  // Next's internal Request URL may use localhost behind its server/proxy.
+  // Host is the browser's actual authority; never trust an arbitrary forwarded-host.
+  const internal = new URL(request.url);
+  const forwardedProtocol = request.headers.get('x-forwarded-proto');
+  const protocol =
+    forwardedProtocol === 'https' || forwardedProtocol === 'http'
+      ? forwardedProtocol + ':'
+      : internal.protocol;
+  const expected = new URL(protocol + '//' + (request.headers.get('host') || internal.host)).origin;
+  if (origin && origin !== expected) throw new z.ZodError([]);
   if (Number(request.headers.get('content-length') || 0) > 1048576) throw new z.ZodError([]);
   const reader = request.body?.getReader();
   if (!reader) throw new SyntaxError('Missing body');

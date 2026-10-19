@@ -30,6 +30,7 @@ const {
   detectDelimiter,
   suggestMapping,
   mappedRow,
+  observedCurrency,
   dateCell,
   moneyCell,
   csvCell,
@@ -193,6 +194,20 @@ test('bounded authenticated-write JSON reader caps streamed bytes, rejects wrong
       body,
     });
   assert.deepEqual(await boundedJson(request('{"confirmed":true}')), { confirmed: true });
+  assert.deepEqual(
+    await boundedJson(
+      new Request('http://localhost/api/wealth/csv/imports', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          host: '127.0.0.1:3456',
+          origin: 'http://127.0.0.1:3456',
+        },
+        body: '{}',
+      }),
+    ),
+    {},
+  );
   for (const r of [
     request('{}', { origin: 'https://untrusted.example.invalid' }),
     request('{}', { 'content-type': 'text/plain' }),
@@ -200,4 +215,16 @@ test('bounded authenticated-write JSON reader caps streamed bytes, rejects wrong
     request(new Uint8Array([0xff, 0xfe, 0x7b, 0x7d])),
   ])
     await assert.rejects(() => boundedJson(r));
+});
+
+test('known foreign currency cannot be hidden by unmapping its column or treated as NGN during correction', () => {
+  const p = parseCsv(
+      'Date,Description,Amount,Currency\n2026-10-01,Synthetic foreign,20.01,USD',
+      ',',
+    ),
+    m = suggestMapping(p.headers);
+  assert.throws(() => mappedRow(p.rows[0], p.headers, m, 'signed', 'iso', 1));
+  delete m.currency;
+  assert.throws(() => mappedRow(p.rows[0], p.headers, m, 'signed', 'iso', 1));
+  assert.equal(observedCurrency(p.rows[0], p.headers, m), 'USD');
 });
