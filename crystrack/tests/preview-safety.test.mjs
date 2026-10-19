@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 import ts from 'typescript';
 import {createRequire} from 'node:module';
 import {apiWriterInventory} from '../scripts/preview-write-audit.mjs';
@@ -8,7 +9,7 @@ const require=createRequire(import.meta.url);
 function load(file,{env={},deps={},browser=false}={}) {
  const compiledModule={exports:{}};
  const source=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
- const customRequire=name=>name in deps ? deps[name] : require(name);
+ const customRequire=name=>name in deps ? deps[name] : name.startsWith('.') ? load(path.resolve(path.dirname(file),name+'.ts'),{env,browser}) : require(name);
  new Function('require','module','exports','process','window',source)(customRequire,compiledModule,compiledModule.exports,{env},browser?{}:undefined);
  return compiledModule.exports;
 }

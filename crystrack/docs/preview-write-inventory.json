@@ -201,6 +201,14 @@
     ]
   },
   {
+    "file": "src/app/api/wealth/budgets/route.ts",
+    "methods": [
+      "POST",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
     "file": "src/app/api/wealth/debts/route.ts",
     "methods": [
       "POST",

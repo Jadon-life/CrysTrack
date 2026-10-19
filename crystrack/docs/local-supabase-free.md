@@ -228,3 +228,27 @@ Run existing `test-assignments.mjs`, `test-today-streak.mjs` and
 sandbox clock. `npm run test:preview` rebuilds the artifact for synthetic mode;
 rebuild normal mode before running normal-mode browser scripts. Never run
 `npm ci` concurrently with build/test commands.
+
+
+## Piece 6A budget candidate (Issue #29)
+
+The explicit bootstrap now includes `0018_wealth_monthly_budgets.sql` after 0017:
+**twelve** files, 0000–0005 and 0013–0018. This adds only owner-scoped budget
+limits, private retry receipts and isolated budget functions. No ledger data or
+reward/source trigger changes. Hosted history/compatibility/numbering remain
+UNKNOWN; Issue #18 remains the release gate. Do not apply this candidate remotely.
+
+`npm run test:local:db` includes exact monthly aggregate, saved-zone/DST, 2,001+
+entries, classification, table constraints, RLS/ACL, concurrency and immutable
+finance/reward/daily-state comparisons. Tests retain synthetic immutable daily
+facts/users until the next guarded local reset and clean their financial fixture
+rows; do not delete protected history or weaken guards to clean test accounts.
+
+After a sanitized normal build, run `node scripts/test-budgets.mjs` for signed-in
+Chromium with synthetic local accounts and a fictional indicative FX quote. It
+accepts no URL/database arguments. External browser traffic is blocked before
+transport. Screenshots and sanitized evidence go to ignored `.preview-test/budgets/`.
+Run it separately from all other DB/browser suites, which share private sandbox
+clocks. Preview testing rebuilds a separate artifact; rebuild normal mode before
+running signed-in workflows. The existing free setup and secret requirements are
+unchanged.

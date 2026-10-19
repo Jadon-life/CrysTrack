@@ -1,4 +1,5 @@
 /** Bundled fictional DTOs. No SDK, environment credentials, database, clock, or outbound calls. */
+import { EXPERIENCE_CONFIG } from '../../config/experience';
 export const DEMO_DAY = '2026-09-28';
 export const DEMO_USER = {
   id:'00000000-0000-4000-8000-000000000011', email:'demo@example.invalid',
@@ -33,6 +34,7 @@ export function demoRead(pathname: string, search = new URLSearchParams()): unkn
   if (pathname === '/api/crystals') return {enabled:false,revision:1,total:'0',pendingMoment:false};
   if (pathname === '/api/profile') return profile;
   if (pathname === '/api/preferences') return preferences;
+  if (pathname === '/api/wealth/budgets') return {month:'2026-09-01',currentMonth:'2026-09-01',minimum:'2025-09-01',timezone:'Africa/Lagos',currency:'NGN',startsAt:'2026-08-31T23:00:00Z',endsAt:'2026-09-30T23:00:00Z',items:EXPERIENCE_CONFIG.wealth.categories.map(category=>({category,id:null,revision:0,active:false,limit:null,spent:'0.00',entryCount:0,left:null,percentUsed:null,createdAt:null,updatedAt:null,removedAt:null}))};
   if (pathname === '/api/tasks/week') {
     const dates=['2026-09-27','2026-09-28','2026-09-29','2026-09-30','2026-10-01','2026-10-02','2026-10-03'];
     return {context,from:dates[0],to:dates[6],minimum:dates[0],maximum:dates[0],revision:'00000000000000000000000000000000',nextCursor:null,

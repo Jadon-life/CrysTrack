@@ -303,3 +303,25 @@ export const assignmentIdentities = pgSchema('crystrack_assignments').table('ide
   userId: uuid('user_id').notNull(),
 });
 export type AssignmentIdentity = typeof assignmentIdentities.$inferSelect;
+
+// Piece 6A local-only candidate: canonical NGN limits, owner SELECT/RPC writes.
+export const wealthMonthlyBudgets = pgTable('wealth_monthly_budgets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  month: date('month').notNull(),
+  category: text('category').notNull(),
+  currency: text('currency').notNull().default('NGN'),
+  limitAmount: decimal('limit_amount', { precision: 12, scale: 2 }).notNull(),
+  active: boolean('active').notNull().default(true),
+  revision: integer('revision').notNull().default(1),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  removedAt: timestamp('removed_at', { withTimezone: true }),
+}, t => ({ ownerMonthCategory: uniqueIndex('wealth_budget_owner_month_category_idx').on(t.userId,t.month,t.category) }));
+export const wealthBudgetRequests = pgSchema('crystrack_budgets').table('requests', {
+  userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(),
+  payload: jsonb('payload').notNull(), result: jsonb('result').notNull(),
+  createdAt: timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
+}, t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export type WealthMonthlyBudget = typeof wealthMonthlyBudgets.$inferSelect;
+export type WealthBudgetRequest = typeof wealthBudgetRequests.$inferSelect;
