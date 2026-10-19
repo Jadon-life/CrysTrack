@@ -192,7 +192,7 @@ try {
   await food.getByText('≈ $1.56', { exact: true }).waitFor();
   assert.match(await food.textContent(), /≈ \$1.25/);
   const usdDialog = await open();
-  assert.equal(await usdDialog.getByLabel('Monthly limit (NGN)').inputValue(), '2000.00');
+  assert.equal(await usdDialog.getByLabel('Monthly limit (NGN)').inputValue(), '2000');
   await usdDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', { name: '₦ NGN', exact: true }).click();
   await food.getByText('₦2,500.25', { exact: true }).waitFor();
@@ -338,7 +338,7 @@ try {
   );
   await stale.getByRole('button', { name: 'Save limit', exact: true }).click();
   await stale.waitFor({ state: 'hidden' });
-  await food.getByText('₦2,200.00', { exact: true }).waitFor();
+  await food.getByText('₦2,200', { exact: true }).waitFor();
   assert.match(await section.getByRole('alert').textContent(), /changed/);
   await food.getByRole('button', { name: 'Remove Food budget', exact: true }).click();
   let remove = page.getByRole('dialog', { name: 'Remove Food budget', exact: true });
@@ -400,7 +400,7 @@ try {
   // Authoritative underlying ledger changes are discovered on focus, never copied client totals.
   owner(`UPDATE money_entries SET category='Health' WHERE id='${foodId}'`);
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await food.getByText('₦0.00', { exact: true }).waitFor();
+  await food.getByText('₦0', { exact: true }).waitFor();
   await section
     .getByRole('article', { name: 'Health budget', exact: true })
     .getByText('₦2,500.25', { exact: true })

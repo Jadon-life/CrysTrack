@@ -23,7 +23,7 @@ import { TodayStreak } from '@/components/dashboard/today-streak';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
 import { fetcher, post } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { MoneyAmount } from '@/components/wealth/money-amount';
 import {
   dayInTimezone,
   dueSoonAssignments,
@@ -285,7 +285,7 @@ export default function DashboardPage() {
     {
       href: '/finance',
       label: 'Savings logged',
-      value: formatCurrency(totalSavings),
+      value: <MoneyAmount amount={totalSavings} inspect={false} />,
       note: 'from recorded saving entries',
       icon: CircleDollarSign,
       tone: 'text-sky-300',
@@ -537,21 +537,21 @@ export default function DashboardPage() {
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                 <p className="text-xs text-[var(--theme-text-muted)]">Available</p>
                 <p className="wealth-number text-sm font-semibold text-emerald-300 mt-1">
-                  {formatCurrency(Number(wealthSummary.availableBalance || 0))}
+                  <MoneyAmount amount={wealthSummary.availableBalance || 0} />
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                 <p className="text-xs text-[var(--theme-text-muted)]">Safe to spend</p>
                 <p className="wealth-number text-sm font-semibold text-amber-300 mt-1">
-                  {formatCurrency(Number(wealthSummary.safeToSpend || 0))}
+                  <MoneyAmount amount={wealthSummary.safeToSpend || 0} />
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                 <p className="text-xs text-[var(--theme-text-muted)]">Net position</p>
                 <p className="wealth-number text-sm font-semibold text-sky-300 mt-1">
-                  {formatCurrency(Number(wealthSummary.netPosition || 0))}
+                  <MoneyAmount amount={wealthSummary.netPosition || 0} />
                 </p>
               </div>
             </div>

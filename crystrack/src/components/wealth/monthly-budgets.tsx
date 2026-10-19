@@ -14,8 +14,9 @@ import {
   type CategoryBudget,
   type BudgetSet,
 } from '@/lib/budgets';
-import { budgetSignal, exactMoney, indicativeUsd, progressWidth } from '@/lib/budget-money';
+import { budgetSignal, progressWidth } from '@/lib/budget-money';
 import { latestDailyRead, nextDailyBoundary } from '@/lib/today-streak';
+import { moneyPresentation, editableMoney, manualMoneyHint } from '@/lib/money-presentation';
 import type { ExchangeRateSnapshot } from '@/lib/wealth';
 const inputClass =
   'min-h-10 w-full rounded-xl border border-white/25 bg-slate-950/80 px-3 py-2 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200';
@@ -138,11 +139,7 @@ function OwnedBudgets({
     const timer = setTimeout(reload, nextDailyBoundary(view.timezone));
     return () => clearTimeout(timer);
   }, [view, reload]);
-  const money = (value: string) => {
-    if (currency === 'NGN') return exactMoney(value);
-    const usd = indicativeUsd(value, rate?.usdNgn);
-    return usd === null ? `${exactMoney(value)} · USD unavailable` : `≈ ${exactMoney(usd, 'USD')}`;
-  };
+  const money = (value: string) => moneyPresentation(value, currency, rate?.usdNgn).text;
   const close = () => {
     if (locked.current) return;
     setEditor(null);
@@ -414,7 +411,7 @@ function OwnedBudgets({
                           restoreFocus.current = e.currentTarget;
                           setEditorContext({ month: view.month, timezone: view.timezone });
                           setEditor(b);
-                          setLimit(b.limit ?? '');
+                          setLimit(b.limit === null ? '' : editableMoney(b.limit));
                           setRemoving(false);
                           setWriteError('');
                         }}
@@ -497,7 +494,7 @@ function OwnedBudgets({
                       aria-describedby="budget-limit-help"
                     />
                     <span id="budget-limit-help" className="mt-1 block text-xs text-slate-200">
-                      Positive amount, up to two decimal places. Applies to the whole month.
+                      {manualMoneyHint} Applies to the whole month.
                     </span>
                   </label>
                 )}
