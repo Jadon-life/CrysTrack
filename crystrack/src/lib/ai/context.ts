@@ -403,14 +403,32 @@ async function assignmentsContext(supabase: any, userId: string) {
 }
 
 async function wealthContext(supabase: any, userId: string) {
- const r=await readWealthReport(supabase,userId);
- return {ledger_rows_processed:r.reporting.ledgerCount,ledger_truncated_for_safety:false,
- reporting:r.reporting,accounting_summary:r.summary,monthly_ledger:r.cashflow,
- recent_transactions:r.entries.map(e=>({date:localDay(e.date,r.reporting.timezone),kind:e.flow_kind||e.type,amount_ngn:e.amount,category:cleanText(e.category,80)||'Other'})),
- savings_targets:r.targets.slice(0,30).map(t=>({title:cleanText(t.title),target_amount_ngn:t.target_amount,current_amount_ngn:t.current_amount,deadline:t.deadline,status:t.status})),
- debts:r.debts.slice(0,50).map(d=>({kind:d.kind,original_amount_ngn:d.original_amount,outstanding_amount_ngn:d.outstanding_amount,due_date:d.due_date,status:d.status})),
- expected_flows:r.expectedFlows.slice(0,60).map(f=>({direction:f.direction,amount_min_ngn:f.amount_min,amount_max_ngn:f.amount_max,frequency:f.frequency,expected_on:f.expected_on,status:f.status,last_confirmed_at:f.last_confirmed_at})),
- privacy_note:'Identity, credentials, transaction notes and debt counterparties are excluded. Complete owner-scoped accounting aggregates; money is exact NGN decimal text. Six monthly chart buckets and up to fourteen recent dates/kinds/amounts/categories are shown. Side item previews are bounded; their financial aggregates are complete. No transaction descriptions, notes, references, accounts, credentials or counterparties.'};
+  const r = await readWealthReport(supabase, userId);
+  return {
+    ledger_rows_processed: r.reporting.ledgerCount,
+    ledger_truncated_for_safety: false,
+    reporting: r.reporting,
+    accounting_summary: r.summary,
+    monthly_ledger: r.cashflow,
+    recent_transactions: r.entries.map(e => ({
+      date: localDay(e.date, r.reporting.timezone), kind: e.flow_kind || e.type,
+      amount_ngn: e.amount, category: cleanText(e.category, 80) || 'Other',
+    })),
+    savings_targets: r.targets.slice(0, 30).map(t => ({
+      title: cleanText(t.title), target_amount_ngn: t.target_amount,
+      current_amount_ngn: t.current_amount, deadline: t.deadline, status: t.status,
+    })),
+    debts: r.debts.slice(0, 50).map(d => ({
+      kind: d.kind, original_amount_ngn: d.original_amount,
+      outstanding_amount_ngn: d.outstanding_amount, due_date: d.due_date, status: d.status,
+    })),
+    expected_flows: r.expectedFlows.slice(0, 60).map(f => ({
+      direction: f.direction, amount_min_ngn: f.amount_min, amount_max_ngn: f.amount_max,
+      frequency: f.frequency, expected_on: f.expected_on, status: f.status,
+      last_confirmed_at: f.last_confirmed_at,
+    })),
+    privacy_note: 'Identity, credentials, transaction notes and debt counterparties are excluded. Complete owner-scoped accounting aggregates; money is exact NGN decimal text. Six monthly chart buckets and up to fourteen recent dates/kinds/amounts/categories are shown. Side item previews are bounded; their financial aggregates are complete. No transaction descriptions, notes, references, accounts, credentials or counterparties.',
+  };
 }
 
 export async function buildIntelligenceContext(supabase: any, userId: string, domain: IntelligenceDomain) {
@@ -477,8 +495,11 @@ export async function buildIntelligenceContext(supabase: any, userId: string, do
   }
 
   if (domain === 'wealth') {
-    const wealth=await wealthContext(supabase,userId);
-    return {...base,timezone:wealth.reporting.timezone,as_of_date:wealth.reporting.today,wealth};
+    const wealth = await wealthContext(supabase, userId);
+    return {
+      ...base, timezone: wealth.reporting.timezone, as_of_date: wealth.reporting.today,
+      as_of_weekday: new Date(wealth.reporting.today + 'T12:00:00Z').getUTCDay(), wealth,
+    };
   }
 
   const [

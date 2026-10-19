@@ -290,7 +290,7 @@ try {
     assert.equal(budgets.items.find((b) => b.category === 'Food').spent, '2500.75');
     await page
       .getByTestId('wealth-report-status')
-      .filter({hasText:'All 2009 recorded transactions'})
+      .filter({ hasText: 'All 2009 recorded transactions' })
       .waitFor();
 
     await page.getByText('Synthetic whole income', { exact: true }).waitFor();
@@ -325,14 +325,19 @@ try {
     await detail.waitFor({ state: 'hidden' });
     assert.equal(await inspect.evaluate((n) => n === document.activeElement), true);
     const summaryAxe = await page.evaluate(async () => {
-      const r = await window.axe.run('[data-money-presentation]', {
-        runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
-      });
+      const r = await window.axe.run(
+        '[data-money-presentation], [data-testid="wealth-report-status"]',
+        {
+          runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+        },
+      );
       return r.violations.map((v) => ({ id: v.id, impact: v.impact }));
     });
     assert.deepEqual(summaryAxe, []);
     const box = await inspect.boundingBox();
     assert.ok(box.height >= 40);
+    // A Lagos midnight CSV record must not display September 30 in a New York browser.
+    await page.getByText('Food · Thu, Oct 1', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'Money entry', exact: true }).click();
     const amount = page.getByLabel('Amount (NGN)', { exact: true });
     await amount.waitFor();
@@ -431,7 +436,7 @@ try {
       await page.evaluate(() => window.dispatchEvent(new Event('focus')));
       await page
         .getByTestId('wealth-report-status')
-        .filter({hasText:'2026-11 · America/New_York'})
+        .filter({ hasText: '2026-11 · America/New_York' })
         .waitFor();
       const ny = await (await page.request.get(origin + '/api/wealth')).json();
       assert.equal(ny.summary.monthExpenses, '0.00');
@@ -453,7 +458,7 @@ try {
       await page.evaluate(() => window.dispatchEvent(new Event('focus')));
       await page
         .getByRole('status')
-        .filter({hasText:'Wealth is temporarily unavailable.'})
+        .filter({ hasText: 'Wealth is temporarily unavailable.' })
         .waitFor();
       assert.equal(await page.getByTestId('wealth-report-status').count(), 0);
       assert.equal(await page.getByRole('button', { name: /^Inspect/ }).count(), 0);
@@ -471,7 +476,7 @@ try {
       await page.evaluate(() => window.dispatchEvent(new Event('focus')));
       await page
         .getByRole('status')
-        .filter({hasText:'Wealth is temporarily unavailable.'})
+        .filter({ hasText: 'Wealth is temporarily unavailable.' })
         .waitFor();
       assert.equal(await page.getByTestId('wealth-report-status').count(), 0);
       await page.unroute('**/api/wealth');

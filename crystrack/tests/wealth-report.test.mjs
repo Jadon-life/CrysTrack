@@ -91,6 +91,23 @@ test('complete grouped cents and large exact totals never cross Number authority
     uid,
   );
   assert.equal(s.summary.availableBalance, '19.75');
+  // The former most-recent-2,000 authority loses six older income cents.
+  const capped = old.summarizeWealth(
+    [
+      { type: 'expense', amount: '0.30', date: '2026-10-02T12:00:00Z' },
+      ...Array.from({ length: 1999 }, () => ({
+        type: 'income',
+        amount: '0.01',
+        date: '2026-09-01T12:00:00Z',
+      })),
+    ],
+    [],
+    [],
+    new Date('2026-10-19T12:00:00Z'),
+  );
+  assert.equal(capped.availableBalance.toFixed(2), '19.69');
+  assert.notEqual(s.summary.availableBalance, capped.availableBalance.toFixed(2));
+
   assert.equal(s.reporting.ledgerCount, 2006);
   assert.equal(s.entries.length, 14);
   assert.equal(

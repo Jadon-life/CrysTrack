@@ -244,7 +244,7 @@ try {
     assert.equal(await page.getByText('+₦25,000.00', { exact: true }).count(), 0);
     await page.getByText('-₦2,500.75', { exact: true }).waitFor();
     await page.getByText('You owe ₦1,250.25', { exact: false }).waitFor();
-    const inspect = page.getByRole('button', { name: /^Inspect ≈₦17,499\./ });
+    const inspect = page.getByText('Available', { exact: true }).locator('..').getByRole('button', { name: /^Inspect ≈₦17,499\./ });
     await inspect.waitFor();
     assert.match(await inspect.getAttribute('aria-label'), /Exact NGN amount: ₦17,499.25/);
     await page.evaluate(() => window.scrollTo(0, 0));

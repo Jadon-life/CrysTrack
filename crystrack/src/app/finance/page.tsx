@@ -272,7 +272,7 @@ export default function WealthPage() {
         <Button variant={wealthView==='csv'?'primary':'ghost'} aria-pressed={wealthView==='csv'} onClick={()=>setWealthView('csv')}>CSV tools</Button>
       </div>
       {wealthView==='overview'&&!summary ? <GlassCard padding="md"><div role="status" className="text-sm text-white">{loading?'Verifying the complete ledger…':'Wealth is temporarily unavailable. Refresh to verify your balances; no records were changed.'}</div><Button className="mt-3" disabled={loading} onClick={()=>void load(false)}>Refresh Wealth</Button></GlassCard> : wealthView==='csv' ? <CsvTools onChange={load}/> : wealthView==='bills' ? <RecurringBills currency={currency} rate={rate} ledgerRevision={ledgerRevision} onChange={load}/> : wealthView==='budgets'  ? <MonthlyBudgets currency={currency} rate={rate} ledgerRevision={ledgerRevision}/> : <>
-      <p className="text-xs text-[var(--theme-text-muted)]" data-testid="wealth-report-status">All {data.reporting?.ledgerCount} recorded transactions · {data.reporting?.month} · {data.reporting?.timezone}. Saved timezone changes re-bucket history without changing records.</p>
+      <p className="w-fit rounded-lg bg-black/60 px-3 py-2 text-xs text-white" data-testid="wealth-report-status">All {data.reporting?.ledgerCount} recorded transactions · {data.reporting?.month} · {data.reporting?.timezone}. Saved timezone changes re-bucket history without changing records.</p>
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: 'Available', value: summary?.availableBalance || 0, icon: WalletCards, tone: 'text-emerald-300', note: 'Spendable cash from confirmed entries' },
@@ -488,7 +488,7 @@ export default function WealthPage() {
                   <p className="text-xs font-semibold text-white truncate">{item.counterparty}</p>
                   <p className="text-xs text-[var(--theme-text-muted)] mt-1">
                     {item.kind === 'receivable' ? 'Owes you' : 'You owe'} {money(item.outstanding_amount)}
-                    {item.due_date ? ` · ${formatDate(item.due_date)}` : ''}
+                    {item.due_date ? ` · ${formatDate(item.due_date, data.reporting.timezone)}` : ''}
                   </p>
                 </div>
                 <button type="button" onClick={() => { setRepayingDebt(item); setRepaymentAmount(editableMoney(String(item.outstanding_amount))); }} className="text-xs font-semibold text-[var(--theme-primary)]">Repay</button>
@@ -518,7 +518,7 @@ export default function WealthPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-white truncate">{item.title}</p>
-                    <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.deadline ? `Target ${formatDate(item.deadline)}` : 'No fixed deadline'}</p>
+                    <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.deadline ? `Target ${formatDate(item.deadline, data.reporting.timezone)}` : 'No fixed deadline'}</p>
                   </div>
                   <Target className="w-4 h-4 text-[var(--theme-primary)]" />
                 </div>
@@ -560,7 +560,7 @@ export default function WealthPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-white truncate">{item.source || item.category || kind.replaceAll('_', ' ')}</p>
-                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.category || 'Uncategorised'} · {formatDate(item.date)}</p>
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.category || 'Uncategorised'} · {formatDate(item.date, data.reporting.timezone)}</p>
                 </div>
                 <p className={cn('wealth-number text-xs font-semibold', positive ? 'text-emerald-300' : neutral ? 'text-white/70' : 'text-red-300')}>
                   {positive ? '+' : neutral ? '' : '-'}{money(item.amount)}
