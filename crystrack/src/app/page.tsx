@@ -634,6 +634,7 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-xs text-[var(--theme-text-muted)] mt-1">
                     {new Date(assignment.deadline).toLocaleString([], {
+                      timeZone: assignment.scheduling_timezone,
                       weekday: 'short',
                       hour: '2-digit',
                       minute: '2-digit',

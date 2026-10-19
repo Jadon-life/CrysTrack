@@ -193,3 +193,14 @@ revision conflicts and timezone-boundary conflicts through real local HTTP RPCs
 with bounded requests, followed by successful retries/undo to prove locks release.
 The original SQL-only tests remain. Hosted use requires separate review; the
 previous 0013-only cutover checklist is insufficient until 0014 is approved.
+
+## Piece 4 assignment candidate (Issue #25)
+
+The explicit local bootstrap inventory now also includes `0016_assignment_lifecycle.sql`
+after approved 0013–0015 (ten files total including six historical files). This
+candidate is for the disposable local sandbox only. Hosted numbering/compatibility
+remains UNKNOWN; no hosted release is authorized. See [the lifecycle contract](piece4-assignments.md).
+The local DB command includes assignment ownership, revisions, atomic source/event/
+reminder/reward behavior and concurrency tests. With a sanitized normal build and
+this stack running, `node scripts/test-assignments.mjs` runs the signed-in Chromium
+workflow using new synthetic identities; it accepts no URL or target arguments.

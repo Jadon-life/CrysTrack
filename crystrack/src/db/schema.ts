@@ -1,6 +1,6 @@
 import { 
   pgTable, uuid, varchar, text, timestamp, boolean, 
-  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex, foreignKey
+  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex, foreignKey, pgSchema
 } from 'drizzle-orm/pg-core';
 
 // Enums
@@ -125,10 +125,14 @@ export const assignments = pgTable('assignments', {
   status: assignmentStatusEnum('status').default('upcoming'),
   category: varchar('category', { length: 100 }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  revision: integer('revision').notNull().default(1),
+  reminderVersion: integer('reminder_version').notNull().default(1),
+  reminderConfig: jsonb('reminder_config').$type<{ enabled: boolean; channels: string[]; offsetMinutes: number[] }>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
   userIdIdx: index('assignment_user_id_idx').on(table.userId),
   deadlineIdx: index('assignment_deadline_idx').on(table.deadline),
+  ownerDeadlineIdx: index('assignment_owner_deadline_id_idx').on(table.userId, table.deadline, table.id),
 }));
 
 // Finance
@@ -292,3 +296,10 @@ export type Sep28CrystalPreference = typeof sep28CrystalPreferences.$inferSelect
 export type Sep28CrystalAward = typeof sep28CrystalAwards.$inferSelect;
 export type Sep28CrystalEvent = typeof sep28CrystalEvents.$inferSelect;
 export type Sep28CrystalMoment = typeof sep28CrystalMoments.$inferSelect;
+
+// Private owner-bound assignment identity tombstones: no application-role access.
+export const assignmentIdentities = pgSchema('crystrack_assignments').table('identities', {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id').notNull(),
+});
+export type AssignmentIdentity = typeof assignmentIdentities.$inferSelect;

@@ -39,7 +39,7 @@ const RETRY_DELAY_MS = 45 * 1000;
 
 async function reserveDelivery(
   admin: ReturnType<typeof createAdminClient>,
-  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload },
+  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload; assignmentVersion?: number; assignmentOffset?: number },
 ) {
   const { data: inserted, error: insertError } = await admin
     .from('reminder_deliveries')
@@ -117,9 +117,17 @@ async function reserveDelivery(
 
 async function deliver(
   admin: ReturnType<typeof createAdminClient>,
-  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload },
+  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload; assignmentVersion?: number; assignmentOffset?: number },
 ) {
-  const reservation = await reserveDelivery(admin, input);
+  // Assignment claims re-read and lock the live schedule in one database transaction.
+  let reservation;
+  if (input.entityType === 'assignment') {
+    const { data: claim, error } = await admin.rpc('assignment_claim_reminder', { p_id: input.entityId, p_version: input.assignmentVersion, p_offset: input.assignmentOffset });
+    if (error) { console.error('Assignment reminder claim failed', { code: error.code }); return { duplicate: false, sent: [] as string[], failed: input.channels }; }
+    if (!claim) return { duplicate: true, sent: [] as string[], failed: [] as string[] };
+    input = { ...input, userId: claim.userId, payload: claim.payload, deliveryKey: claim.deliveryKey };
+    reservation = { duplicate: false, id: claim.id as string, priorSent: claim.priorSent as string[], channelsToAttempt: claim.channelsToAttempt as string[] };
+  } else reservation = await reserveDelivery(admin, input);
   if (reservation.duplicate || !reservation.id) {
     return { duplicate: true, sent: reservation.priorSent, failed: [] as string[] };
   }
@@ -206,6 +214,12 @@ async function deliver(
   const requestedSatisfied = input.channels.every((channel) => uniqueSent.includes(channel));
   const status = requestedSatisfied ? 'sent' : uniqueSent.length ? 'partial' : 'failed';
 
+  if (input.entityType === 'assignment') {
+    const { error } = await admin.rpc('assignment_finish_delivery', { p_delivery: reservation.id, p_sent: uniqueSent, p_failed: uniqueFailed, p_error: errors.join('; ') || null });
+    if (error) console.error('Assignment reminder result was not confirmed', { code: error.code });
+    return { duplicate: false, sent: uniqueSent, failed: uniqueFailed };
+  }
+
   await admin.from('reminder_deliveries').update({
     sent_channels: uniqueSent,
     failed_channels: uniqueFailed,
@@ -253,7 +267,7 @@ export async function POST(request: Request) {
   const now = new Date();
   const { data: profiles, error: profileError } = await admin
     .from('profiles')
-    .select('user_id, timezone, current_timezone, current_city');
+    .select('user_id, timezone, scheduling_timezone, current_timezone, current_city');
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
 
   const summary = { users: 0, attempted: 0, sent: 0, failed: 0 };
@@ -321,9 +335,11 @@ export async function POST(request: Request) {
       }
     }
 
+    const assignmentClock = localClock(now, profile.scheduling_timezone || profile.timezone || 'UTC');
+    const assignmentDnd = isWithinDnd(assignmentClock.minuteOfDay, Boolean(preferences?.dnd_enabled), preferences?.dnd_start_time, preferences?.dnd_end_time);
     const { data: assignments } = await admin
       .from('assignments')
-      .select('id, title, deadline, priority, reminder_config')
+      .select('id, title, deadline, priority, reminder_config, reminder_version')
       .eq('user_id', userId)
       .neq('status', 'completed');
 
@@ -338,14 +354,15 @@ export async function POST(request: Request) {
       for (const rawOffset of Array.isArray(config.offsetMinutes) ? config.offsetMinutes : [1440, 120, 0]) {
         const offset = Number(rawOffset);
         if (!Number.isFinite(offset) || !dueAssignmentOffset(diffMinutes, offset)) continue;
-        if (inDnd && !urgent) continue;
+        if (assignmentDnd && !urgent) continue;
         const label = offset === 0 ? 'due now' : offset >= 1440 ? `${Math.round(offset / 1440)} day${offset >= 2880 ? 's' : ''} remaining` : `${Math.round(offset / 60)} hours remaining`;
         summary.attempted += 1;
         const result = await deliver(admin, {
           userId,
           entityType: 'assignment',
           entityId: assignment.id,
-          deliveryKey: `assignment:${assignment.id}:offset:${offset}`,
+          deliveryKey: `assignment:${assignment.id}:v${assignment.reminder_version}:offset:${offset}`,
+          assignmentVersion: assignment.reminder_version, assignmentOffset: offset,
           scheduledFor: now.toISOString(),
           channels,
           payload: { title: assignment.title, body: `Assignment ${label}.`, url: '/assignments', tag: `assignment-${assignment.id}-${offset}` },

@@ -1,77 +1,67 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { assignmentError, mutateAssignment } from '@/lib/assignment-api';
+import { z } from 'zod';
 
-function computeStatus(deadline: string): string {
-  const diffMinutes = (new Date(deadline).getTime() - Date.now()) / 60_000;
-  if (diffMinutes < 0) return 'overdue';
-  if (diffMinutes < 24 * 60) return 'due_today';
-  if (diffMinutes < 3 * 24 * 60) return 'due_soon';
-  return 'upcoming';
-}
-
-function normaliseReminderConfig(value: any, priority: string) {
-  const proposed = priority === 'urgent' ? [2880, 1440, 360, 60, 0] : [1440, 120, 0];
-  const channels = Array.isArray(value?.channels)
-    ? Array.from(new Set(value.channels.filter((channel: unknown) => channel === 'push' || channel === 'telegram')))
-    : ['push'];
-  const offsets = Array.isArray(value?.offsetMinutes)
-    ? Array.from(new Set<number>(value.offsetMinutes.map(Number).filter((minutes: number) => Number.isFinite(minutes) && minutes >= 0 && minutes <= 30 * 24 * 60))).sort((a, b) => b - a)
-    : proposed;
-  return {
-    enabled: value?.enabled !== false,
-    channels: channels.length ? channels : ['push'],
-    offsetMinutes: offsets,
-  };
-}
-
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { data: assignments, error } = await supabase
-    .from('assignments')
-    .select('*')
-    .eq('user_id', user.id)
-    .neq('status', 'completed')
-    .order('deadline', { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  return NextResponse.json((assignments || []).map((assignment: any) => ({
-    ...assignment,
-    computed_status: computeStatus(assignment.deadline),
-    days_until: Math.ceil((new Date(assignment.deadline).getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
-  })));
-}
-
-export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json();
-  const title = String(body.title || '').trim();
-  const deadline = new Date(body.deadline);
-  const priority = ['low', 'medium', 'high', 'urgent'].includes(body.priority) ? body.priority : 'medium';
-  if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-  if (Number.isNaN(deadline.getTime())) return NextResponse.json({ error: 'A valid deadline is required' }, { status: 400 });
-
-  const deadlineIso = deadline.toISOString();
-  const { data: assignment, error } = await supabase
-    .from('assignments')
-    .insert({
-      user_id: user.id,
-      title,
-      description: body.description || null,
-      deadline: deadlineIso,
-      priority,
-      status: computeStatus(deadlineIso),
-      category: body.category || null,
-      reminder_config: normaliseReminderConfig(body.reminderConfig, priority),
+  const params = new URL(request.url).searchParams;
+  const paged = params.has('page');
+  const day = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((s) => !Number.isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s);
+  const parsed = z
+    .object({
+      page: z.coerce.number().int().min(0).max(10000),
+      limit: z.coerce.number().int().min(1).max(200),
+      state: z.enum([
+        'active',
+        'all',
+        'completed',
+        'overdue',
+        'due_today',
+        'due_soon',
+        'upcoming',
+        'finished_late',
+        'completed_on_time',
+        'completion_unknown',
+      ]),
+      search: z.string().max(200),
+      category: z.string().max(100),
+      priority: z.enum(['', 'low', 'medium', 'high', 'urgent']),
+      from: z.union([z.literal(''), day]),
+      to: z.union([z.literal(''), day]),
+      sort: z.enum(['asc', 'desc']),
     })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(assignment, { status: 201 });
+    .safeParse({
+      page: params.get('page') || 0,
+      limit: paged ? params.get('limit') || 30 : 200,
+      state: paged ? params.get('state') || 'active' : 'active',
+      search: params.get('search') || '',
+      category: params.get('category') || '',
+      priority: params.get('priority') || '',
+      from: params.get('from') || '',
+      to: params.get('to') || '',
+      sort: params.get('sort') || 'asc',
+    });
+  if (!parsed.success) return NextResponse.json({ error: 'Choose valid filters.' }, { status: 400 });
+  const { data, error } = await supabase.rpc('assignment_list', { p_filter: parsed.data });
+  if (error) return assignmentError(error);
+  // Preserve the established Today/Plan array contract; the academic view uses a paged envelope.
+  const activeItems = data.items.map((assignment: Record<string, unknown>) => ({
+    ...assignment,
+    scheduling_timezone: data.timezone,
+    days_until: Math.ceil((Date.parse(String(assignment.deadline)) - Date.parse(data.now)) / 86400000),
+  }));
+  return NextResponse.json(paged ? data : activeItems, {
+    headers: { 'Cache-Control': 'private, no-store', 'X-Assignments-Truncated': String(data.hasMore) },
+  });
+}
+export async function POST(request: Request) {
+  return mutateAssignment(request, 'create');
 }

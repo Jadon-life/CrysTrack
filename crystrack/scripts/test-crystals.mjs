@@ -44,7 +44,7 @@ try {
  await page.goto(origin+'/goals');await page.getByRole('button',{name:'Check in',exact:true}).click();
  const checkin=page.locator('form').filter({has:page.locator('textarea')});await checkin.locator('input[type=number]').first().fill('1');await checkin.locator('textarea').first().fill('Synthetic evidence: practiced one step.');await checkin.getByRole('button',{name:'Save',exact:true}).click();
  await page.getByRole('button',{name:'Checked in',exact:true}).waitFor();assert.equal(state().total,'30');evidence.checks.push('Real goal check-in UI +25');
- await page.goto(origin+'/assignments');await page.getByRole('checkbox',{name:'Complete Synthetic late assignment',exact:true}).click();await page.getByRole('checkbox',{name:'Complete Synthetic late assignment',exact:true}).waitFor({state:'hidden'});assert.equal(state().total,'60');evidence.checks.push('Actual late-assignment completion UI +30, no deadline block');
+ await page.goto(origin+'/assignments');await page.getByRole('button',{name:'Finish Late: Synthetic late assignment',exact:true}).click();await page.getByRole('button',{name:'Finish Late: Synthetic late assignment',exact:true}).waitFor({state:'hidden'});assert.equal(state().total,'60');evidence.checks.push('Actual late-assignment completion UI +30, no deadline block');
  await page.goto(origin+'/finance');await page.getByRole('button',{name:'Money entry',exact:true}).click();
  let expenseBody,interruptedExpense=false;
  await page.route('**/api/finance/entries',async route=>{

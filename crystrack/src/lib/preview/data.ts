@@ -35,7 +35,7 @@ export function demoRead(pathname: string, search = new URLSearchParams()): unkn
   if (pathname === '/api/preferences') return preferences;
   if (pathname === '/api/tasks') return tasks;
   if (pathname === '/api/goals') return goals;
-  if (pathname === '/api/assignments') return [];
+  if (pathname === '/api/assignments') return search.has('page') ? {items:[],hasMore:false,page:0,timezone:'Africa/Lagos',now:'2026-09-28T12:00:00Z',counts:{},week:['2026-09-28','2026-09-29','2026-09-30','2026-10-01','2026-10-02','2026-10-03','2026-10-04'].map(day=>({day,count:0}))} : [];
   if (pathname === '/api/daily-records/context') return context;
   if (pathname === '/api/daily-records') return {context,snapshots:[]};
   if (/^\/api\/daily-notes\/\d{4}-\d{2}-\d{2}$/.test(pathname)) return {day_key:DEMO_DAY,body:'',revision:0,updated_at:null};

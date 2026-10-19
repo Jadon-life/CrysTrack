@@ -108,18 +108,21 @@ test('confirmed canonical owned goal check-in grants 25; fake activity, arbitrar
  assert.throws(()=>owner(u,`UPDATE goal_checkins SET occurrence_key='daily:2026-09-22' WHERE id='${id}'`));
  owner(u,`DELETE FROM goals WHERE id='${goal}'`);assert.equal(total(u),'0');
 });
-test('assignment completion earns 30 including late; undo, repeat state, identity edit and delete are safe',()=>{
- const {u}=fixture(0),id=randomUUID();owner(u,`INSERT INTO assignments(id,user_id,title,deadline) VALUES('${id}','${u}','Synthetic late','2020-01-01')`);
- owner(u,`UPDATE assignments SET status='completed',completed_at=now() WHERE id='${id}'`);assert.equal(total(u),'30');
- owner(u,`UPDATE assignments SET status='completed',title='Edited' WHERE id='${id}'`);assert.equal(total(u),'30');
+test('assignment completion earns 30 including late; replay, denied direct edits and delete are safe',()=>{
+ const {u}=fixture(0),id=randomUUID();
+ const fields={title:'Synthetic late',deadline:'2020-01-01T00:00:00Z',priority:'medium',timezone:'Africa/Lagos',reminder_config:{enabled:false,channels:['push'],offsetMinutes:[]}};
+ const create=json(u,`assignment_mutate('create','${id}',NULL,'${JSON.stringify(fields)}')`);assert.equal(create.revision,1);
+ const done=json(u,`assignment_mutate('complete','${id}',1,'{}')`);assert.equal(total(u),'30');
+ json(u,`assignment_mutate('complete','${id}',1,'{}')`);assert.equal(total(u),'30');
+ assert.throws(()=>owner(u,`UPDATE assignments SET status='completed',title='Edited' WHERE id='${id}'`));
+ assert.throws(()=>json(u,`assignment_mutate('edit','${id}',${done.revision},'${JSON.stringify(fields)}')`));
  assert.throws(()=>owner(u,`UPDATE assignments SET id='${randomUUID()}' WHERE id='${id}'`));
- owner(u,`UPDATE assignments SET status='upcoming',completed_at=NULL WHERE id='${id}'`);assert.equal(total(u),'0');
- owner(u,`UPDATE assignments SET status='completed',completed_at=now() WHERE id='${id}'`);owner(u,`DELETE FROM assignments WHERE id='${id}'`);assert.equal(total(u),'0');
+ json(u,`assignment_mutate('delete','${id}',${done.revision},'{}')`);assert.equal(total(u),'0');
 });
 test('existing pre-feature money/completions are never awarded by metadata edits',()=>{
  const {u}=fixture(0);const id=randomUUID();
  localSql(`INSERT INTO assignments(id,user_id,title,deadline,status,completed_at) VALUES('${id}','${u}','Synthetic legacy','2020-01-01','completed',now())`);
- owner(u,`UPDATE assignments SET title='Edit' WHERE id='${id}'`);assert.equal(total(u),'0');
+ assert.throws(()=>owner(u,`UPDATE assignments SET title='Edit' WHERE id='${id}'`));localSql(`UPDATE assignments SET title='Operator metadata only' WHERE id='${id}'`);assert.equal(total(u),'0');
  const m=randomUUID();localSql(`INSERT INTO money_entries(id,user_id,type,amount) VALUES('${m}','${u}','expense',20)`);
  owner(u,`UPDATE money_entries SET note='Edit' WHERE id='${m}'`);assert.equal(total(u),'0');
 });
