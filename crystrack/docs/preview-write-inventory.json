@@ -216,6 +216,18 @@
     ]
   },
   {
+    "file": "src/app/api/wealth/csv/imports/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/wealth/csv/review/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
     "file": "src/app/api/wealth/debts/route.ts",
     "methods": [
       "POST",

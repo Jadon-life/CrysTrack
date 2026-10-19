@@ -270,3 +270,21 @@ this disposable database until the next guarded `npm run local:reset`; tests
 never disable the guard to clean up. Reset before repeating the full integration
 suite. Run normal browser regressions sequentially, then `node
 scripts/test-bills.mjs` last. Browser evidence is synthetic only.
+
+### Piece 6C candidate (Issue #31)
+
+Bootstrap now applies **fourteen** files, 0000–0005 and 0013–0020. New
+`0020_wealth_csv_statements.sql` is a disposable-local candidate only. It adds
+owner-readable import batches/row identities, private one-use entry permits,
+strict review/import/receipt/export RPCs and immutable imported-entry provenance.
+The additive 0015 trigger replacement only excludes protected CSV origins; 0015
+and 0019 source files are unchanged. All new tables enable RLS. No hosted runner,
+credential, project, Vercel setting or paid resource is needed or authorized.
+
+CSV integration tests run after bill integration tests because immutable synthetic
+ledger sources survive until the next guarded local reset. Never disable their
+guards to clean fixtures. Reset before repeating the full integration suite.
+Normal signed-in browser tests run sequentially; add `scripts/test-csv.mjs` to the
+retained workflows. All fixtures under `tests/fixtures/csv/` are fictional. No real
+bank statement is required. Existing sandbox instructions and secret handling
+remain unchanged; Issue #18 still blocks any hosted release.

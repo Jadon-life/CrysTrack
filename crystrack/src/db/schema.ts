@@ -156,6 +156,8 @@ export const moneyEntries = pgTable('money_entries', {
   type: moneyTypeEnum('type').notNull(),
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   date: timestamp('date', { withTimezone: true }).defaultNow(),
+  importBatchId: uuid('import_batch_id').references(() => wealthCsvBatches.id),
+  importRowId: uuid('import_row_id').references(() => wealthCsvRows.id),
   billId: uuid('bill_id').references(()=>wealthRecurringBills.id),
   billOccurrenceId: uuid('bill_occurrence_id').references(()=>wealthBillOccurrences.id),
   source: varchar('source', { length: 255 }),
@@ -351,3 +353,15 @@ export type WealthBillOccurrence=typeof wealthBillOccurrences.$inferSelect;
 export type BillOwnerState=typeof billOwnerStates.$inferSelect;
 export type BillMutationRequest=typeof billRequests.$inferSelect;
 export type BillEntryPermit=typeof billEntryPermits.$inferSelect;
+
+// Piece 6C local-only immutable statement batches, selected normalized rows and private permits.
+export const wealthCsvBatches = pgTable('wealth_csv_batches', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),sourceKey:text('source_key').notNull(),fileHash:text('file_hash').notNull(),payloadHash:text('payload_hash').notNull(),timezone:text('timezone').notNull(),rowCount:integer('row_count').notNull(),incomeTotal:decimal('income_total').notNull(),expenseTotal:decimal('expense_total').notNull(),createdAt:timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({owner:uniqueIndex('csv_batch_owner_identity').on(t.id,t.userId),ownerIndex:index('csv_batch_owner_idx').on(t.userId,t.id)}));
+export const wealthCsvRows = pgTable('wealth_csv_rows', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),batchId:uuid('batch_id').notNull(),sourceKey:text('source_key').notNull(),fileHash:text('file_hash').notNull(),rowNumber:integer('row_number').notNull(),referenceKey:text('reference_key'),entryId:uuid('entry_id').notNull().unique().references(():AnyPgColumn=>moneyEntries.id),reviewedRow:jsonb('reviewed_row').notNull(),
+},t=>({owner:foreignKey({columns:[t.batchId,t.userId],foreignColumns:[wealthCsvBatches.id,wealthCsvBatches.userId]}),identity:uniqueIndex('csv_file_row_unique').on(t.userId,t.sourceKey,t.fileHash,t.rowNumber),ownerIndex:index('csv_rows_owner_idx').on(t.userId,t.batchId)}));
+export const csvEntryPermits=pgSchema('crystrack_csv').table('permits',{entryId:uuid('entry_id').primaryKey(),userId:uuid('user_id').notNull(),batchId:uuid('batch_id').notNull(),rowId:uuid('row_id').notNull()});
+export type WealthCsvBatch=typeof wealthCsvBatches.$inferSelect;
+export type WealthCsvRow=typeof wealthCsvRows.$inferSelect;
+export type CsvEntryPermit=typeof csvEntryPermits.$inferSelect;
