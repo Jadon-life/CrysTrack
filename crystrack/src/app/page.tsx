@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { MiniCalendar } from '@/components/dashboard/mini-calendar';
+import { TodayStreak } from '@/components/dashboard/today-streak';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
 import { fetcher, post } from '@/lib/api';
@@ -91,6 +92,12 @@ export default function DashboardPage() {
   const { environment } = useTheme();
 
   const [loading, setLoading] = useState(true);
+  const [dailyBoundary, setDailyBoundary] = useState(0);
+  useEffect(() => {
+    const refreshDay = () => setDailyBoundary(value => value + 1);
+    window.addEventListener('crystrack-daily-boundary', refreshDay);
+    return () => window.removeEventListener('crystrack-daily-boundary', refreshDay);
+  }, []);
   const [tasks, setTasks] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -156,7 +163,7 @@ export default function DashboardPage() {
 
     void load();
     return () => { active = false; };
-  }, [environment.timezone]);
+  }, [environment.timezone, dailyBoundary]);
 
   useEffect(() => {
     if (!undoAction) return;
@@ -202,12 +209,13 @@ export default function DashboardPage() {
       } else {
         setUndoAction({ taskId: task.id, title: task.title, action, dateKey: date });
       }
-      window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (error) {
       setTasks((current) => current.map((entry) =>
         entry.id === task.id ? { ...entry, today_status: before } : entry));
       setTaskError(error instanceof Error ? error.message : 'Could not update this task. Please try again.');
     } finally {
+      // Even a failed response may have committed: verify history, never award optimistically.
+      window.dispatchEvent(new Event('crystrack-activity-updated'));
       setBusyTaskId(null);
     }
   };
@@ -440,6 +448,7 @@ export default function DashboardPage() {
         </GlassCard>
 
         <div className="xl:col-span-4 space-y-4">
+          <TodayStreak />
           <GlassCard padding="md">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-white">Goal check-ins</p>
