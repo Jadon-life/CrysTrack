@@ -23,14 +23,14 @@ test('overdue assignments remain completable for September crystal rewards', () 
   assert.match(page, /const overdue = assignment\.computed_status === 'overdue'/);
   assert.match(page, /Ready to finish when you are/);
   assert.match(page, /aria-label=\{`Complete \$\{assignment.title\}`\}/);
-  assert.doesNotMatch(complete, /completion is closed|status: 409/);
-  assert.match(complete, /\.eq\('user_id', user\.id\)/);
+  assert.match(page, /Finish Late/);
+  assert.match(complete, /mutateAssignment\(request, 'complete'/);
 });
 
 test('task retirement preserves history; goal and assignment delete routes remain owner scoped', () => {
   const routes = [
     read('src/app/api/goals/[id]/route.ts'),
-    read('src/app/api/assignments/[id]/route.ts'),
+
   ];
 
   for (const route of routes) {
@@ -39,6 +39,8 @@ test('task retirement preserves history; goal and assignment delete routes remai
     assert.match(route, /\.from\('reminders'\)/);
   }
 
+  assert.match(read('src/app/api/assignments/[id]/route.ts'), /mutateAssignment\(request, 'delete'/);
+  assert.match(read('src/db/migrations/0016_assignment_lifecycle.sql'), /DELETE FROM public.reminders WHERE user_id=u/);
   assert.match(read('src/app/api/tasks/[taskId]/route.ts'), /rpc\('daily_retire_routine'/);
   assert.match(read('src/app/tasks/page.tsx'), /Your recorded history and today’s plan will be kept/);
   assert.match(read('src/app/goals/page.tsx'), /Delete goal permanently/);

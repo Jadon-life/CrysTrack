@@ -70,6 +70,10 @@ export interface GoalWithProgress {
 }
 
 export interface AssignmentWithUrgency {
+  revision: number;
+  reminderVersion: number;
+  completedAt?: string;
+  reminderConfig?: { enabled: boolean; channels: string[]; offsetMinutes: number[] };
   id: string;
   title: string;
   description?: string;

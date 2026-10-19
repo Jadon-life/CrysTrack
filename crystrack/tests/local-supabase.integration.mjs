@@ -15,9 +15,9 @@ const roleSql = (uid, sql) => localSql(`BEGIN; SET LOCAL ROLE authenticated;
 const count = (sql) => Number(localSql(sql).split('\n').at(-1));
 const fails = (fn) => assert.throws(fn, /psql|docker/);
 
-test('six historical files, daily records and crystal migration applied once with matching local hashes', () => {
+test('six historical files plus daily, crystal and assignment migrations match local hashes', () => {
   const inventory=localSql('SELECT name,hash FROM crystrack_local_control.applied ORDER BY name').split('\n');
-  assert.equal(inventory.length,9);
+  assert.equal(inventory.length,10);
   for(const row of inventory) {
     const [name,hash]=row.split('|');
     assert.equal(hash,createHash('sha256').update(fs.readFileSync('src/db/migrations/'+name)).digest('hex'));
