@@ -18,10 +18,6 @@ export async function PATCH(_request: Request, props: { params: Promise<{ id: st
   if (!current || current.status === 'completed') {
     return NextResponse.json({ error: 'Assignment not found or already completed' }, { status: 404 });
   }
-  if (new Date(current.deadline).getTime() < Date.now()) {
-    return NextResponse.json({ error: 'Assignment deadline has passed; completion is closed' }, { status: 409 });
-  }
-
   const { data: assignment, error } = await supabase
     .from('assignments')
     .update({ status: 'completed', completed_at: new Date().toISOString() })

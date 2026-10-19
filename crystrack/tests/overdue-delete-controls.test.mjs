@@ -16,13 +16,15 @@ test('overdue goals are greyed and cannot be checked in', () => {
   assert.match(route, /Goal deadline has passed; check-ins are closed/);
 });
 
-test('overdue assignments have no completion checkbox', () => {
+test('overdue assignments remain completable for September crystal rewards', () => {
   const page = read('src/app/assignments/page.tsx');
   const complete = read('src/app/api/assignments/[id]/complete/route.ts');
 
   assert.match(page, /const overdue = assignment\.computed_status === 'overdue'/);
-  assert.match(page, /Deadline passed — completion closed/);
-  assert.match(complete, /Assignment deadline has passed; completion is closed/);
+  assert.match(page, /Ready to finish when you are/);
+  assert.match(page, /aria-label=\{`Complete \$\{assignment.title\}`\}/);
+  assert.doesNotMatch(complete, /completion is closed|status: 409/);
+  assert.match(complete, /\.eq\('user_id', user\.id\)/);
 });
 
 test('task retirement preserves history; goal and assignment delete routes remain owner scoped', () => {

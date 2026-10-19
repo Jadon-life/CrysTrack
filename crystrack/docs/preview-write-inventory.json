@@ -48,6 +48,18 @@
     ]
   },
   {
+    "file": "src/app/api/crystals/moment/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/crystals/route.ts",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
     "file": "src/app/api/daily-notes/[date]/route.ts",
     "methods": [
       "PUT"

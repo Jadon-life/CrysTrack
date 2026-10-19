@@ -8,6 +8,10 @@ export async function fetcher(url: string, options?: RequestInit) {
       ...options?.headers,
     },
   });
+  // UI invalidation is only a fresh read; shard authority stays in source transactions.
+  if (typeof window !== 'undefined' && options?.method && !['GET','HEAD'].includes(options.method) && /^\/api\/(tasks|goals|assignments|finance\/entries)(\/|$)/.test(url)) {
+    window.dispatchEvent(new Event('crystrack-crystal-updated'));
+  }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(error.error || `HTTP ${res.status}`);

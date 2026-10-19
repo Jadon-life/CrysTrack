@@ -30,6 +30,7 @@ const conversation = {id:conversationId,title:'About this synthetic demo',create
 
 /** A closed allowlist. Unknown routes never fall through to a live implementation. */
 export function demoRead(pathname: string, search = new URLSearchParams()): unknown | undefined {
+  if (pathname === '/api/crystals') return {enabled:false,revision:1,total:'0',pendingMoment:false};
   if (pathname === '/api/profile') return profile;
   if (pathname === '/api/preferences') return preferences;
   if (pathname === '/api/tasks') return tasks;

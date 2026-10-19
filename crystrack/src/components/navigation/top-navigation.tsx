@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
+import { CrystalNav, useCrystals } from '@/components/crystals/crystal-provider';
 import { PhysicalThemeSwitch } from './physical-theme-switch';
 import { weatherLabel } from '@/lib/environment';
 import { cn } from '@/lib/utils';
@@ -267,6 +268,7 @@ function ProfileMenu() {
 
 export function TopNavigation() {
   const pathname = usePathname();
+  const { state: crystalState } = useCrystals();
   const { environment, environmentLoading, requestLocation } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -279,7 +281,7 @@ export function TopNavigation() {
         <div className="topnav-shell">
           <Link href="/" className="topnav-brand" aria-label="CrysTrack home">
             <span className="topnav-brandmark"><Diamond className="w-4 h-4" /></span>
-            <span className="font-semibold tracking-tight text-white">CrysTrack</span>
+            <span className={cn("font-semibold tracking-tight text-white", crystalState?.enabled && "hidden min-[430px]:inline")}>CrysTrack</span>
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1" aria-label="Primary navigation">
@@ -310,6 +312,7 @@ export function TopNavigation() {
             </button>
             <PhysicalThemeSwitch />
             <NotificationMenu />
+            <CrystalNav />
             <ProfileMenu />
             <button type="button" className="topnav-icon-button lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu className="w-4 h-4" /></button>
           </div>
