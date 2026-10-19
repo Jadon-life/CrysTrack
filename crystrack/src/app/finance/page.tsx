@@ -43,6 +43,8 @@ import { EXPERIENCE_CONFIG } from '@/config/experience';
 import { fetcher, patch, post } from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
 import { suggestCategory } from '@/lib/wealth';
+import { reportSchema } from '@/lib/wealth-report';
+import { nextDailyBoundary } from '@/lib/today-streak';
 import { useWealthCurrency } from '@/lib/wealth-currency';
 
 const emptyData = {
@@ -51,45 +53,15 @@ const emptyData = {
   debts: [] as any[],
   expectedFlows: [] as any[],
   summary: null as any,
+  cashflow: [] as any[],
+  reporting: null as any,
 };
-
-function monthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function cashflowSeries(entries: any[]) {
-  const now = new Date();
-  const months = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    return {
-      key: monthKey(date),
-      label: date.toLocaleDateString([], { month: 'short' }),
-      income: 0,
-      expenses: 0,
-      savings: 0,
-    };
-  });
-
-  const byKey = new Map(months.map((month) => [month.key, month]));
-  for (const entry of entries) {
-    const date = new Date(entry.date);
-    const bucket = byKey.get(monthKey(date));
-    if (!bucket) continue;
-    const kind = String(entry.flow_kind || entry.type || '');
-    const amount = Number(entry.amount || 0);
-    if (kind === 'income') bucket.income += amount;
-    if (kind === 'expense') bucket.expenses += amount;
-    if (kind === 'saving') bucket.savings += amount;
-    if (kind === 'savings_release') bucket.savings -= amount;
-  }
-
-  return months;
-}
 
 export default function WealthPage() {
   const [data, setData] = useState(emptyData);
   const [ledgerRevision,setLedgerRevision] = useState(0);
   const [wealthView,setWealthView] = useState<'overview'|'budgets'|'bills'|'csv'>('overview');
+  const readGeneration=useRef(0);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const { currency, setCurrency, rate, loadingRate } = useWealthCurrency();
@@ -129,17 +101,19 @@ export default function WealthPage() {
   const [aiInsight, setAiInsight] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (analyze = true) => {
+    const generation=++readGeneration.current;
+    setLoading(true);setData(emptyData);
     try {
-      const nextData = await fetcher('/api/wealth', { cache: 'no-store' });
-      setData(nextData);
+      const nextData = reportSchema.parse(await fetcher('/api/wealth', { cache: 'no-store' }));
+      if (generation!==readGeneration.current) return;
+      setData(nextData);setStatus('');
       setLedgerRevision(n=>n+1);
-      void fetcher('/api/ai/domain/wealth', { method: 'POST' }).then(setAiInsight).catch(() => null);
+      if(analyze)void fetcher('/api/ai/domain/wealth', { method: 'POST' }).then(setAiInsight).catch(() => null);
     } catch (error: any) {
-      setStatus(error?.message || 'Could not load Wealth');
+      if(generation===readGeneration.current){setData(emptyData);setStatus('Wealth is temporarily unavailable. Refresh to verify your balances; no records were changed.');}
     } finally {
-      setLoading(false);
+      if(generation===readGeneration.current)setLoading(false);
     }
   }, []);
 
@@ -153,11 +127,11 @@ export default function WealthPage() {
     moneyPresentation(value, currency, rate?.usdNgn, {}).text;
 
   const summary = data.summary;
-  const series = useMemo(() => cashflowSeries(data.entries), [data.entries]);
-  const categoryData = useMemo(
-    () => (summary?.categoryPatterns || []).slice(0, 5).map((item: any) => ({ name: item.category, value: item.current })),
-    [summary],
-  );
+  const series = useMemo(() => data.cashflow.map(m=>({...m,income:Number(m.income),expenses:Number(m.expenses),incomeExact:m.income,expensesExact:m.expenses})), [data.cashflow]);
+  const categoryData = useMemo(() => (summary?.categoryPatterns || []).slice(0,5).map((item:any)=>({name:item.category,value:Number(item.current),exact:item.current})),[summary]);
+  useEffect(()=>{const generationState=readGeneration;const refresh=()=>{if(document.visibilityState!=='hidden')void load(false);};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);generationState.current++;};},[load]);
+  useEffect(()=>{if(!data.reporting)return;const t=setTimeout(()=>void load(false),nextDailyBoundary(data.reporting.timezone));return()=>clearTimeout(t);},[data.reporting,load]);
+
 
   const saveEntry = async () => {
     const amount = Number(entry.amount);
@@ -256,9 +230,7 @@ export default function WealthPage() {
   const categorySuggestion = suggestCategory(entry.source, data.entries);
   const categories = EXPERIENCE_CONFIG.wealth.categories;
 
-  if (loading && !summary) {
-    return <div className="min-h-[55vh] grid place-items-center"><Loader2 className="w-8 h-8 animate-spin text-[var(--theme-primary)]" /></div>;
-  }
+
 
   return (
     <div className="space-y-5 pb-8">
@@ -299,7 +271,8 @@ export default function WealthPage() {
         <Button variant={wealthView==='bills'?'primary':'ghost'} aria-pressed={wealthView==='bills'} onClick={()=>setWealthView('bills')}>Bills & subscriptions</Button>
         <Button variant={wealthView==='csv'?'primary':'ghost'} aria-pressed={wealthView==='csv'} onClick={()=>setWealthView('csv')}>CSV tools</Button>
       </div>
-      {wealthView==='csv' ? <CsvTools onChange={load}/> : wealthView==='bills' ? <RecurringBills currency={currency} rate={rate} ledgerRevision={ledgerRevision} onChange={load}/> : wealthView==='budgets'  ? <MonthlyBudgets currency={currency} rate={rate} ledgerRevision={ledgerRevision}/> : <>
+      {wealthView==='overview'&&!summary ? <GlassCard padding="md"><div role="status" className="text-sm text-white">{loading?'Verifying the complete ledger…':'Wealth is temporarily unavailable. Refresh to verify your balances; no records were changed.'}</div><Button className="mt-3" disabled={loading} onClick={()=>void load(false)}>Refresh Wealth</Button></GlassCard> : wealthView==='csv' ? <CsvTools onChange={load}/> : wealthView==='bills' ? <RecurringBills currency={currency} rate={rate} ledgerRevision={ledgerRevision} onChange={load}/> : wealthView==='budgets'  ? <MonthlyBudgets currency={currency} rate={rate} ledgerRevision={ledgerRevision}/> : <>
+      <p className="text-xs text-[var(--theme-text-muted)]" data-testid="wealth-report-status">All {data.reporting?.ledgerCount} recorded transactions · {data.reporting?.month} · {data.reporting?.timezone}. Saved timezone changes re-bucket history without changing records.</p>
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: 'Available', value: summary?.availableBalance || 0, icon: WalletCards, tone: 'text-emerald-300', note: 'Spendable cash from confirmed entries' },
@@ -347,7 +320,7 @@ export default function WealthPage() {
                 <YAxis hide />
                 <Tooltip
                   contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
-                  formatter={(value: any) => money(value)}
+                  formatter={(_value: any, name: any, info: any) => money(info.payload[name+'Exact'])}
                 />
                 <Area type="monotone" dataKey="income" stroke="#4ade80" fill="url(#incomeFill)" strokeWidth={2} />
                 <Area type="monotone" dataKey="expenses" stroke="#fb7185" fill="url(#expenseFill)" strokeWidth={2} />
@@ -407,7 +380,7 @@ export default function WealthPage() {
                     </Pie>
                     <Tooltip
                       contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
-                      formatter={(value: any) => money(value)}
+                      formatter={(_value: any, _name: any, info: any) => money(info.payload.exact)}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -567,7 +540,7 @@ export default function WealthPage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="dashboard-panel-title text-sm">Recent money</p>
-            <p className="text-xs text-[var(--theme-text-muted)] mt-1">Manual ledger entries. NGN remains the stored source of truth.</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1">Most recent 14 of all recorded transactions. Balances and charts include the complete ledger; NGN remains canonical.</p>
           </div>
           <button type="button" onClick={() => setShowEntry(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ Add</button>
         </div>

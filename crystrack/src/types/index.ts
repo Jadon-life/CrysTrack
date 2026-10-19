@@ -127,3 +127,6 @@ export interface AIInsight {
   recommendations: string[];
   generatedAt: string;
 }
+
+// Issue #37 additive read-RPC DTO; no stored amount or write contract changes.
+export type { WealthSnapshot, WealthReport, ExactWealthSummary } from '@/lib/wealth-report';
