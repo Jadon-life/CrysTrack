@@ -212,6 +212,19 @@ try {
     assert.deepEqual(a11y.violations, []);
     evidence.accessibility.push({ width, ...a11y });
     evidence.widths.push(width);
+    await card.getByRole('button', { name: 'Edit Synthetic internet', exact: true }).click();
+    const modalCheck = await page.evaluate(async () => {
+      const r = await window.axe.run('[role=dialog]', {
+        runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+      });
+      return r.violations.map((v) => ({ id: v.id, impact: v.impact }));
+    });
+    assert.deepEqual(modalCheck, []);
+    if (width === 375)
+      await page.screenshot({ path: output + '/edit-mobile.png', fullPage: false });
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: output + '/bills-' + width + '.png', fullPage: true });
   }
   await page.setViewportSize({ width: 1440, height: 1050 });
@@ -226,6 +239,7 @@ try {
     return i?.complete && i.naturalWidth > 0;
   });
   await card.getByRole('button', { name: 'Edit Synthetic internet', exact: true }).waitFor();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: output + '/bills-light-bright.png', fullPage: true });
   evidence.brightContrast = await page.evaluate(() => {
     const surface = document.querySelector('[data-testid="bill-reading-surface"]');
@@ -255,7 +269,7 @@ try {
   await rocker.click();
   await page.getByRole('switch', { name: 'Dark appearance active', exact: true }).waitFor();
   evidence.checks.push(
-    'Five widths: no document overflow, >=40px controls, semantic meters/date/labels, scoped axe zero violations, keyboard modal containment/Escape/focus return, physical switch and bright scenic photo preserved',
+    'Five widths: no document overflow, >=40px controls, semantic dates/labels/history, scoped axe zero violations, keyboard modal containment/Escape/focus return, physical switch and bright scenic photo preserved',
   );
   let captured,
     settle,
@@ -302,6 +316,7 @@ try {
           .click();
     });
   await section.getByText('2026-10-19 · Paid ·', { exact: false }).waitFor();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: output + '/payment-confirmed.png', fullPage: true });
   await page.getByRole('button', { name: 'Budgets', exact: true }).click();
   await page
@@ -356,6 +371,14 @@ try {
   evidence.checks.push(
     'Unavailable reread removes stale totals/cards instead of claiming zero or paid',
   );
+  let malformedAck = false;
+  await page.route('**/api/wealth/bills', async (route) => {
+    if (route.request().method() !== 'POST' || malformedAck) return route.continue();
+    malformedAck = true;
+    const r = await route.fetch();
+    assert.equal(r.status(), 200);
+    return route.fulfill({ response: r, json: { id: 'not-a-source', revision: 1, entryId: null } });
+  });
   await section.getByRole('button', { name: 'Add bill', exact: true }).click();
   d = page.getByRole('dialog', { name: 'Add bill', exact: true });
   await d.getByLabel('Bill title', { exact: true }).fill('Synthetic reminder');
@@ -364,7 +387,19 @@ try {
   await d.getByRole('checkbox', { name: /Remind me at 09:00/ }).check();
   await d.getByRole('button', { name: 'Save bill', exact: true }).click();
   await d.waitFor({ state: 'hidden' });
+  await section.getByRole('button', { name: 'Retry exact bill action', exact: true }).waitFor();
+  await page.unroute('**/api/wealth/bills');
+  await section.getByRole('button', { name: 'Retry exact bill action', exact: true }).click();
   await section.getByRole('article', { name: 'Synthetic reminder bill', exact: true }).waitFor();
+  assert.equal(
+    scalar(
+      `SELECT count(*) FROM wealth_recurring_bills WHERE user_id='${uid}' AND title='Synthetic reminder'`,
+    ),
+    '1',
+  );
+  evidence.checks.push(
+    'Malformed success acknowledgement stays unconfirmed; exact create replay recovers one definition without expense or false payment',
+  );
   localSql(
     `INSERT INTO user_preferences(user_id,dnd_enabled,default_reminder_channels) VALUES('${uid}',false,ARRAY['push','telegram']) ON CONFLICT(user_id) DO UPDATE SET dnd_enabled=false,default_reminder_channels=ARRAY['push','telegram']`,
   );
