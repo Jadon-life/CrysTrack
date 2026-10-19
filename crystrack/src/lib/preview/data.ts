@@ -34,6 +34,7 @@ export function demoRead(pathname: string, search = new URLSearchParams()): unkn
   if (pathname === '/api/crystals') return {enabled:false,revision:1,total:'0',pendingMoment:false};
   if (pathname === '/api/profile') return profile;
   if (pathname === '/api/preferences') return preferences;
+  if (pathname === '/api/wealth/csv/context') return {today:DEMO_DAY,timezone:'Africa/Lagos'};
   if (pathname === '/api/wealth/bills') return {today:DEMO_DAY,timezone:'Africa/Lagos',revision:'00000000000000000000000000000000',page:0,hasMore:false,items:[],occurrences:[],plans:{seven:'0.00',thirty:'0.00',overdue:0}};
   if (pathname === '/api/wealth/budgets') return {month:'2026-09-01',currentMonth:'2026-09-01',minimum:'2025-09-01',timezone:'Africa/Lagos',currency:'NGN',startsAt:'2026-08-31T23:00:00Z',endsAt:'2026-09-30T23:00:00Z',items:EXPERIENCE_CONFIG.wealth.categories.map(category=>({category,id:null,revision:0,active:false,limit:null,spent:'0.00',entryCount:0,left:null,percentUsed:null,createdAt:null,updatedAt:null,removedAt:null}))};
   if (pathname === '/api/tasks/week') {

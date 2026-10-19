@@ -96,6 +96,8 @@ export interface FinanceTargetWithProgress {
 }
 
 export interface MoneyEntry {
+  importBatchId?: string | null;
+  importRowId?: string | null;
   id: string;
   billId?: string | null;
   billOccurrenceId?: string | null;

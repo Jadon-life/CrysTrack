@@ -1,0 +1,5 @@
+Date,Description,Amount,Currency,Category,Reference,Account,Balance
+2026-10-01,"Synthetic lunch, campus",-2500.25,NGN,Food,SYN-001,fictional-current,99999.99
+2026-10-02,Synthetic income,5000.00,NGN,Other,SYN-002,fictional-current,104999.99
+2026-10-03,"Synthetic multiline
+memo",-100.01,NGN,Utilities,,fictional-current,104899.98

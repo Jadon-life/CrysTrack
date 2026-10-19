@@ -408,7 +408,7 @@ async function loadMoneyEntries(supabase: any, userId: string) {
   for (let from = 0; from < maxRows; from += pageSize) {
     const { data, error } = await supabase
       .from('money_entries')
-      .select('type, flow_kind, amount, date, source, category, debt_id, expected_flow_id')
+      .select('type, flow_kind, amount, date, category, debt_id, expected_flow_id')
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .range(from, from + pageSize - 1);
