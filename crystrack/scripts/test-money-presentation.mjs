@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { randomUUID, createHash } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import net from 'node:net';
@@ -40,7 +40,7 @@ function load(f) {
   );
   return m.exports;
 }
-const { parseCsv, isLedgerArchive } = load('src/lib/csv/statement.ts');
+const { parseCsv } = load('src/lib/csv/statement.ts');
 const blank = Object.fromEntries(
   fs
     .readFileSync(ROOT + '/.env.example', 'utf8')
@@ -270,6 +270,13 @@ try {
     await page.keyboard.press('Escape');
     await detail.waitFor({ state: 'hidden' });
     assert.equal(await inspect.evaluate((n) => n === document.activeElement), true);
+    const summaryAxe = await page.evaluate(async () => {
+      const r = await window.axe.run('[data-money-presentation]', {
+        runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+      });
+      return r.violations.map((v) => ({ id: v.id, impact: v.impact }));
+    });
+    assert.deepEqual(summaryAxe, []);
     const box = await inspect.boundingBox();
     assert.ok(box.height >= 40);
     await page.getByRole('button', { name: 'Money entry', exact: true }).click();
@@ -348,7 +355,9 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     assert.equal(overflow, false);
     if (width === 1440) {
-      await page.getByRole('switch', { name: /appearance active/ }).click();
+      const rocker = page.getByRole('switch', { name: /appearance active/ });
+      if ((await rocker.getAttribute('aria-label')) === 'Dark appearance active')
+        await rocker.click();
       await page.getByRole('switch', { name: 'Light appearance active', exact: true }).waitFor();
       await page.screenshot({ path: output + '/bright-statement-tools.png', fullPage: true });
       await page.getByRole('switch', { name: /appearance active/ }).click();

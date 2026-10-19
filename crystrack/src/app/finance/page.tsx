@@ -613,7 +613,7 @@ export default function WealthPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Amount (NGN) *</label>
-            <input aria-label="Amount (NGN)" aria-describedby="manual-money-hint" inputMode="decimal" type="number" step="0.01" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder="e.g. 2500" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <input aria-label="Amount (NGN)" aria-describedby="manual-money-hint" inputMode="decimal" type="number" min="0.01" step="0.01" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder="e.g. 2500" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
             <p id="manual-money-hint" className="mt-2 text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
           </div>
           <div>

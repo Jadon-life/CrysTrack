@@ -87,6 +87,7 @@ test('legacy Number totals have a display-only bridge and expose drift/sub-cent 
   for (const value of [0.1 + 0.2, 1.005, 1e-7, -1e-7]) {
     const r = p(value);
     assert.equal(r.approximate, true);
+    assert.equal(r.exact, null);
     assert.ok(r.text.startsWith('≈'));
     assert.match(r.detail, /not an exact ledger total/);
   }

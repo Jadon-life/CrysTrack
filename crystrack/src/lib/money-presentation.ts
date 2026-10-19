@@ -62,7 +62,7 @@ export function moneyPresentation(
     return {
       text,
       approximate,
-      exact: canonicalText,
+      exact: canonical.rounded ? null : canonicalText,
       detail:
         unit === 'USD' ? `Indicative USD: ${exact}. ${detail} NGN remains canonical.` : detail,
     };

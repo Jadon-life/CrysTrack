@@ -410,7 +410,7 @@ try {
   await food.getByText('₦2,500.25', { exact: true }).waitFor();
   // A budget is guidance, never a finance write gate. Use the existing live form.
   await page.getByRole('button', { name: 'Money entry', exact: true }).click();
-  const moneyForm = page.locator('form').filter({ has: page.locator('input[placeholder="0"]') });
+  const moneyForm = page.locator('form').filter({ has: page.getByLabel('Amount (NGN)', {exact:true}) });
   await moneyForm.locator('select').first().selectOption('expense');
   await moneyForm.locator('input[type=number]').fill('100.01');
   await moneyForm.locator('select').nth(1).selectOption('Food');

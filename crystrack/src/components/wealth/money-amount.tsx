@@ -18,12 +18,9 @@ export function MoneyAmount({
   const view = moneyPresentation(amount, currency, rate, { mode });
   if (!view.approximate || !inspect)
     return (
-      <span
-        className="tabular-nums"
-        title={view.detail}
-        aria-label={`${view.text}. ${view.detail}`}
-      >
+      <span className="tabular-nums" title={view.detail} data-money-presentation>
         {view.text}
+        {view.approximate && <span className="sr-only"> · {view.detail}</span>}
       </span>
     );
   return (
@@ -32,6 +29,7 @@ export function MoneyAmount({
         <button
           type="button"
           aria-label={`Inspect ${view.text}. ${view.detail}`}
+          data-money-presentation
           title="Inspect amount"
           className="min-h-10 max-w-full rounded-md text-left tabular-nums underline decoration-dotted decoration-white/40 underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
         >

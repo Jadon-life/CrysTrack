@@ -48,3 +48,9 @@ inside guarded loopback Docker with fictional owners. No hosted Supabase, Vercel
 Preview activation, deployment, production/main changes, paid resources or merge.
 Issue #18 remains a hard release blocker. Broader legacy accessibility and
 Number-based aggregate precision are outside this presentation-only PR.
+
+Observed existing month-boundary limitation: unchanged `summarizeWealth` and chart
+buckets use host/browser JS Date months, whereas approved budgets/CSV use saved
+timezone bounds. A local-midnight import can be grouped into different months in
+those panels. Overall balances/source amounts remain unchanged. This requires
+separate financial/timezone review; it is not silently repaired by formatting.

@@ -1,0 +1,80 @@
+{
+  "issue": 35,
+  "base": "76a0556a70e0365b3063645428893c6978d9c46d",
+  "baseCi": 39300895230,
+  "branch": "feat/piece6d-whole-naira",
+  "draftPr": 36,
+  "application": {
+    "pass": 197,
+    "fail": 0,
+    "skipped": 0,
+    "typescript": "PASS",
+    "lintErrors": 0,
+    "preExistingWarnings": 4
+  },
+  "database": {
+    "pass": 108,
+    "fail": 0,
+    "skipped": 0,
+    "localOnly": true,
+    "newMigrations": [],
+    "existingLocalBootstrapFiles": 14
+  },
+  "productionBuild": "PASS; local only, normal artifact restored after synthetic build",
+  "browsers": {
+    "passed": [
+      "money-presentation",
+      "assignments",
+      "today-streak",
+      "crystals",
+      "week-grid",
+      "budgets",
+      "bills",
+      "csv"
+    ],
+    "moneyWidths": [
+      375,
+      430,
+      768,
+      1280,
+      1440
+    ],
+    "scopedMoneyLabelAndDialogAxeViolations": 0,
+    "financialSnapshotsUnchanged": true,
+    "exactCsvExportAndReopen": true
+  },
+  "preview": {
+    "routes": [
+      "/",
+      "/plan",
+      "/tasks",
+      "/goals",
+      "/assignments",
+      "/calendar",
+      "/finance",
+      "/insights",
+      "/history",
+      "/ai",
+      "/settings",
+      "/auth"
+    ],
+    "apiWriters": 40,
+    "externalRequests": [],
+    "clientArtifactMarkersAbsent": 5,
+    "blockedMode": "passed",
+    "browserErrors": []
+  },
+  "maintenanceDeniedBeforeAuth": 55,
+  "screenshots": 15,
+  "dependenciesChanged": false,
+  "hostedOrVercelChanges": false,
+  "deployed": false,
+  "merged": false,
+  "releaseBlocker": 18,
+  "knownExistingLimits": [
+    "Number-based/capped Overview aggregates",
+    "Host/browser month grouping in unchanged Overview can differ from saved-zone budgets/CSV",
+    "Legacy interface accessibility and four unchanged lint warnings"
+  ],
+  "finalCi": "See final-head GitHub checks on draft PR #36"
+}
