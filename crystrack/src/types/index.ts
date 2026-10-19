@@ -97,6 +97,8 @@ export interface FinanceTargetWithProgress {
 
 export interface MoneyEntry {
   id: string;
+  billId?: string | null;
+  billOccurrenceId?: string | null;
   type: 'income' | 'expense' | 'saving' | 'transfer';
   amount: number;
   date: string;

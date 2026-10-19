@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Button } from '@/components/ui/button';
+import { RecurringBills } from '@/components/wealth/recurring-bills';
 import { MonthlyBudgets } from '@/components/wealth/monthly-budgets';
 import { CreateModal } from '@/components/shared/create-modal';
 import { EXPERIENCE_CONFIG } from '@/config/experience';
@@ -85,7 +86,7 @@ function cashflowSeries(entries: any[]) {
 export default function WealthPage() {
   const [data, setData] = useState(emptyData);
   const [ledgerRevision,setLedgerRevision] = useState(0);
-  const [wealthView,setWealthView] = useState<'overview'|'budgets'>('overview');
+  const [wealthView,setWealthView] = useState<'overview'|'budgets'|'bills'>('overview');
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const { currency, setCurrency, rate, loadingRate } = useWealthCurrency();
@@ -292,8 +293,9 @@ export default function WealthPage() {
       <div className="scenic-readable-strip flex flex-wrap gap-2" role="group" aria-label="Wealth views">
         <Button variant={wealthView==='overview'?'primary':'ghost'} aria-pressed={wealthView==='overview'} onClick={()=>setWealthView('overview')}>Overview</Button>
         <Button variant={wealthView==='budgets'?'primary':'ghost'} aria-pressed={wealthView==='budgets'} onClick={()=>setWealthView('budgets')}>Budgets</Button>
+        <Button variant={wealthView==='bills'?'primary':'ghost'} aria-pressed={wealthView==='bills'} onClick={()=>setWealthView('bills')}>Bills & subscriptions</Button>
       </div>
-      {wealthView==='budgets' ? <MonthlyBudgets currency={currency} rate={rate} ledgerRevision={ledgerRevision}/> : <>
+      {wealthView==='bills' ? <RecurringBills currency={currency} rate={rate} ledgerRevision={ledgerRevision} onChange={load}/> : wealthView==='budgets'  ? <MonthlyBudgets currency={currency} rate={rate} ledgerRevision={ledgerRevision}/> : <>
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: 'Available', value: summary?.availableBalance || 0, icon: WalletCards, tone: 'text-emerald-300', note: 'Spendable cash from confirmed entries' },

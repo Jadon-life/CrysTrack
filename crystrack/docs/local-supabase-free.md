@@ -252,3 +252,21 @@ Run it separately from all other DB/browser suites, which share private sandbox
 clocks. Preview testing rebuilds a separate artifact; rebuild normal mode before
 running signed-in workflows. The existing free setup and secret requirements are
 unchanged.
+
+### Piece 6B candidate (Issue #30)
+
+The guarded local bootstrap now applies **thirteen** files: 0000–0005 and
+0013–0019. `0019_wealth_recurring_bills.sql` is a local-only additive candidate;
+never run it against hosted Supabase from this workflow. It adds owner-readable
+bill definitions/occurrences, private transaction receipts and insertion permits,
+immutable payment provenance on the ledger, and tightly granted RPCs. All new
+tables enable RLS. No balance backfill, automatic expense, hosted job or reward
+rule is introduced. Hosted migration compatibility/numbering remains UNKNOWN
+and blocked by #18.
+
+`tests/zz-bills.integration.mjs` runs last because paid bill facts deliberately
+cannot be deleted or edited by app users. Synthetic payment fixtures remain in
+this disposable database until the next guarded `npm run local:reset`; tests
+never disable the guard to clean up. Reset before repeating the full integration
+suite. Run normal browser regressions sequentially, then `node
+scripts/test-bills.mjs` last. Browser evidence is synthetic only.

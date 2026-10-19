@@ -99,7 +99,7 @@ try {
   for(const marker of markers) assert.ok(!(await page.content()).includes(marker),'Marker in rendered HTML');
   if(route==='/') await page.getByText('Explore your calm workspace',{exact:false}).first().waitFor({state:'visible'});
   if(route==='/tasks') { await page.getByRole('button',{name:'Week grid',exact:true}).click(); await page.getByTestId('task-week-grid').getByRole('table').waitFor(); assert.equal(await page.getByTestId('task-week-grid').getByRole('button',{name:/Complete .* today/}).isDisabled(),true); }
-  if(route==='/finance') { await page.getByRole('button',{name:'Budgets',exact:true}).click(); await page.getByTestId('monthly-budgets').getByRole('heading',{name:'Food',exact:true}).waitFor(); assert.equal(await page.getByRole('button',{name:'Set Food budget',exact:true}).isDisabled(),true); }
+  if(route==='/finance') { await page.getByRole('button',{name:'Budgets',exact:true}).click(); await page.getByTestId('monthly-budgets').getByRole('heading',{name:'Food',exact:true}).waitFor(); assert.equal(await page.getByRole('button',{name:'Set Food budget',exact:true}).isDisabled(),true); await page.getByRole('button',{name:'Bills & subscriptions',exact:true}).click();await page.getByTestId('recurring-bills').getByText('No recurring bills yet.',{exact:false}).waitFor();assert.equal(await page.getByRole('button',{name:'Add bill',exact:true}).isDisabled(),true); }
   if(route==='/history') await page.getByRole('heading',{name:'History',exact:true}).waitFor();
   if(route==='/ai') await page.getByText('About this synthetic demo',{exact:false}).first().waitFor();
   if(route==='/auth') assert.equal(await page.locator('input[type=password]').count(),0);
