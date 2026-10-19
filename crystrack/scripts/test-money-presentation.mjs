@@ -269,6 +269,8 @@ try {
       await page.screenshot({ path: output + `/exact-details-${width}.png` });
     await page.keyboard.press('Escape');
     await detail.waitFor({ state: 'hidden' });
+    // Radix restores focus after its asynchronous dialog close lifecycle.
+    await page.waitForFunction(n => n === document.activeElement, await inspect.elementHandle(), {timeout:5000});
     assert.equal(await inspect.evaluate((n) => n === document.activeElement), true);
     const summaryAxe = await page.evaluate(async () => {
       const r = await window.axe.run('[data-money-presentation]', {

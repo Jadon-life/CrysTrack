@@ -16,7 +16,11 @@ function load(file) {
   }).outputText;
   new Function('require', 'module', 'exports', code)(
     (name) =>
-      name.startsWith('.') ? load(path.resolve(path.dirname(file), name + '.ts')) : native(name),
+      name.startsWith('@/')
+        ? load(path.resolve('src', name.slice(2) + '.ts'))
+        : name.startsWith('.')
+          ? load(path.resolve(path.dirname(file), name + '.ts'))
+          : native(name),
     mod,
     mod.exports,
   );
@@ -308,5 +312,56 @@ test('unsupported exact magnitude and response cardinality fail rather than trun
   assert.throws(() => report({ ...x, buckets: [b('income', '1'.repeat(49) + '.00')] }, uid));
   assert.throws(() =>
     report({ ...x, buckets: Array.from({ length: 12001 }, () => b('income', '1.00')) }, uid),
+  );
+});
+
+test('AI wealth context shares exact authority and saved-zone metadata without private line items', async () => {
+  const { buildIntelligenceContext } = load('src/lib/ai/context.ts');
+  const raw = snap([b('income', '25.01')], {
+    debts: [{ ...debt('liability', '0.25'), counterparty: 'PRIVATE COUNTERPARTY' }],
+  });
+  raw.entries[0].amount = '25.01';
+  raw.entries[0].source = 'PRIVATE DESCRIPTION';
+  raw.entries[0].note = 'PRIVATE NOTE';
+  raw.entries[0].reference = 'PRIVATE REFERENCE';
+  const client = {
+    from(table) {
+      assert.equal(table, 'profiles');
+      return {
+        select() {
+          return this;
+        },
+        eq(key, owner) {
+          assert.equal(key, 'user_id');
+          assert.equal(owner, uid);
+          return this;
+        },
+        async maybeSingle() {
+          return { data: { timezone: 'Pacific/Honolulu', current_timezone: 'UTC' } };
+        },
+      };
+    },
+    async rpc(name) {
+      assert.equal(name, 'wealth_overview_read');
+      return { data: raw, error: null };
+    },
+  };
+  const result = await buildIntelligenceContext(client, uid, 'wealth');
+  assert.equal(result.timezone, 'Africa/Lagos');
+  assert.equal(result.as_of_date, '2026-10-19');
+  assert.equal(result.as_of_weekday, 1);
+  assert.equal(result.wealth.accounting_summary.availableBalance, '25.01');
+  assert.equal(result.wealth.ledger_rows_processed, 1);
+  assert.equal(result.wealth.ledger_truncated_for_safety, false);
+  assert.equal(result.wealth.recent_transactions[0].amount_ngn, '25.01');
+  assert.ok(!JSON.stringify(result).includes('PRIVATE'));
+  await assert.rejects(
+    () =>
+      buildIntelligenceContext(
+        { ...client, rpc: async () => ({ error: { message: 'PRIVATE failure' } }) },
+        uid,
+        'wealth',
+      ),
+    { message: 'Financial read unavailable' },
   );
 });
