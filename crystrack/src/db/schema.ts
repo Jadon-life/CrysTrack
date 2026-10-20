@@ -365,3 +365,28 @@ export const csvEntryPermits=pgSchema('crystrack_csv').table('permits',{entryId:
 export type WealthCsvBatch=typeof wealthCsvBatches.$inferSelect;
 export type WealthCsvRow=typeof wealthCsvRows.$inferSelect;
 export type CsvEntryPermit=typeof csvEntryPermits.$inferSelect;
+
+// Issue #41 local-only consent authority; absent preferences mean AI OFF.
+export const aiPrivacyPreferences = pgTable('ai_privacy_preferences', {
+  userId: uuid('user_id').primaryKey(),
+  enabled: boolean('enabled').notNull().default(false),
+  wealthEnabled: boolean('wealth_enabled').notNull().default(false),
+  revision: integer('revision').notNull().default(0),
+  acceptedPolicy: text('accepted_policy'),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+const aiPrivacySchema = pgSchema('crystrack_ai');
+export const aiPrivacyMutations = aiPrivacySchema.table('mutations', {
+  userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(),
+  payload: jsonb('payload').notNull(), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => ({ pk: primaryKey({ columns: [table.userId, table.requestId] }) }));
+export const aiPrivacyRequests = aiPrivacySchema.table('requests', {
+  id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(),
+  revision: integer('revision').notNull(), domain: text('domain').notNull(),
+  wealthEnabled: boolean('wealth_enabled').notNull(), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  stored: boolean('stored').notNull().default(false), refs: jsonb('refs'),
+}, table => ({ ownerTime: index('ai_request_owner_time').on(table.userId, table.createdAt) }));
+export type AiPrivacyPreference = typeof aiPrivacyPreferences.$inferSelect;
+export type AiPrivacyMutation = typeof aiPrivacyMutations.$inferSelect;
+export type AiPrivacyRequest = typeof aiPrivacyRequests.$inferSelect;

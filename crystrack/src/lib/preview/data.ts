@@ -29,6 +29,9 @@ const conversation = {id:conversationId,title:'About this synthetic demo',create
 
 /** A closed allowlist. Unknown routes never fall through to a live implementation. */
 export function demoRead(pathname: string, search = new URLSearchParams()): unknown | undefined {
+  if (pathname === '/api/ai/privacy') return {enabled:false,wealthEnabled:false,revision:0,policy:'2026-10-20-minimal-v1',acceptedPolicy:null,acceptedAt:null,configured:false};
+  if (pathname === '/api/ai/privacy/context') return {context:{policy:'2026-10-20-minimal-v1',as_of_date:DEMO_DAY,wealth_included:false,evidence_limit:'Bundled synthetic example; no account or provider access.'},revision:0,notice:'Synthetic context only. No AI provider request.'};
+  if (/^\/api\/ai\/domain\/(tasks|goals|assignments|wealth|overview)$/.test(pathname)) return {insight:null,enabled:false,wealthEnabled:false,configured:false,cached:false,source:'none'};
   if (pathname === '/api/crystals') return {enabled:false,revision:1,total:'0',pendingMoment:false};
   if (pathname === '/api/profile') return profile;
   if (pathname === '/api/preferences') return preferences;

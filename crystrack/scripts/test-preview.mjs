@@ -127,6 +127,15 @@ try {
  await page.getByText('Push is disabled in the synthetic demo.',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Location & Weather',exact:true}).click();
  await page.getByRole('button',{name:'Use current location',exact:true}).click();
+ await page.getByRole('button',{name:'Privacy & Data',exact:true}).click();
+ await page.getByTestId('ai-privacy-controls').waitFor();
+ assert.equal(await page.getByRole('switch',{name:'Use external AI',exact:true}).isDisabled(),true);
+ assert.equal(await page.getByRole('switch',{name:'Include my Wealth data',exact:true}).isDisabled(),true);
+ assert.equal(await page.getByRole('button',{name:'Clear local AI history',exact:true}).isDisabled(),true);
+ await page.getByRole('button',{name:'Review what AI receives',exact:true}).click();
+ await page.getByLabel('Current automatic AI context',{exact:true}).waitFor();
+ assert.match(await page.getByLabel('Current automatic AI context',{exact:true}).textContent(),/Synthetic context only/);
+ assert.equal(await page.evaluate(()=>localStorage.length),0,'Synthetic privacy review never persists permission');
  signals.push(await page.evaluate(()=>window.__previewSignals));
  assert.deepEqual(outbound,[],'The browser attempted an external network request');
  for(const sample of signals) {

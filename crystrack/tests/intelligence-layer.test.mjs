@@ -51,14 +51,15 @@ test('AI chat is read only and conversations are user scoped', () => {
   assert.ok(existsSync(join(root, 'src/app/ai/page.tsx')));
 });
 
-test('AI provider enforces verified OpenRouter ZDR routing', () => {
+test('AI provider requests restricted OpenRouter routing without asserting retention guarantees', () => {
   const ai = read('src/lib/ai/intelligence.ts');
-  assert.match(ai, /openrouter\.ai\/api\/v1\/chat\/completions/);
+  const transport = read('src/lib/ai/provider.ts');
+  assert.match(transport, /openrouter\.ai\/api\/v1\/chat\/completions/);
   assert.match(ai, /openai\/gpt-oss-20b/);
-  assert.match(ai, /zdr:\s*true/);
-  assert.match(ai, /data_collection:\s*'deny'/);
-  assert.match(ai, /require_parameters:\s*true/);
-  assert.match(ai, /allow_fallbacks:\s*true/);
+  assert.match(transport, /zdr:\s*true/);
+  assert.match(transport, /data_collection:\s*'deny'/);
+  assert.match(transport, /require_parameters:\s*true/);
+  assert.match(transport, /allow_fallbacks:\s*true/);
   assert.match(ai, /reasoning:\s*\{/);
   assert.match(ai, /effort:\s*'low'/);
   assert.match(ai, /exclude:\s*true/);
@@ -87,7 +88,7 @@ test('domain AI is separate from main page loading', () => {
 test('paid AI rate-limit messaging does not describe the model as free', () => {
   const chat = read('src/app/api/ai/chat/route.ts');
   assert.doesNotMatch(chat, /free AI quota/i);
-  assert.match(chat, /CrysTrack AI is temporarily busy/);
+  assert.match(read('src/lib/ai/privacy-server.ts'), /CrysTrack AI is temporarily busy/);
 });
 
 test('domain insights require observations and cached insights are revalidated', () => {

@@ -24,6 +24,13 @@
     ]
   },
   {
+    "file": "src/app/api/ai/privacy/route.ts",
+    "methods": [
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
     "file": "src/app/api/assignments/[id]/complete/route.ts",
     "methods": [
       "PATCH"
