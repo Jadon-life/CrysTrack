@@ -190,6 +190,8 @@ async function context(width) {
     reducedMotion: 'reduce',
   });
   await c.route('**/*', (r) => {
+    assert.ok(!JSON.stringify(r.request().headers()).includes(keys.SUPABASE_SERVICE_ROLE_KEY), 'Backend credential must not enter browser headers');
+    assert.ok(!(r.request().postData() || '').includes(keys.SUPABASE_SERVICE_ROLE_KEY), 'Backend credential must not enter browser payloads');
     if (['127.0.0.1', 'localhost'].includes(new URL(r.request().url()).hostname))
       return r.continue();
     evidence.externalRequestsBlocked++;

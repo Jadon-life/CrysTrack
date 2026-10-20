@@ -3,20 +3,20 @@
 > node scripts/test-preview.mjs
 
 ▲ Next.js 16.3.5 (Turbopack)
-✓ Running next.config.js took 11ms
+✓ Running next.config.js took 22ms
 - Experiments (use with caution):
   · serverActions
 
   Creating an optimized production build ...
-✓ Compiled successfully in 952ms
+✓ Compiled successfully in 1459ms
   Running TypeScript ...
-  Finished TypeScript in 2.2s ...
+  Finished TypeScript in 2.8s ...
   Collecting page data using 4 workers ...
   Generating static pages using 4 workers (0/48) ...
   Generating static pages using 4 workers (12/48) 
   Generating static pages using 4 workers (24/48) 
   Generating static pages using 4 workers (36/48) 
-✓ Generating static pages using 4 workers (48/48) in 405ms
+✓ Generating static pages using 4 workers (48/48) in 518ms
   Finalizing page optimization ...
 
 Route (app)

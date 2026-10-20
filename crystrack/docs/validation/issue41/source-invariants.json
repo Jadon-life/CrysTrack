@@ -1,8 +1,10 @@
 {
   "base": "4df6584eb12f9a9fedaa428f43db5b6fdca7630d",
+  "rereviewBase": "262fc042b752ea06b6edd7c3ff9885be14257088",
   "protected_source_changes": [],
   "legacy_migration_changes": [],
   "schema_original_prefix_identical": true,
+  "candidate_sha256": "6f1ab2d3a6f9dc3a6fe324fcf04a2bb30997115a979ceb3237dcf6faf014cdc3",
   "finance_write_functions": [
     {
       "name": "saveEntry",
@@ -28,6 +30,5 @@
       "name": "confirmFlow",
       "identical": true
     }
-  ],
-  "candidate_sha256": "3848d1828eb4dc279fd3aa0586bbcdd8b6a88b12fb03ead99a7827daec5d8c55"
+  ]
 }
