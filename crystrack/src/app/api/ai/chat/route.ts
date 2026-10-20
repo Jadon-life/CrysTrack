@@ -1,103 +1,69 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { buildIntelligenceContext } from '@/lib/ai/context';
-import { chatWithOpenRouter } from '@/lib/ai/intelligence';
-
+import { buildScopedContext } from '@/lib/ai/scoped-context';
+import { chatWithOpenRouter, intelligenceChatModel } from '@/lib/ai/intelligence';
+import { chatRequestSchema, safeChatText } from '@/lib/ai/privacy';
+import {
+  beginAi,
+  finishAi,
+  aiRpc,
+  aiJson,
+  aiFailure,
+  aiHeaders,
+  AiPrivacyError,
+} from '@/lib/ai/privacy-server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-function conversationTitle(message: string) {
-  const compact = message.replace(/\s+/g, ' ').trim();
-  return compact.length <= 70 ? compact : `${compact.slice(0, 67)}...`;
-}
-
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json().catch(() => null);
-  const message = String(body?.message || '').trim();
-  if (!message) return NextResponse.json({ error: 'Message is required' }, { status: 400 });
-  if (message.length > 4000) return NextResponse.json({ error: 'Message is too long' }, { status: 400 });
-  if (!process.env.OPENROUTER_API_KEY) return NextResponse.json({ error: 'CrysTrack AI is not configured' }, { status: 503 });
-
-  let conversationId = String(body?.conversationId || '').trim();
-  let conversation: any = null;
-
-  if (conversationId) {
-    const { data, error } = await supabase
-      .from('ai_conversations')
-      .select('id, title')
-      .eq('id', conversationId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    if (!data) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
-    conversation = data;
-  } else {
-    const { data, error } = await supabase
-      .from('ai_conversations')
-      .insert({ user_id: user.id, title: conversationTitle(message) })
-      .select('id, title')
-      .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    conversation = data;
-    conversationId = data.id;
-  }
-
-  const { data: historyRows, error: historyError } = await supabase
-    .from('ai_messages')
-    .select('role, content, created_at')
-    .eq('conversation_id', conversationId)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(12);
-  if (historyError) return NextResponse.json({ error: historyError.message }, { status: 500 });
-
-  const history = [...(historyRows || [])]
-    .reverse()
-    .filter((item: any) => item.role === 'user' || item.role === 'assistant')
-    .map((item: any) => ({ role: item.role as 'user' | 'assistant', content: String(item.content || '') }));
-
-  const { data: userMessage, error: saveUserError } = await supabase
-    .from('ai_messages')
-    .insert({ conversation_id: conversationId, user_id: user.id, role: 'user', content: message })
-    .select('id, role, content, created_at')
-    .single();
-  if (saveUserError) return NextResponse.json({ error: saveUserError.message }, { status: 500 });
-
   try {
-    const context = await buildIntelligenceContext(supabase, user.id, 'overview');
-    const answer = await chatWithOpenRouter({ context, history, message });
-    if (!answer) throw new Error('CrysTrack AI is not configured');
-
-    const { data: assistantMessage, error: saveAssistantError } = await supabase
-      .from('ai_messages')
-      .insert({ conversation_id: conversationId, user_id: user.id, role: 'assistant', content: answer })
-      .select('id, role, content, created_at')
-      .single();
-    if (saveAssistantError) throw saveAssistantError;
-
-    const nextTitle = conversation.title === 'New conversation' ? conversationTitle(message) : conversation.title;
-    await supabase
-      .from('ai_conversations')
-      .update({ updated_at: new Date().toISOString(), title: nextTitle })
-      .eq('id', conversationId)
-      .eq('user_id', user.id);
-
-    return NextResponse.json({ conversation: { id: conversationId, title: nextTitle }, userMessage, assistantMessage });
-  } catch (error: any) {
-    await supabase
-      .from('ai_conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId)
-      .eq('user_id', user.id);
-
-    const status = Number(error?.status) === 429 ? 429 : 503;
-    const publicMessage = status === 429
-      ? 'CrysTrack AI is temporarily busy. Your message was saved; try again shortly.'
-      : 'CrysTrack AI is temporarily unavailable. Your message was saved and no CrysTrack data was changed.';
-    return NextResponse.json({ error: publicMessage, conversationId, userMessage }, { status });
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new AiPrivacyError('AUTH', 401);
+    const lease = await beginAi(supabase, 'chat', request.signal); // before sensitive context or any conversation/message write
+    const body = chatRequestSchema.parse(await aiJson(request));
+    try {
+      safeChatText(body.message);
+    } catch {
+      throw new AiPrivacyError('INPUT', 400);
+    }
+    let history: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+    if (body.conversationId) {
+      // Explicit owner filter remains, in addition to RPC ownership and generation enforcement.
+      const { data, error } = await supabase
+        .from('ai_conversations')
+        .select('id')
+        .eq('id', body.conversationId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw new AiPrivacyError('UNAVAILABLE');
+      if (!data) throw new AiPrivacyError('INPUT', 404);
+      history = await aiRpc(supabase, 'ai_chat_history', {
+        p_conversation: body.conversationId,
+        p_revision: lease.revision,
+      });
+      history = history.filter((row) => {
+        try {
+          safeChatText(row.content);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+    }
+    const context = await buildScopedContext(supabase, user.id, 'overview', lease.wealthEnabled);
+    const answer = await chatWithOpenRouter({ context, history, message: body.message }, lease);
+    if (!answer) throw new AiPrivacyError('UNCONFIGURED');
+    const result = await finishAi(lease, {
+      conversationId: body.conversationId || null,
+      message: body.message,
+      answer,
+      title: body.message.replace(/\s+/g, ' ').slice(0, 70),
+      model: intelligenceChatModel(),
+    });
+    return NextResponse.json(result, { headers: aiHeaders });
+  } catch (e) {
+    return aiFailure(e);
   }
 }

@@ -39,7 +39,7 @@ test('all inventoried writers and every integration/auth surface are blocked bef
    assert.equal(response.headers.get('cache-control'),'private, no-store');
   }
  }
- for(const path of ['/api/auth/callback?code=fake','/api/exchange-rate','/api/telegram/setup','/api/reminders/dispatch','/api/ai/domain/wealth','/api/unrecognized','/_next/image?url=https://example.invalid/avatar.png']) {
+ for(const path of ['/api/auth/callback?code=fake','/api/exchange-rate','/api/telegram/setup','/api/reminders/dispatch','/api/unrecognized','/_next/image?url=https://example.invalid/avatar.png']) {
   assert.equal(gate.previewRequest(req(path)).status,403,path);
  }
  for(const verb of ['POST','PUT','PATCH','DELETE','OPTIONS']) assert.equal(gate.previewRequest(req('/',verb)).status,403);
@@ -60,7 +60,7 @@ test('browser, server, admin and middleware refuse construction before cookies, 
 });
 test('synthetic navigation DTOs have no external URLs, credentials or mutable shared backing service',async()=>{
  const gate=requestModule(preview);
- const endpoints=['profile','preferences','tasks','goals','assignments','wealth','history','insights','ai/conversations','daily-records/context'];
+ const endpoints=['profile','preferences','tasks','goals','assignments','wealth','history','insights','ai/conversations','ai/privacy','ai/privacy/context','ai/domain/wealth','daily-records/context'];
  for(const path of endpoints) {
   const response=gate.previewRequest(req('/api/'+path));
   assert.equal(response.status,200,path);

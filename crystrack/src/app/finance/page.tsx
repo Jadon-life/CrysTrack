@@ -44,6 +44,7 @@ import { fetcher, patch, post } from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
 import { suggestCategory } from '@/lib/wealth';
 import { reportSchema } from '@/lib/wealth-report';
+import { AiDomainContent } from '@/components/ai/domain-insight-card';
 import { CalmDisclosure } from '@/components/shared/calm-disclosure';
 import { nextDailyBoundary } from '@/lib/today-streak';
 import { useWealthCurrency } from '@/lib/wealth-currency';
@@ -100,10 +101,8 @@ export default function WealthPage() {
   });
   const [repaymentAmount, setRepaymentAmount] = useState('');
   const [actualAmount, setActualAmount] = useState('');
-  const [aiInsight, setAiInsight] = useState<any>(null);
-  const [aiLoading, setAiLoading] = useState(false);
 
-  const load = useCallback(async (analyze = true) => {
+  const load = useCallback(async (_analyze = true) => {
     const generation=++readGeneration.current;
     setLoading(true);setData(emptyData);
     try {
@@ -111,7 +110,6 @@ export default function WealthPage() {
       if (generation!==readGeneration.current) return;
       setData(nextData);setStatus('');
       setLedgerRevision(n=>n+1);
-      if(analyze)void fetcher('/api/ai/domain/wealth', { method: 'POST' }).then(setAiInsight).catch(() => null);
     } catch (error: any) {
       if(generation===readGeneration.current){setData(emptyData);setStatus('Wealth is temporarily unavailable. Refresh to verify your balances; no records were changed.');}
     } finally {
@@ -216,17 +214,6 @@ export default function WealthPage() {
     setConfirmingFlow(null);
     setActualAmount('');
     await load();
-  };
-
-  const refreshInsight = async () => {
-    setAiLoading(true);
-    try {
-      setAiInsight(await fetcher('/api/ai/domain/wealth', { method: 'POST' }));
-    } catch (error: any) {
-      setStatus(error?.message || 'AI insight is unavailable');
-    } finally {
-      setAiLoading(false);
-    }
   };
 
   const categorySuggestion = suggestCategory(entry.source, data.entries);
@@ -405,22 +392,7 @@ export default function WealthPage() {
         </GlassCard>
 
         <GlassCard padding="md" className="xl:col-span-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="dashboard-panel-title text-sm flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-[var(--theme-primary)]" /> Wealth Intelligence</p>
-              <p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack processes your ledger for patterns; AI receives compact transaction context without identity, credentials, private notes or debt counterparties.</p>
-            </div>
-            <Button variant="outline" aria-label="Refresh Wealth Intelligence" onClick={() => void refreshInsight()} disabled={aiLoading}>
-              {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            </Button>
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-black/15 p-4 mt-4">
-            <p className="text-sm font-semibold text-white">{aiInsight?.insight?.headline || 'Current pattern'}</p>
-            <p className="text-xs leading-relaxed text-white/85 mt-2">{aiInsight?.insight?.summary || summary?.deterministicRemark}</p>
-            {aiInsight?.insight?.observations?.[0] && <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-3">{aiInsight.insight.observations[0]}</p>}
-            {aiInsight?.insight?.actions?.[0] && <div className="mt-3 pt-3 border-t border-white/10"><p className="text-xs uppercase tracking-wide text-[var(--theme-primary)]">Next review</p><p className="text-xs text-white mt-1">{aiInsight.insight.actions[0]}</p></div>}
-          </div>
+          <AiDomainContent domain="wealth" fallback={summary?.deterministicRemark}/>
 
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="rounded-xl border border-white/10 bg-black/10 p-3">

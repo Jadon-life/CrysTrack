@@ -17,7 +17,7 @@ const fails = (fn) => assert.throws(fn, /psql|docker/);
 
 test('six historical files plus daily, crystal and assignment migrations match local hashes', () => {
   const inventory=localSql('SELECT name,hash FROM crystrack_local_control.applied ORDER BY name').split('\n');
-  assert.equal(inventory.length,15);
+  assert.equal(inventory.length,16);
   for(const row of inventory) {
     const [name,hash]=row.split('|');
     assert.equal(hash,createHash('sha256').update(fs.readFileSync('src/db/migrations/'+name)).digest('hex'));
