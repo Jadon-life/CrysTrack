@@ -19,6 +19,7 @@ export const exclusions = [
   'Auth identities, credentials, tokens, password hashes, push subscriptions and Telegram connections/keys are excluded.',
   'Device storage, unsynchronized offline intents, caches, device opt-in and internal mutation/receipt/lease metadata are excluded.',
   'Avatar assets/URLs, opaque config/activity/notification payloads/errors and original bank files/CSV reviewed-row payloads are excluded.',
+  'Activity/reminder polymorphic entity_id links are excluded: target ownership cannot always be proved after deletion. Owner-held event IDs, types and times remain included.',
   'AI-generated insights and embedded analyses, provider/system prompts and raw external requests are excluded.',
   'AI conversations/messages are limited to trusted stored provenance at the current enabled consent revision; revoked/deleted/unproven/older-revision messages are excluded.',
   'Legacy child records without a provable owner-parent are excluded. Deleted records cannot be reconstructed.',

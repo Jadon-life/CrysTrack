@@ -14,7 +14,16 @@ export function AccountExport(){
  const invalidate=()=>{generation.current++;controller.current?.abort();setBusy(false);setReview(null);setConfirm(false);};
  useEffect(()=>()=>{generation.current++;controller.current?.abort();},[]);
  useEffect(()=>{const revoke=()=>{generation.current++;controller.current?.abort();setReview(null);setConfirm(false);setBusy(false);setAiAllowed(false);setSelected(x=>x.filter(v=>v!=='ai'));};window.addEventListener('crystrack-auth-owner-changed',revoke);return()=>window.removeEventListener('crystrack-auth-owner-changed',revoke);},[]);
- const show=async()=>{setOpen(true);setNotice('');if(isRestrictedPreview())return;try{const r=await fetch('/api/ai/privacy',{cache:'no-store'});if(!r.ok)throw Error();const p=aiPrivacySchema.parse(await r.json().then(({configured:_,...v})=>v));setAiAllowed(p.enabled);}catch{setAiAllowed(false);}};
+ useEffect(()=>{
+  if(!open||isRestrictedPreview())return;
+  let active=true;let read:AbortController|null=null;
+  const load=async()=>{read?.abort();const next=new AbortController();read=next;const timer=setTimeout(()=>next.abort(),10000);try{const r=await fetch('/api/ai/privacy',{cache:'no-store',signal:next.signal});if(!r.ok)throw Error();const {configured:_,...data}=await r.json();const p=aiPrivacySchema.parse(data);if(active&&!next.signal.aborted)setAiAllowed(p.enabled);}catch{if(active&&!next.signal.aborted)setAiAllowed(false);}finally{clearTimeout(timer);}};
+  const changed=()=>{generation.current++;controller.current?.abort();setBusy(false);setReview(null);setConfirm(false);setAiAllowed(false);setSelected(x=>x.filter(v=>v!=='ai'));setNotice('AI privacy changed. Review your selection before downloading.');void load();};
+  const storage=(e:StorageEvent)=>{if(e.key==='crystrack-ai-privacy-changed')changed();};
+  window.addEventListener('crystrack-ai-privacy-changed',changed);window.addEventListener('storage',storage);void load();
+  return()=>{active=false;read?.abort();window.removeEventListener('crystrack-ai-privacy-changed',changed);window.removeEventListener('storage',storage);};
+ },[open,user?.id]);
+ const show=()=>{setOpen(true);setNotice('');};
  const run=async(download:boolean)=>{
   if(!user||busy||isRestrictedPreview())return;const id=user.id,epoch=++generation.current,abort=new AbortController();controller.current=abort;const timer=setTimeout(()=>abort.abort(),25000);setBusy(true);setNotice(download?'Preparing your private archive…':'Checking your selected records…');
   const current=()=>epoch===generation.current&&owner.current===id&&!abort.signal.aborted;
