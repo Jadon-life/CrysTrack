@@ -1,3 +1,4 @@
+import { createTrustedAiClient, hasTrustedAiCredential } from './trusted-server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { aiPrivacySchema, aiLeaseSchema, type AiRequestDomain } from './privacy';
@@ -85,24 +86,41 @@ export async function requireAiPrivacy(client: any, wealth = false) {
   if (wealth && !p.wealthEnabled) throw new AiPrivacyError('WEALTH_OFF', 403);
   return p;
 }
-export type AiLease = z.infer<typeof aiLeaseSchema> & { client: any; signal?: AbortSignal };
+export type AiLease = z.infer<typeof aiLeaseSchema> & {
+  client: any;
+  serverClient: ReturnType<typeof createTrustedAiClient>;
+  ownerId: string;
+  signal?: AbortSignal;
+};
+export function aiProviderConfigured() {
+  return !!process.env.OPENROUTER_API_KEY && hasTrustedAiCredential();
+}
 export async function beginAi(
   client: any,
   domain: AiRequestDomain,
   signal?: AbortSignal,
 ): Promise<AiLease> {
   const p = await requireAiPrivacy(client, domain === 'wealth' || domain === 'wealth_legacy');
-  if (domain !== 'conversation' && !process.env.OPENROUTER_API_KEY)
+  if (!hasTrustedAiCredential() || (domain !== 'conversation' && !process.env.OPENROUTER_API_KEY))
     throw new AiPrivacyError('UNCONFIGURED');
+  // The owner is verified here, never copied from JSON, query parameters or model output.
+  const { data: { user }, error } = await client.auth.getUser();
+  if (error || !user) throw new AiPrivacyError('AUTH', 401);
+  const serverClient = createTrustedAiClient();
   const result = aiLeaseSchema.safeParse(
-    await aiRpc(client, 'ai_request_begin', { p_revision: p.revision, p_domain: domain }),
+    await aiRpc(serverClient, 'ai_request_begin', {
+      p_owner: user.id, p_revision: p.revision, p_domain: domain,
+    }),
   );
   if (!result.success) throw new AiPrivacyError('UNAVAILABLE');
-  return { ...result.data, client, signal };
+  return { ...result.data, client, serverClient, ownerId: user.id, signal };
 }
 export async function checkAiLease(lease: AiLease) {
   const r = aiLeaseSchema.safeParse(
-    await aiRpc(lease.client, 'ai_request_check', { p_request: lease.id }),
+    await aiRpc(lease.serverClient, 'ai_request_check', {
+      p_owner: lease.ownerId, p_request: lease.id,
+      p_revision: lease.revision, p_domain: lease.domain,
+    }),
   );
   if (
     !r.success ||
@@ -115,7 +133,12 @@ export async function checkAiLease(lease: AiLease) {
 }
 export async function finishAi(lease: AiLease, data: Record<string, unknown>) {
   await checkAiLease(lease);
-  return aiRpc(lease.client, 'ai_request_finish', { p_request: lease.id, p_data: data });
+  const { data: { user }, error } = await lease.client.auth.getUser();
+  if (error || !user || user.id !== lease.ownerId) throw new AiPrivacyError('AUTH', 401);
+  return aiRpc(lease.serverClient, 'ai_request_finish', {
+    p_owner: lease.ownerId, p_request: lease.id,
+    p_revision: lease.revision, p_domain: lease.domain, p_data: data,
+  });
 }
 export function assertAiOrigin(request: Request) {
   if (Number(request.headers.get('content-length') || 0) > 32768)

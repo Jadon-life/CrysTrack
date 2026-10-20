@@ -85,7 +85,7 @@ async function fixture(label = 'Privacy Explorer', finance = true) {
     legacy = randomUUID(),
     checkin = randomUUID();
   localSql(
-    `INSERT INTO profiles(user_id,timezone,scheduling_timezone,display_name)VALUES('${id}','Africa/Lagos','Africa/Lagos','Synthetic ${label}');INSERT INTO goals(id,user_id,title,description,status,progress_mode,measurable,starting_value,progress_value,target_value,ai_coaching,checkin_config)VALUES('${goal}','${id}','PRIVATE_GOAL_IDENTITY','PRIVATE_GOAL_NOTES','active','percentage',true,0,20,100,true,'{"frequency":"daily"}');INSERT INTO goal_checkins(id,user_id,goal_id,response_text,ai_analysis)VALUES('${checkin}','${id}','${goal}','PRIVATE_REFLECTION','{"status":"on_track","summary":"PRIVATE_OLD_GOAL_INSIGHT"}');INSERT INTO goal_insights(goal_id,summary)VALUES('${goal}','PRIVATE_OLD_GOAL_INSIGHT');INSERT INTO ai_conversations(id,user_id,title)VALUES('${legacy}','${id}','Synthetic saved local conversation');INSERT INTO ai_messages(user_id,conversation_id,role,content)VALUES('${id}','${legacy}','assistant','PRIVATE_LEGACY_FINANCE');INSERT INTO ai_domain_insights(user_id,domain,data_fingerprint,insight,model)VALUES('${id}','overview','old-policy','{"headline":"PRIVATE_OLD_DOMAIN","summary":"PRIVATE_OLD_DOMAIN","observations":["PRIVATE_OLD_DOMAIN"],"actions":[],"risk_level":"low","confidence":"low"}','synthetic-legacy')`,
+    `BEGIN;SET LOCAL request.jwt.claims='{"role":"service_role"}';INSERT INTO profiles(user_id,timezone,scheduling_timezone,display_name)VALUES('${id}','Africa/Lagos','Africa/Lagos','Synthetic ${label}');INSERT INTO goals(id,user_id,title,description,status,progress_mode,measurable,starting_value,progress_value,target_value,ai_coaching,checkin_config)VALUES('${goal}','${id}','PRIVATE_GOAL_IDENTITY','PRIVATE_GOAL_NOTES','active','percentage',true,0,20,100,true,'{"frequency":"daily"}');INSERT INTO goal_checkins(id,user_id,goal_id,response_text,ai_analysis)VALUES('${checkin}','${id}','${goal}','PRIVATE_REFLECTION','{"status":"on_track","summary":"PRIVATE_OLD_GOAL_INSIGHT"}');INSERT INTO goal_insights(goal_id,summary)VALUES('${goal}','PRIVATE_OLD_GOAL_INSIGHT');INSERT INTO ai_conversations(id,user_id,title)VALUES('${legacy}','${id}','Synthetic saved local conversation');INSERT INTO ai_messages(user_id,conversation_id,role,content)VALUES('${id}','${legacy}','assistant','PRIVATE_LEGACY_FINANCE');INSERT INTO ai_domain_insights(user_id,domain,data_fingerprint,insight,model)VALUES('${id}','overview','old-policy','{"headline":"PRIVATE_OLD_DOMAIN","summary":"PRIVATE_OLD_DOMAIN","observations":["PRIVATE_OLD_DOMAIN"],"actions":[],"risk_level":"low","confidence":"low"}','synthetic-legacy');COMMIT`,
   );
   role(id, 'SELECT daily_context();SELECT sep28_crystal_state()');
   if (finance)
@@ -146,7 +146,7 @@ function snapshot(owners) {
     )
     .digest('hex');
 }
-async function server(configured) {
+async function server(configured, backend = true) {
   const sock = net.createServer();
   sock.listen(0, '127.0.0.1');
   await once(sock, 'listening');
@@ -166,7 +166,7 @@ async function server(configured) {
     ],
     {
       cwd: ROOT,
-      env: { ...env, OPENROUTER_API_KEY: configured ? 'synthetic-issue41-not-a-provider-key' : '' },
+      env: { ...env, OPENROUTER_API_KEY: configured ? 'synthetic-issue41-not-a-provider-key' : '', SUPABASE_SERVICE_ROLE_KEY: backend ? env.SUPABASE_SERVICE_ROLE_KEY : '', SUPABASE_SECRET_KEY: backend ? (env.SUPABASE_SECRET_KEY || '') : '' },
       stdio: 'ignore',
     },
   );
@@ -349,7 +349,8 @@ try {
     args: ['--no-sandbox'],
   });
   const origin = await server(true),
-    unconfigured = await server(false);
+    unconfigured = await server(false),
+    noBackend = await server(true, false);
   for (const width of [375, 430, 768, 1280, 1440]) {
     const a = await fixture(),
       b = await fixture('Other Owner', false),
@@ -428,6 +429,11 @@ try {
       const navigationCount = events().length;
       await page.goto(origin + '/goals');
       await page.getByTestId('ai-domain-goals').waitFor();
+      await page.getByRole('button', { name: 'Check in', exact: true }).first().click();
+      await page.getByText('If you have enabled AI in Privacy settings, CrysTrack can discuss limited numeric progress, timing and check-in patterns. Goal titles, target values and private reflections are not sent. AI cannot evaluate your full goal or written evidence.', { exact: true }).waitFor();
+      await page.getByText(/If you have enabled AI in Privacy settings, CrysTrack can discuss limited numeric/).scrollIntoViewIfNeeded();
+      await shot(`goal-numeric-scope-${label}-${width}`, false);
+      await page.getByRole('button', { name: 'Cancel', exact: true }).click();
       await page.goto(origin + '/finance');
       await page.getByTestId('wealth-report-status').waitFor();
       await page.getByTestId('wealth-analysis').locator('summary').click();
@@ -667,6 +673,17 @@ try {
       ).status(),
       503,
     );
+    assert.equal(events().length, noKeyCount);
+    await page.goto(noBackend + '/settings#ai-privacy');
+    await page.getByText('AI is not configured on this server. Permission does not mean a provider request succeeded.', { exact: true }).waitFor();
+    for (const light of [false, true]) {
+      await theme(light);
+      await shot(`backend-unconfigured-${light ? 'light' : 'dark'}-${width}`);
+      await axe('[data-testid="ai-privacy-controls"]', width, 'backend unconfigured ' + (light ? 'light' : 'dark'));
+    }
+    const backendDenied = await page.request.post(noBackend + '/api/ai/chat', { data: { message: 'Synthetic no backend authority' } });
+    assert.equal(backendDenied.status(), 503);
+    assert.equal((await backendDenied.json()).code, 'UNCONFIGURED');
     assert.equal(events().length, noKeyCount);
     await page.goto(origin + '/ai');
     await page.getByRole('button', { name: 'Open profile menu', exact: true }).click();

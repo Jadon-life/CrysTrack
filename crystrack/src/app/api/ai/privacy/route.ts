@@ -1,3 +1,4 @@
+import { aiProviderConfigured } from '@/lib/ai/privacy-server';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -23,7 +24,7 @@ export async function GET() {
     return NextResponse.json(
       {
         ...(await readAiPrivacy(await owner())),
-        configured: Boolean(process.env.OPENROUTER_API_KEY),
+        configured: aiProviderConfigured(),
       },
       { headers: aiHeaders },
     );
@@ -46,7 +47,7 @@ export async function PUT(request: Request) {
       }),
     );
     return NextResponse.json(
-      { ...state, configured: Boolean(process.env.OPENROUTER_API_KEY) },
+      { ...state, configured: aiProviderConfigured() },
       { headers: aiHeaders },
     );
   } catch (e) {
@@ -66,7 +67,7 @@ export async function DELETE(request: Request) {
       }),
     );
     return NextResponse.json(
-      { ...state, configured: Boolean(process.env.OPENROUTER_API_KEY), cleared: true },
+      { ...state, configured: aiProviderConfigured(), cleared: true },
       { headers: aiHeaders },
     );
   } catch (e) {

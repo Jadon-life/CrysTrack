@@ -84,8 +84,18 @@ BEGIN
  INSERT INTO crystrack_ai.mutations(user_id,request_id,payload) VALUES(u,p_request_id,payload);
  RETURN public.ai_privacy_state();
 END $$;
-CREATE FUNCTION public.ai_request_begin(p_revision integer,p_domain text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
-DECLARE u uuid:=crystrack_ai.owner(); p public.ai_privacy_preferences; r crystrack_ai.requests;
+-- Only the backend credential may issue/check/complete model work. Owner IDs come
+-- from Next auth.getUser(), never a request body; every permit also binds domain/revision.
+CREATE FUNCTION crystrack_ai.server_owner(p_owner uuid) RETURNS uuid LANGUAGE plpgsql STABLE SET search_path='' AS $$
+BEGIN
+ IF auth.role() IS DISTINCT FROM 'service_role' OR p_owner IS NULL
+ OR NOT EXISTS(SELECT 1 FROM auth.users WHERE id=p_owner) THEN
+  RAISE EXCEPTION 'Trusted AI server required' USING ERRCODE='42501';
+ END IF;
+ RETURN p_owner;
+END $$;
+CREATE FUNCTION public.ai_request_begin(p_owner uuid,p_revision integer,p_domain text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE u uuid:=crystrack_ai.server_owner(p_owner); p public.ai_privacy_preferences; r crystrack_ai.requests;
 BEGIN
  PERFORM pg_advisory_xact_lock(hashtextextended(u::text,41));
  SELECT * INTO p FROM public.ai_privacy_preferences WHERE user_id=u FOR UPDATE;
@@ -97,23 +107,23 @@ BEGIN
  INSERT INTO crystrack_ai.requests(user_id,revision,domain,wealth_enabled) VALUES(u,p.revision,p_domain,p.wealth_enabled) RETURNING * INTO r;
  RETURN jsonb_build_object('id',r.id,'revision',r.revision,'wealthEnabled',r.wealth_enabled,'domain',r.domain);
 END $$;
-CREATE FUNCTION public.ai_request_check(p_request uuid) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
-DECLARE u uuid:=crystrack_ai.owner(); r crystrack_ai.requests; p public.ai_privacy_preferences;
+CREATE FUNCTION public.ai_request_check(p_owner uuid,p_request uuid,p_revision integer,p_domain text) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
+DECLARE u uuid:=crystrack_ai.server_owner(p_owner); r crystrack_ai.requests; p public.ai_privacy_preferences;
 BEGIN
  SELECT * INTO r FROM crystrack_ai.requests WHERE id=p_request AND user_id=u;
  SELECT * INTO p FROM public.ai_privacy_preferences WHERE user_id=u;
- IF r.id IS NULL OR p.user_id IS NULL OR NOT p.enabled OR p.accepted_policy IS DISTINCT FROM '2026-10-20-minimal-v1'
+ IF r.id IS NULL OR r.revision IS DISTINCT FROM p_revision OR r.domain IS DISTINCT FROM p_domain OR p.user_id IS NULL OR NOT p.enabled OR p.accepted_policy IS DISTINCT FROM '2026-10-20-minimal-v1'
  OR p.revision<>r.revision OR p.wealth_enabled<>r.wealth_enabled OR r.created_at<now()-interval '2 minutes'
  THEN RAISE EXCEPTION 'AI permission changed or expired' USING ERRCODE='PT409'; END IF;
  RETURN jsonb_build_object('id',r.id,'revision',r.revision,'wealthEnabled',r.wealth_enabled,'domain',r.domain);
 END $$;
-CREATE FUNCTION public.ai_request_finish(p_request uuid,p_data jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
-DECLARE u uuid:=crystrack_ai.owner(); r crystrack_ai.requests; c public.ai_conversations; m1 public.ai_messages; m2 public.ai_messages;
+CREATE FUNCTION public.ai_request_finish(p_owner uuid,p_request uuid,p_revision integer,p_domain text,p_data jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
+DECLARE u uuid:=crystrack_ai.server_owner(p_owner); r crystrack_ai.requests; c public.ai_conversations; m1 public.ai_messages; m2 public.ai_messages;
  insight_id uuid; v_goal_id uuid; v_checkin_id uuid; model_name text; result jsonb;
 BEGIN
  PERFORM pg_advisory_xact_lock(hashtextextended(u::text,41));
  PERFORM 1 FROM public.ai_privacy_preferences WHERE user_id=u FOR UPDATE;
- PERFORM public.ai_request_check(p_request);
+ PERFORM public.ai_request_check(u,p_request,p_revision,p_domain);
  SELECT * INTO r FROM crystrack_ai.requests WHERE id=p_request AND user_id=u FOR UPDATE;
  IF r.stored THEN RAISE EXCEPTION 'AI result already committed' USING ERRCODE='PT409'; END IF;
  IF p_data IS NULL OR jsonb_typeof(p_data)<>'object' OR octet_length(p_data::text)>65536 THEN RAISE EXCEPTION 'Invalid AI result' USING ERRCODE='22023'; END IF;
@@ -171,14 +181,31 @@ BEGIN
   ORDER BY m.created_at DESC,m.id DESC LIMIT 12) x;
  RETURN result;
 END $$;
--- Direct owner reads/deletes retain existing RLS; new AI writes go through revision-bound commits.
+-- Also close the embedded-result DML path: source check-ins remain owner writable,
+-- but non-null generated analysis can only originate from the trusted server.
+-- Null clearing remains possible for the confirmed owner-scoped privacy deletion RPC.
+CREATE FUNCTION crystrack_ai.guard_goal_analysis() RETURNS trigger LANGUAGE plpgsql SET search_path='' AS $$
+BEGIN
+ IF NEW.ai_analysis IS NOT NULL AND (TG_OP='INSERT' OR NEW.ai_analysis IS DISTINCT FROM OLD.ai_analysis)
+ AND auth.role() IS DISTINCT FROM 'service_role' THEN
+  RAISE EXCEPTION 'Trusted AI completion required' USING ERRCODE='42501';
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER ai_goal_analysis_integrity BEFORE INSERT OR UPDATE ON public.goal_checkins
+ FOR EACH ROW EXECUTE FUNCTION crystrack_ai.guard_goal_analysis();
+-- Owner reads retain existing RLS; writes/deletes require bounded RPCs.
 REVOKE INSERT,UPDATE,DELETE ON public.ai_conversations,public.ai_messages,public.ai_domain_insights,public.goal_insights FROM authenticated,anon;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA crystrack_ai FROM PUBLIC,anon,authenticated,service_role;
 DO $$ DECLARE f regprocedure; BEGIN
  FOR f IN SELECT p.oid::regprocedure FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN(
  'ai_privacy_state','ai_privacy_mutate','ai_request_begin','ai_request_check','ai_request_finish','ai_chat_history') LOOP
   EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC,anon,authenticated,service_role',f);
-  EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated',f);
+  IF (SELECT proname FROM pg_proc WHERE oid=f::oid) IN('ai_request_begin','ai_request_check','ai_request_finish') THEN
+   EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role',f);
+  ELSE
+   EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated',f);
+  END IF;
  END LOOP;
 END $$;
 COMMIT;

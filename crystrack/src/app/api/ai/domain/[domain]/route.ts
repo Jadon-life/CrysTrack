@@ -1,3 +1,4 @@
+import { aiProviderConfigured } from '@/lib/ai/privacy-server';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -68,7 +69,7 @@ export async function GET(_request: Request, props: { params: Promise<{ domain: 
           generatedAt: null,
           enabled: p.enabled,
           wealthEnabled: p.wealthEnabled,
-          configured: Boolean(process.env.OPENROUTER_API_KEY),
+          configured: aiProviderConfigured(),
           cached: false,
           source: 'none',
         },
@@ -85,7 +86,7 @@ export async function GET(_request: Request, props: { params: Promise<{ domain: 
         model: latest?.model || null,
         enabled: true,
         wealthEnabled: p.wealthEnabled,
-        configured: Boolean(process.env.OPENROUTER_API_KEY),
+        configured: aiProviderConfigured(),
         cached: Boolean(latestInsight),
         source: latestInsight ? 'saved-ai' : 'none',
         warning: latestInsight

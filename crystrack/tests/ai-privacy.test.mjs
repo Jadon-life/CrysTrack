@@ -233,6 +233,7 @@ function fixture(enabled = false, wealth = false) {
         const lease = f.leases.get(args.p_request);
         if (
           !lease ||
+          args.p_revision !== lease.revision || args.p_domain !== lease.domain ||
           !f.state.enabled ||
           lease.revision !== f.state.revision ||
           lease.wealthEnabled !== f.state.wealthEnabled
@@ -260,7 +261,18 @@ function fixture(enabled = false, wealth = false) {
       throw new Error('Unexpected RPC ' + name);
     },
   };
+  const rawRpc = f.client.rpc;
+  f.trustedCalls = [];
+  f.serverClient = { rpc: async (name, args) => {
+    f.trustedCalls.push({ name, owner: args?.p_owner });
+    if (args?.p_owner !== id) return { error: { code: '42501' } };
+    return rawRpc(name, args);
+  }};
+  f.client.rpc = (name, args) => name.startsWith('ai_request_')
+    ? Promise.resolve({ error: { code: '42501' } }) : rawRpc(name, args);
   f.load = loader({
+    'server-only': {},
+    '@/lib/supabase/admin': { createAdminClient: () => f.serverClient },
     '@/lib/supabase/server': { createClient: async () => f.client },
     '@/lib/wealth-report-server': {
       readWealthReport: async () => {
@@ -300,8 +312,12 @@ const wealthInsight = {
 async function boundary(f, fn) {
   const oldFetch = globalThis.fetch,
     oldKey = process.env.OPENROUTER_API_KEY,
-    oldLog = console.error;
+    oldLog = console.error,
+    oldService = process.env.SUPABASE_SERVICE_ROLE_KEY,
+    oldSecret = process.env.SUPABASE_SECRET_KEY;
   process.env.OPENROUTER_API_KEY = 'synthetic-boundary-not-a-provider-key';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'synthetic-test-only-backend-key';
+  delete process.env.SUPABASE_SECRET_KEY;
   console.error = (...x) => f.logs.push(x);
   globalThis.fetch = async (url, options) => {
     assert.equal(url, 'https://openrouter.ai/api/v1/chat/completions');
@@ -335,6 +351,8 @@ async function boundary(f, fn) {
     console.error = oldLog;
     if (oldKey === undefined) delete process.env.OPENROUTER_API_KEY;
     else process.env.OPENROUTER_API_KEY = oldKey;
+    if (oldService === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = oldService;
+    if (oldSecret === undefined) delete process.env.SUPABASE_SECRET_KEY; else process.env.SUPABASE_SECRET_KEY = oldSecret;
   }
 }
 const req = (path, body = {}, headers = {}) =>
@@ -650,5 +668,59 @@ test('prompt injection in stored text cannot enter automatic provider context an
     assert.doesNotMatch(JSON.stringify(body), /PRIVATE_/);
     assert.match(body.messages.at(-1).content, /Ignore earlier/);
     assert.equal(body.messages.at(-1).role, 'user');
+  });
+});
+
+test('ordinary client cannot issue or finish AI work; routes use verified-owner backend RPCs', async () => {
+  const f = fixture(true, false);
+  await boundary(f, async () => {
+    for (const name of ['ai_request_begin','ai_request_check','ai_request_finish'])
+      assert.equal((await f.client.rpc(name, {})).error.code, '42501');
+    const r = await invoke(f, '/api/ai/chat');
+    assert.equal(r.status, 200);
+    assert.equal(f.writes, 1);
+    assert.ok(f.trustedCalls.some(c => c.name === 'ai_request_finish'));
+    assert.ok(f.trustedCalls.every(c => c.owner === f.id));
+  });
+});
+test('missing backend credential fails closed before permit, model call or result write', async () => {
+  const f = fixture(true, false);
+  await boundary(f, async () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.SUPABASE_SECRET_KEY;
+    const r = await invoke(f, '/api/ai/chat');
+    assert.equal(r.status, 503);
+    assert.equal((await r.json()).code, 'UNCONFIGURED');
+    assert.equal(f.calls.length, 0);
+    assert.equal(f.trustedCalls.length, 0);
+    assert.equal(f.writes, 0);
+  });
+});
+test('Goal AI copy and provider instructions describe only approved numeric evidence', () => {
+  const ui = fs.readFileSync('src/app/goals/page.tsx','utf8');
+  const prompt = fs.readFileSync('src/lib/ai/goal-openrouter.ts','utf8');
+  assert.match(ui,/limited numeric progress, timing and check-in patterns/);
+  assert.match(ui,/Goal titles, target values and private reflections are not sent/);
+  assert.match(ui,/AI cannot evaluate your full goal or written evidence/);
+  assert.doesNotMatch(ui,/analyze this evidence against the exact goal/);
+  assert.match(prompt,/exact goal, target values, units and private written evidence are not supplied/);
+  assert.match(prompt,/cannot evaluate them/);
+  assert.doesNotMatch(prompt,/Evaluate the user's evidence against the exact stated goal/);
+  assert.match(prompt,/use insufficient_evidence/);
+});
+
+test('server completion re-verifies session owner and never rebinds a trusted permit to a different account', async () => {
+  const f=fixture(true,false);
+  await boundary(f,async()=>{
+    f.provider=async()=>{
+      f.client.auth.getUser=async()=>({data:{user:{id:randomUUID()}}});
+      return new Response(JSON.stringify({choices:[{message:{content:'Synthetic provider response'}}]}),{headers:{'Content-Type':'application/json'}});
+    };
+    const r=await invoke(f,'/api/ai/chat');
+    assert.equal(r.status,401);
+    assert.equal((await r.json()).code,'AUTH');
+    assert.equal(f.writes,0);
+    assert.equal(f.trustedCalls.filter(c=>c.name==='ai_request_finish').length,0);
+    assert.ok(f.trustedCalls.every(c=>c.owner===f.id));
   });
 });

@@ -77,7 +77,12 @@ Wealth CSV export remains independently available and unchanged.
 ## Additive local migration candidate
 
 `0022_ai_privacy_consent.sql` adds owner-readable default-off preferences, private
-mutation/request metadata, RLS and restricted authenticated RPCs. Metadata contains
+mutation/request metadata, RLS and restricted RPCs. Preferences, deletion and
+history remain owner-authenticated; issuance, checking and completion are backend
+service-role only. The Next server verifies the owner and binds it to each permit;
+ordinary authenticated clients cannot mint provider results. A server-only module
+uses the existing backend credential with no anon/cookie fallback. Embedded Goal
+analysis also rejects non-null authenticated result writes. Metadata contains
 revision/identifiers and mutation flags, not prompts or provider responses. Direct
 client writes to AI result tables are revoked; owner history reads retain existing
 RLS. Result writes use atomic owner/revision-checked functions. Drizzle tables/types
@@ -96,3 +101,6 @@ It intercepts the fixed model endpoint, rejects other non-loopback server fetche
 and keeps raw synthetic request captures only in ignored private test output. This
 is not an application feature flag or deployed provider substitute. No real model
 request or hosted credential is required for the validation suite.
+
+The independent-review trust-boundary correction and rollout prerequisites are
+detailed in [security re-review](piece7b-security-rereview.md).

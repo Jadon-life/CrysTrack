@@ -1,3 +1,4 @@
+import { aiProviderConfigured } from '@/lib/ai/privacy-server';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -102,7 +103,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   }
 
   let analysis: any = null;
-  const aiConfigured = Boolean(process.env.OPENROUTER_API_KEY);
+  const aiConfigured = aiProviderConfigured();
   let aiStatus = 'off';
   try {
     assertAiOrigin(request);

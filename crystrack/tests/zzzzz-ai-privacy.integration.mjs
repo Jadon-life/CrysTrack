@@ -10,6 +10,8 @@ const policy = '2026-10-20-minimal-v1',
   q = (s) => "'" + String(s).replaceAll("'", "''") + "'";
 const role = (u, sql) =>
   `BEGIN;SET LOCAL ROLE authenticated;SET LOCAL request.jwt.claims='{"sub":"${u}","role":"authenticated"}';${sql};COMMIT;`;
+const serverRole = (sql) => `BEGIN;SET LOCAL ROLE service_role;SET LOCAL request.jwt.claims='{"role":"service_role"}';${sql};COMMIT;`;
+const serverJson = (expr) => JSON.parse(localSql(serverRole('SELECT '+expr)).split('\n').at(-1));
 const owner = (u, sql) => localSql(role(u, sql)),
   scalar = (sql) => localSql(sql).split('\n').at(-1),
   json = (u, expr) =>
@@ -27,11 +29,12 @@ function fixture() {
 }
 const change = (u, rev, enabled, wealth = false, id = randomUUID()) =>
   json(u, `ai_privacy_mutate('consent',${rev},'${id}',${enabled},${wealth},'${policy}')`);
-const begin = (u, rev, domain = 'chat') => json(u, `ai_request_begin(${rev},'${domain}')`);
+const begin = (u, rev, domain = 'chat') => serverJson(`ai_request_begin('${u}',${rev},'${domain}')`);
+const check = (u, lease) => serverJson(`ai_request_check('${u}','${lease.id}',${lease.revision},'${lease.domain}')`);
 const finish = (u, lease, data) =>
-  json(u, `ai_request_finish('${lease.id}',${q(JSON.stringify(data))}::jsonb)`);
+  serverJson(`ai_request_finish('${u}','${lease.id}',${lease.revision},'${lease.domain}',${q(JSON.stringify(data))}::jsonb)`);
 const denied = (fn) => assert.throws(fn, /psql|docker/);
-function concurrent(u, sql) {
+function concurrent(u, sql, trusted = false) {
   assertTarget();
   return new Promise((resolve) => {
     const p = spawn(
@@ -59,7 +62,7 @@ function concurrent(u, sql) {
     p.stdout.on('data', (x) => (output += x));
     p.stderr.on('data', () => {});
     p.on('close', (code) => resolve({ code, output }));
-    p.stdin.end(role(u, sql));
+    p.stdin.end(trusted ? serverRole(sql) : role(u, sql));
   });
 }
 function protectedHash(u) {
@@ -176,7 +179,7 @@ test('off/on ABA and obsolete consent retries cannot reauthorize old requests', 
   const retried = change(u, 0, true, true, id);
   assert.equal(retried.revision, 3);
   assert.equal(retried.wealthEnabled, false);
-  denied(() => json(u, `ai_request_check('${lease.id}')`));
+  denied(() => check(u, lease));
   denied(() => finish(u, lease, { message: 'Synthetic', answer: 'Synthetic' }));
   assert.equal(scalar(`SELECT count(*) FROM ai_messages WHERE user_id='${u}'`), '0');
 });
@@ -234,7 +237,8 @@ test('in-flight result versus revocation uses one atomic consent lock and never 
   }
   const store = concurrent(
     u,
-    `SELECT ai_request_finish('${lease.id}','{"message":"Synthetic","answer":"Synthetic"}')`,
+    `SELECT ai_request_finish('${u}','${lease.id}',${lease.revision},'${lease.domain}','{"message":"Synthetic","answer":"Synthetic"}')`,
+    true,
   );
   const result = await Promise.all([revoke, store]);
   assert.equal(result[0].code, 0);
@@ -247,12 +251,12 @@ test('expired, unknown and other-owner request IDs fail; durable per-owner rate 
   change(u, 0, true);
   change(v, 0, true);
   const lease = begin(u, 1);
-  denied(() => json(v, `ai_request_check('${lease.id}')`));
-  denied(() => json(u, `ai_request_check('${randomUUID()}')`));
+  denied(() => check(v, lease));
+  denied(() => check(u, {...lease,id:randomUUID()}));
   localSql(
     `UPDATE crystrack_ai.requests SET created_at=now()-interval '3 minutes' WHERE id='${lease.id}'`,
   );
-  denied(() => json(u, `ai_request_check('${lease.id}')`));
+  denied(() => check(u, lease));
   for (let i = 0; i < 19; i++) begin(u, 1, 'tasks');
   denied(() => begin(u, 1, 'chat'));
   assert.ok(begin(v, 1, 'chat').id);
@@ -264,7 +268,7 @@ test('confirmed bulk clear removes all local AI copies but preserves check-in ev
     c = randomUUID(),
     legacy = randomUUID();
   localSql(
-    `INSERT INTO goals(id,user_id,title,progress_mode,checkin_config)VALUES('${g}','${u}','Synthetic private goal','percentage','{"frequency":"daily"}');INSERT INTO goal_checkins(id,user_id,goal_id,response_text,ai_analysis)VALUES('${c}','${u}','${g}','Synthetic private reflection','{"summary":"Synthetic old insight"}');INSERT INTO goal_insights(goal_id,summary)VALUES('${g}','Synthetic old insight');INSERT INTO ai_conversations(id,user_id,title)VALUES('${legacy}','${u}','Synthetic legacy chat');INSERT INTO ai_messages(conversation_id,user_id,role,content)VALUES('${legacy}','${u}','assistant','Synthetic old financial context');INSERT INTO ai_domain_insights(user_id,domain,data_fingerprint,insight,model)VALUES('${u}','wealth','legacy','{}','synthetic');INSERT INTO ai_conversations(user_id,title)VALUES('${v}','Other owner')`,
+    `BEGIN;SET LOCAL request.jwt.claims='{"role":"service_role"}';INSERT INTO goals(id,user_id,title,progress_mode,checkin_config)VALUES('${g}','${u}','Synthetic private goal','percentage','{"frequency":"daily"}');INSERT INTO goal_checkins(id,user_id,goal_id,response_text,ai_analysis)VALUES('${c}','${u}','${g}','Synthetic private reflection','{"summary":"Synthetic old insight"}');INSERT INTO goal_insights(goal_id,summary)VALUES('${g}','Synthetic old insight');INSERT INTO ai_conversations(id,user_id,title)VALUES('${legacy}','${u}','Synthetic legacy chat');INSERT INTO ai_messages(conversation_id,user_id,role,content)VALUES('${legacy}','${u}','assistant','Synthetic old financial context');INSERT INTO ai_domain_insights(user_id,domain,data_fingerprint,insight,model)VALUES('${u}','wealth','legacy','{}','synthetic');INSERT INTO ai_conversations(user_id,title)VALUES('${v}','Other owner');COMMIT`,
   );
   owner(
     u,
@@ -422,4 +426,58 @@ test('insufficient-evidence goal output preserves full JSON while fitting the le
     'insufficient_evidence',
   );
   assert.equal(scalar(`SELECT risk_level FROM goal_insights WHERE goal_id='${g}'`), 'insufficient');
+});
+
+test('real authenticated PostgREST cannot issue permits or forge any persisted AI result, even with a known valid permit', async () => {
+  const keys = readLocalKeys();
+  const client = createClient(keys.NEXT_PUBLIC_SUPABASE_URL, keys.NEXT_PUBLIC_SUPABASE_ANON_KEY, {auth:{persistSession:false,autoRefreshToken:false}});
+  const account = await client.auth.signUp({email:`ai-integrity-${randomUUID()}@example.invalid`,password:randomUUID()+'Aa1!'});
+  assert.equal(account.error,null);
+  const uid=account.data.user.id;
+  assert.equal((await client.rpc('ai_privacy_state')).data.enabled,false);
+  const consent = await client.rpc('ai_privacy_mutate',{p_action:'consent',p_expected_revision:0,p_request_id:randomUUID(),p_enabled:true,p_wealth:true,p_policy:policy});
+  assert.equal(consent.error,null);
+  const service = createClient(keys.NEXT_PUBLIC_SUPABASE_URL,keys.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+  const goal=randomUUID(),checkin=randomUUID();
+  localSql(`INSERT INTO profiles(user_id,timezone,scheduling_timezone)VALUES('${uid}','Africa/Lagos','Africa/Lagos') ON CONFLICT(user_id) DO NOTHING;INSERT INTO goals(id,user_id,title,status,progress_mode)VALUES('${goal}','${uid}','Synthetic integrity goal','active','percentage');INSERT INTO goal_checkins(id,user_id,goal_id,response_text)VALUES('${checkin}','${uid}','${goal}','Synthetic private local reflection')`);
+  const before=protectedHash(uid);
+  for (const domain of ['chat','conversation','tasks','goals','assignments','overview','wealth','goal','wealth_legacy']) {
+    const untrustedBegin=await client.rpc('ai_request_begin',{p_owner:uid,p_revision:1,p_domain:domain});
+    assert.ok(untrustedBegin.error,'authenticated issuance denied for '+domain);
+    const issued=await service.rpc('ai_request_begin',{p_owner:uid,p_revision:1,p_domain:domain});
+    assert.equal(issued.error,null,'backend issuance permitted for '+domain);
+    const args={p_owner:uid,p_request:issued.data.id,p_revision:1,p_domain:domain,p_data:{message:'Forged input',answer:'FORGED_RESULT',title:'FORGED_RESULT',model:'forged-provider',fingerprint:'a'.repeat(64),goalId:goal,checkinId:checkin,analysis:{summary:'FORGED_RESULT',status:'on_track'},insight:{headline:'FORGED_RESULT'}}};
+    assert.ok((await client.rpc('ai_request_finish',args)).error,'authenticated completion denied for '+domain);
+    assert.ok((await client.rpc('ai_request_check',{p_owner:uid,p_request:issued.data.id,p_revision:1,p_domain:domain})).error);
+    assert.equal(scalar(`SELECT stored FROM crystrack_ai.requests WHERE id='${issued.data.id}'`),'f');
+    if(domain==='chat') {
+      const completed=await service.rpc('ai_request_finish',{...args,p_data:{message:'Synthetic approved input',answer:'Synthetic trusted backend result',model:'synthetic-boundary-stub'}});
+      assert.equal(completed.error,null);
+      assert.equal((await client.from('ai_messages').select('content')).data.length,2);
+      assert.ok((await client.from('ai_messages').insert({conversation_id:completed.data.conversation.id,user_id:uid,role:'assistant',content:'FORGED_RESULT'})).error);
+    }
+  }
+  assert.ok((await client.rpc('ai_request_finish',{p_request:randomUUID(),p_data:{answer:'FORGED_RESULT'}})).error,'old overload is absent');
+  assert.ok((await client.from('ai_domain_insights').insert({user_id:uid,domain:'tasks',data_fingerprint:'forged',insight:{headline:'FORGED_RESULT'},model:'forged'})).error);
+  assert.ok((await client.from('goal_insights').insert({goal_id:goal,summary:'FORGED_RESULT'})).error);
+  assert.ok((await client.from('goal_checkins').update({ai_analysis:{summary:'FORGED_RESULT'}}).eq('id',checkin)).error,'embedded goal result UPDATE denied');
+  assert.ok((await client.from('goal_checkins').insert({user_id:uid,goal_id:goal,response_text:'Synthetic',ai_analysis:{summary:'FORGED_RESULT'}})).error,'embedded goal result INSERT denied');
+  assert.equal(scalar(`SELECT count(*) FROM ai_messages WHERE user_id='${uid}' AND content='FORGED_RESULT'`),'0');
+  assert.equal(scalar(`SELECT count(*) FROM goal_insights WHERE goal_id='${goal}'`),'0');
+  assert.equal(protectedHash(uid),before);
+  assert.equal((await client.rpc('ai_privacy_state')).data.enabled,true);
+  await client.auth.signOut();
+});
+
+test('backend completion requires exact permit owner, revision and domain, with no privileged parameter rebinding', () => {
+  const a=fixture(),b=fixture();change(a,0,true);change(b,0,true);
+  const lease=begin(a,1,'chat');
+  const data={message:'Synthetic approved',answer:'Synthetic backend response'};
+  denied(()=>finish(b,lease,data));
+  denied(()=>finish(a,{...lease,revision:2},data));
+  denied(()=>finish(a,{...lease,domain:'goal'},data));
+  denied(()=>owner(a,`SELECT ai_request_finish('${a}','${lease.id}',1,'chat','{}')`));
+  assert.equal(scalar(`SELECT stored FROM crystrack_ai.requests WHERE id='${lease.id}'`),'f');
+  assert.ok(finish(a,lease,data).assistantMessage.id);
+  assert.equal(scalar(`SELECT count(*) FROM ai_messages WHERE user_id='${b}'`),'0');
 });
