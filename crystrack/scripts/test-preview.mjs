@@ -62,6 +62,7 @@ try {
   }
  }
  assert.equal((await fetch(origin+'/api/not-allowed')).status,403);
+ assert.equal((await fetch(origin+'/api/tasks/offline/source')).status,403);
  assert.equal((await fetch(origin+'/api/exchange-rate')).status,403);
  assert.equal((await fetch(origin+'/api/auth/callback?code=fake')).status,403);
  console.log('PASS: every inventoried API writer, auth callback and unknown integration is denied by the running Preview server.');
@@ -76,7 +77,9 @@ try {
  const page=await context.newPage();
  page.on('pageerror',error=>browserErrors.push(error.message));
  await page.addInitScript(()=>{
-  window.__previewSignals={fetch:[],socket:[],beacon:[],geolocation:0,push:0,worker:0};
+  window.__previewSignals={fetch:[],socket:[],beacon:[],geolocation:0,push:0,worker:0,offlineStorage:0,offlineLocks:0};
+  const open=indexedDB.open.bind(indexedDB);indexedDB.open=(...args)=>{if(args[0]==='crystrack-offline-today-v1')window.__previewSignals.offlineStorage++;return open(...args);};
+  if(navigator.locks){const lock=navigator.locks.request.bind(navigator.locks);navigator.locks.request=(name,...args)=>{if(name==='crystrack-offline-today-v1')window.__previewSignals.offlineLocks++;return lock(name,...args);};}
   const originalFetch=window.fetch;
   window.fetch=function(input,init){window.__previewSignals.fetch.push(String(input instanceof Request?input.url:input));return originalFetch.call(this,input,init);};
   const OriginalSocket=window.WebSocket;
@@ -139,7 +142,7 @@ try {
  signals.push(await page.evaluate(()=>window.__previewSignals));
  assert.deepEqual(outbound,[],'The browser attempted an external network request');
  for(const sample of signals) {
-  assert.equal(sample.geolocation,0);assert.equal(sample.push,0);assert.equal(sample.worker,0);assert.deepEqual(sample.socket,[]);assert.deepEqual(sample.beacon,[]);
+  assert.equal(sample.offlineStorage,0);assert.equal(sample.offlineLocks,0);assert.equal(sample.geolocation,0);assert.equal(sample.push,0);assert.equal(sample.worker,0);assert.deepEqual(sample.socket,[]);assert.deepEqual(sample.beacon,[]);
   for(const url of sample.fetch) assert.equal(new URL(url,origin).origin,origin,'Browser transport left the demo origin');
  }
  assert.deepEqual(browserErrors,[],'Browser runtime errors');
@@ -155,5 +158,5 @@ try {
  for(const route of ['/','/api/profile','/api/auth/callback?code=fake','/_next/static/synthetic.js']) assert.equal((await fetch(blocked+route)).status,503,route);
  await stop();
  console.log('PASS: missing runtime demo flag fails closed, including API, callback and static assets.');
- fs.writeFileSync(path.join(artifactDir,'result.json'),JSON.stringify({routes,apiWriters:apiWriterInventory().length,externalRequests:outbound,clientArtifactMarkersAbsent:markers.length,blockedMode:'passed',browserErrors},null,2));
+ fs.writeFileSync(path.join(artifactDir,'result.json'),JSON.stringify({routes,apiWriters:apiWriterInventory().length,externalRequests:outbound,offlineStorageActivations:signals.reduce((n,s)=>n+s.offlineStorage,0),offlineLockRequests:signals.reduce((n,s)=>n+s.offlineLocks,0),clientArtifactMarkersAbsent:markers.length,blockedMode:'passed',browserErrors},null,2));
 } finally {if(browser)await browser.close();await stop();}

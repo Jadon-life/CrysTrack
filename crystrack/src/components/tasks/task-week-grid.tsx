@@ -13,6 +13,8 @@ import {
   type WeekGridView,
   type WeekCell,
 } from '@/lib/week-grid';
+import {useOfflineToday} from '@/components/offline/offline-today-provider';
+import {OfflineRoutineMarker} from '@/components/offline/offline-today-status';
 import { cn } from '@/lib/utils';
 
 const firstPage = () => ({
@@ -52,6 +54,7 @@ export function TaskWeekGrid({ onChange }: { onChange: () => Promise<void> }) {
 }
 
 function OwnerWeekGrid({ owner, onChange }: { owner: string; onChange: () => Promise<void> }) {
+  const offline=useOfflineToday();
   const ownerRef = useRef(owner);
   useEffect(() => {
     ownerRef.current = owner;
@@ -164,6 +167,7 @@ function OwnerWeekGrid({ owner, onChange }: { owner: string; onChange: () => Pro
   }, [view, busy, writing, pending]);
   const submit = async (intent: Intent) => {
     if (writeLock.current || intent.owner !== ownerRef.current || isRestrictedPreview()) return;
+    if(await offline.stageAction(intent.id,intent.desiredStatus))return;
     focusTarget.current = `week-action-${intent.id}-${intent.day}`;
     writeLock.current = true;
     setWriting(true);
@@ -235,6 +239,7 @@ function OwnerWeekGrid({ owner, onChange }: { owner: string; onChange: () => Pro
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-white">Your routine week</h2>
+            {offline.enabled&&<p role="status" className="text-sm text-cyan-100">{offline.items.length} pending — not yet verified. Sync or review in Today’s offline controls.</p>}
             <p className="mt-1 text-sm text-slate-200">
               Recorded days, today’s work, and editable plans — each kept clear.
             </p>
@@ -414,7 +419,7 @@ function OwnerWeekGrid({ owner, onChange }: { owner: string; onChange: () => Pro
                         scope="row"
                         className="sticky left-0 z-10 w-36 min-w-36 sm:w-44 sm:min-w-44 max-w-36 sm:max-w-44 border-b border-r border-white/15 bg-slate-950 p-3 text-left font-medium text-white"
                       >
-                        <span className="break-words">{row.title}</span>
+                        <span className="break-words">{row.title}<OfflineRoutineMarker id={row.id}/></span>
                         <span className="mt-1 block text-xs font-normal text-slate-200">
                           {row.active
                             ? 'Active routine'

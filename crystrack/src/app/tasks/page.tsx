@@ -11,12 +11,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CreateModal } from '@/components/shared/create-modal';
 import { del, fetcher, post } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import {useOfflineToday} from '@/components/offline/offline-today-provider';
+import {OfflineTodayStatus,OfflineRoutineMarker} from '@/components/offline/offline-today-status';
 import { groupTodayTasks, summarizeToday } from '@/lib/today-progress';
 import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive, Trash2, ChevronDown } from 'lucide-react';
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function TasksPage() {
+  const offline=useOfflineToday();
   const searchParams = useSearchParams();
   const [taskView,setTaskView] = useState<'today'|'week'>('today');
   const [tasks, setTasks] = useState<any[]>([]);
@@ -93,8 +96,12 @@ export default function TasksPage() {
     }));
   };
 
+  useEffect(()=>{const update=()=>void loadTasks();window.addEventListener('crystrack-offline-confirmed',update);return()=>window.removeEventListener('crystrack-offline-confirmed',update);},[loadTasks]);
+
   const toggleTaskCompletion = async (taskId: string) => {
     setError('');
+    const item=tasks.find(x=>x.id===taskId);const local=item?.today_status;
+    if(await offline.stageAction(taskId,local==='completed'?'pending':'completed'))return;
     try {
       const task = tasks.find(item => item.id === taskId);
       await post(`/api/tasks/${taskId}/occurrences/${schedulingDay}/toggle`, {desiredStatus:task?.today_status === 'completed' ? 'pending' : 'completed',expectedRevision:task?.daily_revision,requestId:crypto.randomUUID()});
@@ -107,6 +114,8 @@ export default function TasksPage() {
 
   const toggleTaskSkip = async (taskId: string) => {
     setError('');
+    const item=tasks.find(x=>x.id===taskId);const local=item?.today_status;
+    if(await offline.stageAction(taskId,local==='skipped'?'pending':'skipped'))return;
     try {
       const task = tasks.find(item => item.id === taskId);
       await post(`/api/tasks/${taskId}/occurrences/${schedulingDay}/skip`, {desiredStatus:task?.today_status === 'skipped' ? 'pending' : 'skipped',expectedRevision:task?.daily_revision,requestId:crypto.randomUUID()});
@@ -171,6 +180,7 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-8">
+      <OfflineTodayStatus/>
       <div className="flex flex-col items-start sm:flex-row sm:items-center justify-between gap-4 scenic-readable-copy">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400">Plan · Routines</p>
@@ -246,7 +256,7 @@ export default function TasksPage() {
                         className="h-10 w-10 shrink-0 rounded-full border-white/25 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className={cn('break-words text-sm font-medium', task.today_status === 'completed' ? 'text-white/55 line-through' : 'text-white')}>{task.title}</p>
+                        <p className={cn('break-words text-sm font-medium', task.today_status === 'completed' ? 'text-white/55 line-through' : 'text-white')}>{task.title}</p><OfflineRoutineMarker id={task.id}/>
                         <p className="mt-0.5 text-xs text-[var(--theme-text-muted)]">
                           {task.preferred_time || 'Any time'}
                           {task.today_status === 'skipped' ? ' · Skipped' : ''}

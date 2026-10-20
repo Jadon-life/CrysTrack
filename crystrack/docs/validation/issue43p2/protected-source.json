@@ -1,0 +1,697 @@
+{
+  "base": "9be18c0c7815d589cb46199bfd87aee430a27cbf",
+  "unchanged": [
+    {
+      "file": "crystrack/public/sw.js",
+      "sha256": "c2314a8f3fad7fdbf148817da2195d0d285d180b661ee59dfaf12bea7234fadd"
+    },
+    {
+      "file": "crystrack/src/app/ai/page.tsx",
+      "sha256": "079790662a4ce092bec4362ff972570792d9e8d0e27a7acaab2109f910901343"
+    },
+    {
+      "file": "crystrack/src/app/api/ai/chat/route.ts",
+      "sha256": "864881b38fd3ed6e19eac1a804b4ceeb90b5068bb9d38de167ee77448c1eaac0"
+    },
+    {
+      "file": "crystrack/src/app/api/ai/conversations/[id]/route.ts",
+      "sha256": "ff90a3f5cb33467c4ac4faac4b8e5730f0cf3f4672e8bc63b983d7ae9ab1299a"
+    },
+    {
+      "file": "crystrack/src/app/api/ai/conversations/route.ts",
+      "sha256": "37ec231a51595c72b14a341103affef1ca76858983fc3fa39cf2574238161ce0"
+    },
+    {
+      "file": "crystrack/src/app/api/ai/domain/[domain]/route.ts",
+      "sha256": "b58f225696fd8f8c7aca34a3b86537915e31a2803a8427a8e7a2fe9cbf4b39aa"
+    },
+    {
+      "file": "crystrack/src/app/api/ai/privacy/context/route.ts",
+      "sha256": "82ed06ce51ec74307ff324f9c40432e16d58644b8bba51a0f1e743688762c94f"
+    },
+    {
+      "file": "crystrack/src/app/api/ai/privacy/route.ts",
+      "sha256": "8e05cfcd5c81f7762b9544ad2e95e20b0f84883659bc84625f8d07a876adee85"
+    },
+    {
+      "file": "crystrack/src/app/api/assignments/[id]/complete/route.ts",
+      "sha256": "e1e33c8d0b865843097b253abf592a8986664d5401606c1e39d1f24ee9b0e764"
+    },
+    {
+      "file": "crystrack/src/app/api/assignments/[id]/route.ts",
+      "sha256": "5cc4b13973bfc1f02627c3833468c5e76c3d924308cc984297e59c08ba765258"
+    },
+    {
+      "file": "crystrack/src/app/api/assignments/route.ts",
+      "sha256": "9a01aa65bfcfae8a5031b1dcfd854ebe6622f1e76c5409df952993ba82389c08"
+    },
+    {
+      "file": "crystrack/src/app/api/auth/callback/route.ts",
+      "sha256": "00823549ebd705996766456997bf8275e553a6e7c32e3deee88e8cc1f95674b5"
+    },
+    {
+      "file": "crystrack/src/app/api/crystals/moment/route.ts",
+      "sha256": "9fdb0604642c0dfb06d4b5eb761216a8ec258a0d7382facf3a0c6fad082f5612"
+    },
+    {
+      "file": "crystrack/src/app/api/crystals/route.ts",
+      "sha256": "dab3e1762e13eb5f2be771564deeadc41eba7a13a437a76381e8c41d919d7222"
+    },
+    {
+      "file": "crystrack/src/app/api/daily-notes/[date]/route.ts",
+      "sha256": "1a457ab1b73674b484fe2e4b4bef2411647613c5769d5acac0010a457846bbdf"
+    },
+    {
+      "file": "crystrack/src/app/api/daily-records/context/route.ts",
+      "sha256": "1e2ca77a3973fffc804bf840d3de90afd14af863566438353c10a7236060f505"
+    },
+    {
+      "file": "crystrack/src/app/api/daily-records/route.ts",
+      "sha256": "a31b53e8c843a18040aa694c5d5c6ff6408b46b31909e223fbcce45534ef4680"
+    },
+    {
+      "file": "crystrack/src/app/api/daily-records/timezone/route.ts",
+      "sha256": "2f6f1dbd2153100d26f9658f38688a50ac364120b06c736ca54f2b1f2ce1278b"
+    },
+    {
+      "file": "crystrack/src/app/api/exchange-rate/route.ts",
+      "sha256": "4e9ebc3486f13ea36f7070ee940acf492ee44a970aedf85788b4e13b3bc8ab65"
+    },
+    {
+      "file": "crystrack/src/app/api/finance/entries/route.ts",
+      "sha256": "71e6c94d9236ceb4764b2781c0eb8efdde0df5c014328feabf5ed757bb874ef5"
+    },
+    {
+      "file": "crystrack/src/app/api/finance/route.ts",
+      "sha256": "cc11f884ad4bb5902972af96817d79356d3ca7ce5f7a4ff6ba2babed53022874"
+    },
+    {
+      "file": "crystrack/src/app/api/finance/targets/route.ts",
+      "sha256": "e8aebf61e349edf2d8e563d4cae6a0bb9bc085e00218487703f95295dcac0c97"
+    },
+    {
+      "file": "crystrack/src/app/api/goals/[id]/analyze/route.ts",
+      "sha256": "094bfdc97f5901260ac1747f9e33121d8ed6a0eb22ccb52e6ea2716225ea49b2"
+    },
+    {
+      "file": "crystrack/src/app/api/goals/[id]/checkins/route.ts",
+      "sha256": "07844d026ffbd0b20854080d5551efa7f58ce8115c333d3506759999198eada6"
+    },
+    {
+      "file": "crystrack/src/app/api/goals/[id]/route.ts",
+      "sha256": "df9e2076f0a27cd740f40a6b4d71f3cab54e21d833296a888e2b5272f530be69"
+    },
+    {
+      "file": "crystrack/src/app/api/goals/route.ts",
+      "sha256": "89096e5eb0e37eae2865fb52b21b3d07e7ff3329a59549cb4fb049aefdeaa036"
+    },
+    {
+      "file": "crystrack/src/app/api/history/route.ts",
+      "sha256": "c9f3b07fd6d4bfacc841e0233e712a1503fba90f0d6385690050997dd952bd03"
+    },
+    {
+      "file": "crystrack/src/app/api/insights/route.ts",
+      "sha256": "355759ecc7c4450ce54b5258f5d8cb3db7c4fe81a2a4507d4cd081bdc3a86110"
+    },
+    {
+      "file": "crystrack/src/app/api/preferences/route.ts",
+      "sha256": "239bd8e5542e192cbe9ebe694a8e9319d011f319e32d730889433d276590c1c4"
+    },
+    {
+      "file": "crystrack/src/app/api/profile/avatar/route.ts",
+      "sha256": "9d284397a2f72971aff324cc3f0e05d01c24ae429f2453842a59d2e4bce25600"
+    },
+    {
+      "file": "crystrack/src/app/api/profile/route.ts",
+      "sha256": "6131a66d4ba2c54da2296f642cd2a409910a509968453d57cb7f8359155f2e0c"
+    },
+    {
+      "file": "crystrack/src/app/api/push/subscribe/route.ts",
+      "sha256": "b461454f37a666f66aaf565e0ffd02a5674559c52fc026c5d9b9319f1e46b243"
+    },
+    {
+      "file": "crystrack/src/app/api/reminders/dispatch/route.ts",
+      "sha256": "a7997cc8303ebffaa120110951f1a03973a8c1a4751cf597ddd0c7592ca3ca05"
+    },
+    {
+      "file": "crystrack/src/app/api/reminders/route.ts",
+      "sha256": "5c007d6f74aa7ba586acc208e813d329bcd8c900fc684cb473a65ac54a4db33e"
+    },
+    {
+      "file": "crystrack/src/app/api/tasks/[taskId]/archive/route.ts",
+      "sha256": "6a6a28c7a32f39603373d0df128abd51d715b6a628fffceb3a689fb9beab9498"
+    },
+    {
+      "file": "crystrack/src/app/api/tasks/[taskId]/occurrences/[date]/skip/route.ts",
+      "sha256": "615eb6c2bf9274d2af30fa58c195e67c90295a7074e243fa6a146079d8e1304d"
+    },
+    {
+      "file": "crystrack/src/app/api/tasks/[taskId]/occurrences/[date]/toggle/route.ts",
+      "sha256": "8a459fd9a0a1b5368b2d75dd094b470e23488d6355c3f68ffd7f0acddef2bb44"
+    },
+    {
+      "file": "crystrack/src/app/api/tasks/[taskId]/route.ts",
+      "sha256": "d3ab8fc2c4b42d48cc6a8d10a68dce0bfabbdb4955dfed5c9465ee49258bfdd2"
+    },
+    {
+      "file": "crystrack/src/app/api/tasks/offline/receipt/route.ts",
+      "sha256": "15074db148172c26b8087555f413d686c580bea6ce6bb4580bdbee1c292f2dca"
+    },
+    {
+      "file": "crystrack/src/app/api/tasks/offline/replay/route.ts",
+      "sha256": "322bd154f191ff52ff78ad3bafb5cc2579d47453f30d7e7bf93a9de6410240ba"
+    },
+    {
+      "file": "crystrack/src/app/api/tasks/route.ts",
+      "sha256": "9f654837bde3ff81cbbd66b7f3fba86b72a3896626bf87e4b25b2321f6e10635"
+    },
+    {
+      "file": "crystrack/src/app/api/tasks/week/route.ts",
+      "sha256": "b911931e9091ade216093a05f6dfeecdfa1c1dd03d488bd09c8fa73b09a8251d"
+    },
+    {
+      "file": "crystrack/src/app/api/telegram/connect/route.ts",
+      "sha256": "bf9cdefe740c55bb0e9e3f2e43bd1e83e14bef6d4481adc198fe79955526e3c4"
+    },
+    {
+      "file": "crystrack/src/app/api/telegram/setup/route.ts",
+      "sha256": "76ccf44e0e5c526801263a5465169a38f2e25739a7aa43ff3864a36a33d681ef"
+    },
+    {
+      "file": "crystrack/src/app/api/telegram/status/route.ts",
+      "sha256": "d25298ab239a51c55e767e804ac165d4166348f4600125300e9882e5787b2f48"
+    },
+    {
+      "file": "crystrack/src/app/api/telegram/webhook/route.ts",
+      "sha256": "a6de0781e47f91d101f5a35dfd6e0aab280f5d0f1d8fd889793eea3b6c87f94d"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/bills/route.ts",
+      "sha256": "181d07ce1ccb23a898c905f74efff24eb275d150a1515fb09cdd07fe81e35bc2"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/budgets/route.ts",
+      "sha256": "6fa09f1773b70d9710141bac0c119c7ff2e72c7df386a23af785dbd7deac2793"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/csv/context/route.ts",
+      "sha256": "d1216af2b213c5029775d27daeb211acdac7248e922c28bb2ebc2a51df08bd34"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/csv/export/route.ts",
+      "sha256": "6936c60720ba3e05df34d75bdebfbe88f05f580ed478e24eb08457050552e6ef"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/csv/imports/route.ts",
+      "sha256": "f94fe26ed193aabec4c204b14c081d74baf5dffcfbe071f1d4262599792424f4"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/csv/review/route.ts",
+      "sha256": "fcb33f0a99fc7393d0a16f1526eae7b8858fead74a7df2dff421372aedfa4b35"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/debts/route.ts",
+      "sha256": "fe8d399a32a056040eeb259ffbd647c187039b6439e8450eeccb9fef4c1185c3"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/expected/route.ts",
+      "sha256": "bc64d1418bc8485d624b1ae529240a6d1079f56aec00f7d7439811a48bc83e9e"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/insight/route.ts",
+      "sha256": "b872f81664cb1a1fbfac3de611f6b9e7925089fe0c151d3b560f7125cb315524"
+    },
+    {
+      "file": "crystrack/src/app/api/wealth/route.ts",
+      "sha256": "9b3130f41fa693d823bcfbe2640c4a57e5b22219eddb64b3129eb44619096203"
+    },
+    {
+      "file": "crystrack/src/app/assignments/page.tsx",
+      "sha256": "68f6632ee7f93b7b2541fb731db63882c3016930ec23d2c8d8dec64cf514546f"
+    },
+    {
+      "file": "crystrack/src/app/auth/page.tsx",
+      "sha256": "b778a39ba605c835cccbb8a0491e23649fbbe5fc85e161fdc65bcf00dd67b045"
+    },
+    {
+      "file": "crystrack/src/app/calendar/page.tsx",
+      "sha256": "8de3b39dee62a65294473bfb707d9593c5a859cb29bd0fb854ea4eb92c14e4f1"
+    },
+    {
+      "file": "crystrack/src/app/finance/page.tsx",
+      "sha256": "c0288d0c1451ee40e8246598dbe0bb748d0c0cdf5620f26b64d12a590fde6c58"
+    },
+    {
+      "file": "crystrack/src/app/globals.css",
+      "sha256": "b17833e6380114f393fc536d4eca5ed84e9a685acff7eb07d31f222687e48f0c"
+    },
+    {
+      "file": "crystrack/src/app/goals/page.tsx",
+      "sha256": "d764774b7540962287f995b918dcf269729cfd4d02128923d2e79b607569b779"
+    },
+    {
+      "file": "crystrack/src/app/history/page.tsx",
+      "sha256": "f6c2faa0623986de97d3082ec0673fff2bcc686945b792b888d9f0a2f684d6e0"
+    },
+    {
+      "file": "crystrack/src/app/insights/page.tsx",
+      "sha256": "ab5d6ea4ea1e85a2a46e1e9633eba13128fb43498e134b0f31445baa883a3e50"
+    },
+    {
+      "file": "crystrack/src/app/manifest.ts",
+      "sha256": "3f5163d99f5336d35b297cc84d41d7aa47f652070964613daa11c1c2e8336bd2"
+    },
+    {
+      "file": "crystrack/src/app/plan/page.tsx",
+      "sha256": "22a34c8bd9f76a08503cdf98f3a1da97b700976ad20e641dc33f397631a0afdd"
+    },
+    {
+      "file": "crystrack/src/app/premium-controls.css",
+      "sha256": "e9545c9fade40a9287bc1bb3ac373cf08dd1d07393aa6257019750036cdc7c04"
+    },
+    {
+      "file": "crystrack/src/app/premium-glass-refinement.css",
+      "sha256": "471d0d0ce12311de1a33f017f71b176200dc1272577965a3c6dc47356661871a"
+    },
+    {
+      "file": "crystrack/src/app/premium-physical-ui-final.css",
+      "sha256": "58f1df95d03cb41d2617f0c8f7e993562451098d9b216e6a36aa7a62e43e3649"
+    },
+    {
+      "file": "crystrack/src/app/premium-physical-ui-phase2.css",
+      "sha256": "1024ab52702df949304962fb3f059ff2babbaf1fa083bcb786e1d4a44bb7042a"
+    },
+    {
+      "file": "crystrack/src/app/premium-physical-ui-phase3.css",
+      "sha256": "bc9fa17ab32f1d00fbf74c8dcd43072b1b4ddc45f5e588a33e4fea14a25ee133"
+    },
+    {
+      "file": "crystrack/src/app/premium-physical-ui.css",
+      "sha256": "f2c0d23f072a48bb02cfde1c9ef7a5259c0a08228b8c744fc46b6e7f6fc481f4"
+    },
+    {
+      "file": "crystrack/src/app/settings/page.tsx",
+      "sha256": "8f2c7445b338ca8aa75510da8b81bd74a9505d35f80e6014587d97954670a227"
+    },
+    {
+      "file": "crystrack/src/components/ai/ai-privacy.tsx",
+      "sha256": "f9d6c91bc7d4f49f04103a4baa08c1eafda59f044577c303f8811a29e82a48f5"
+    },
+    {
+      "file": "crystrack/src/components/ai/ai-response-renderer.tsx",
+      "sha256": "f633d9e1fdac103c01db5c38fda20ce80a409a0312bed3261e273d8acff3ef6c"
+    },
+    {
+      "file": "crystrack/src/components/ai/domain-insight-card.tsx",
+      "sha256": "148a041f0549b459f0fed3e6f3b225ee2a163618ccaecddba978f04fcd2f4a9b"
+    },
+    {
+      "file": "crystrack/src/components/assignments/assignment-editor.tsx",
+      "sha256": "1be7069ff5e4ecb16988e4ef40c059310a7d4cb1461e3adeb7276d38a63d5399"
+    },
+    {
+      "file": "crystrack/src/components/crystals/crystal-card.tsx",
+      "sha256": "a90b3c9206ca1bf6969fdf4eaa04a96de72d17246f73f08b3ecfb923ce18998c"
+    },
+    {
+      "file": "crystrack/src/components/crystals/crystal-provider.tsx",
+      "sha256": "aef51ffa9fac6e0378caeb4d7a5801a8393b37a93d93a7ebd3a1ead8f7b20463"
+    },
+    {
+      "file": "crystrack/src/components/dashboard/mini-calendar.tsx",
+      "sha256": "88dc501202284689c4892b42d9a50d038b33e173c89a38b9c9ed9c328cdfc6ea"
+    },
+    {
+      "file": "crystrack/src/components/dashboard/today-streak.tsx",
+      "sha256": "286a9f53fbaffed12ed6d2d37484d9f203a33953448971b8d7a81cee3b576caa"
+    },
+    {
+      "file": "crystrack/src/components/layout/app-layout.tsx",
+      "sha256": "f89a518c84766f95318c01d927de64b3c5df9c593b0bcc00b407a648b31802f1"
+    },
+    {
+      "file": "crystrack/src/components/layout/environment-background.tsx",
+      "sha256": "d2b90fa543ff529aa5e86a19592139731bbb3f34c14a9e8adb386920244f5e20"
+    },
+    {
+      "file": "crystrack/src/components/layout/theme-provider.tsx",
+      "sha256": "ce0e473cb629289325a1937a4b6943d22c8a8cd1358de6fccb9b1ac69d257a86"
+    },
+    {
+      "file": "crystrack/src/components/navigation/mobile-nav.tsx",
+      "sha256": "029ba6a81ae270335a0976ebf20c9060d835d7d83352b46c7fb61833a0c0b16b"
+    },
+    {
+      "file": "crystrack/src/components/navigation/nav-items.tsx",
+      "sha256": "950841dca41601548a8d6d75cbbcc6ffbefb6eb342ca34ac1f7f1f3591dddd80"
+    },
+    {
+      "file": "crystrack/src/components/navigation/physical-theme-switch.tsx",
+      "sha256": "46c5e2bb02f360ba4a3f9f727c111c64490765e91ec0487e18585c8e083c3e8f"
+    },
+    {
+      "file": "crystrack/src/components/navigation/sidebar.tsx",
+      "sha256": "7849cd57e79bd1702af47017ab4b85a441122a189d6753e3c87e124a757dbc47"
+    },
+    {
+      "file": "crystrack/src/components/navigation/top-navigation.tsx",
+      "sha256": "9553428d904a9c909de50e68598fec95c40f3910841730f930d4007abba79d7e"
+    },
+    {
+      "file": "crystrack/src/components/settings/immersive-intro-toggle.tsx",
+      "sha256": "8a238fbe8a5e58f36d1b5c708df3d00f63034cd280d3b21a46cabaf5abdc76bd"
+    },
+    {
+      "file": "crystrack/src/components/shared/calm-disclosure.tsx",
+      "sha256": "1a97a78560e7a08c41df899d575d54f34a85001e35f13279a6c23cae7375f45f"
+    },
+    {
+      "file": "crystrack/src/components/shared/create-modal.tsx",
+      "sha256": "2178de9ef1c6d56648ad428c4101da5b1525dcfc09b98ee54be083274b5e4f36"
+    },
+    {
+      "file": "crystrack/src/components/shared/glass-card.tsx",
+      "sha256": "8fb1bf38e32b68e8e472f2f60006eb5556cf51f54a86ecf9f3c7f279463fb2f2"
+    },
+    {
+      "file": "crystrack/src/components/shared/status-badge.tsx",
+      "sha256": "e52fc23929a6843c7d201285cf17289c03340c00f1155df4143a9cd53b2bbeac"
+    },
+    {
+      "file": "crystrack/src/components/ui/button.tsx",
+      "sha256": "11967ad041ab6c653ec01971b46414f5d274f896924d3cab60caadd4fbe7d4a1"
+    },
+    {
+      "file": "crystrack/src/components/ui/checkbox.tsx",
+      "sha256": "e7f9ce49013300088eafa9694a3fa668039764b798f6eb36d7e0698f7ee38cb8"
+    },
+    {
+      "file": "crystrack/src/components/ui/progress.tsx",
+      "sha256": "0e594d1ad7a01d0b5e2224c506898fe4223b1361b32f498a7d394ec2afb7e5bd"
+    },
+    {
+      "file": "crystrack/src/components/wealth/csv-tools.tsx",
+      "sha256": "dac62d4ea7fe65ad0455c869c253cb61089acdd9337c406f8dab4fddd6f6cd8d"
+    },
+    {
+      "file": "crystrack/src/components/wealth/money-amount.tsx",
+      "sha256": "1129fd1f441cb1863024d2c387787a551afd974b8d0a063b54444688232d27fa"
+    },
+    {
+      "file": "crystrack/src/components/wealth/monthly-budgets.tsx",
+      "sha256": "ffee76256df6e62d704e237ae956b466c2362f1ce3169dfe9fb740dbc349982a"
+    },
+    {
+      "file": "crystrack/src/components/wealth/recurring-bills.tsx",
+      "sha256": "dca1aec5098803f98488e95ab5c6612aa192ae501b7ce9e3dd0f169657dda563"
+    },
+    {
+      "file": "crystrack/src/config/experience.ts",
+      "sha256": "37eb0cb9d1f958471c7df3421de3498624731af69068e19d0ff733de8edd10d5"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0000_initial.sql",
+      "sha256": "353cc52ba5bfa0b315362f257086c7b52f47682653a233487e100f07724b51ab"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0001_product_integrity.sql",
+      "sha256": "d466c63ee24b97c5503b3464b6a9978410149b260f589e6a542be2ee3a795f0f"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0002_adaptive_experience.sql",
+      "sha256": "92a968d389ab6c41526841e1320c22b3d05b85d2aeb3b0d9bd724b6dfe791bcf"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0003_wealth_intelligence.sql",
+      "sha256": "c24d7350171decc9721d7fa6f6b7c5c9c90558733c9fe22fe6be9443566ef6e8"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0004_profile_avatar_storage.sql",
+      "sha256": "9f91047c5331feaec2c5961273ac0e1db828035177ba3bc98022cbfde3ef767e"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0005_intelligence_layer.sql",
+      "sha256": "cd92fe748cf08e5d50d16f193fb2005e950c7ae5a0c46e5e3637c4291f361f60"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0013_daily_records.sql",
+      "sha256": "23e1066ba1a8f506cba35901dd3c6794321b9b8531c45154ae4dbdac82aba5d1"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0014_daily_http_conflicts.sql",
+      "sha256": "533e37e0a4371928462f9110f63ee5d3da91411696036b6ef066f4e5006ffa5d"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0015_sep28_crystal_shards.sql",
+      "sha256": "1b882c2bcd54b316c9d55d9e595b017152e9d2c049331fb720cd18e90c547b50"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0016_assignment_lifecycle.sql",
+      "sha256": "8cd6d07b79056d0f594716a540159fc2c7ae3342599e99a0b36cc81e78ec5a97"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0017_task_week_grid.sql",
+      "sha256": "c69321e6f99ff9260b65d6a093871c7965b3fc40cf7b29be223ab8724085b4b5"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0018_wealth_monthly_budgets.sql",
+      "sha256": "fd8cc05eb7b8c2231365f85b3f2c81067ed060cb2d25615f7e554c4c401ab14c"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0019_wealth_recurring_bills.sql",
+      "sha256": "032edf162a9a8e89f93708510f7b9a647ab9fd6673c69a04b4837d44d205f859"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0020_wealth_csv_statements.sql",
+      "sha256": "5e63dabb2c006c614952226313e154c40bd03745d3f86a42efb40e81f2048014"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0021_wealth_overview_read.sql",
+      "sha256": "01ec3ad4f4ca1b0d509fb34229c2c3b38d8c00e42050151617e798f63ec4b937"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0022_ai_privacy_consent.sql",
+      "sha256": "6f1ab2d3a6f9dc3a6fe324fcf04a2bb30997115a979ceb3237dcf6faf014cdc3"
+    },
+    {
+      "file": "crystrack/src/db/migrations/0023_offline_outcome_guard.sql",
+      "sha256": "66cf69111e8c38bdfb8db5b014d3a0fc7654e81d84efcbf446c4c228ff428574"
+    },
+    {
+      "file": "crystrack/src/db/schema.ts",
+      "sha256": "a83598784f7b53956a1160167152992a005cc85959629046f59a3c711cd7f961"
+    },
+    {
+      "file": "crystrack/src/lib/ai/context.ts",
+      "sha256": "f7ea9ebbff7d048be362e42efb40f09470f6304b280c4fb9c778b907a343d48d"
+    },
+    {
+      "file": "crystrack/src/lib/ai/goal-openrouter.ts",
+      "sha256": "642326c9607dfbc14ac2a5b18018a23c0281bc0eccbfa6a20d4f4833335d3e03"
+    },
+    {
+      "file": "crystrack/src/lib/ai/intelligence.ts",
+      "sha256": "591aff8a1242938324fd4a34982adc87f6d9144beea3faccd5f35af202a074b1"
+    },
+    {
+      "file": "crystrack/src/lib/ai/privacy-server.ts",
+      "sha256": "4353f878569b4931f4749cdf82432820dcc8a3fa8430d30a5c8aed904ad9b0f7"
+    },
+    {
+      "file": "crystrack/src/lib/ai/privacy.ts",
+      "sha256": "18231f2c4ef31ee28c6fb2db3820a8b8ed2773905a62503ef791d57589678b7b"
+    },
+    {
+      "file": "crystrack/src/lib/ai/provider.ts",
+      "sha256": "2f9cc83accd3dc127ef4189b51a7c43d8f7357dbffcf8522857c18c2f8f9c8e4"
+    },
+    {
+      "file": "crystrack/src/lib/ai/scoped-context.ts",
+      "sha256": "b5c0b07b5073e43b9e8e220a264f024b4ed6e27ec9f632aa5a3494877dc38990"
+    },
+    {
+      "file": "crystrack/src/lib/ai/scopes.ts",
+      "sha256": "18ba0526a13d4bc2687a28c211315bda49ee49e90574c9260c4e334c8218ff06"
+    },
+    {
+      "file": "crystrack/src/lib/ai/trusted-server.ts",
+      "sha256": "10fdcedfd0125337249440502badf94caf661f053378e618ec2ac023f8923498"
+    },
+    {
+      "file": "crystrack/src/lib/ai/wealth-openrouter.ts",
+      "sha256": "95d6c9ddf6e5fc6c97d2ec226a8f0d2fa03a8251b1bdbbd7d20828c9471bed34"
+    },
+    {
+      "file": "crystrack/src/lib/api.ts",
+      "sha256": "7daea42fe787d44814a8d426cb65054aefce837b9ce9080e88588c4130c2bdbc"
+    },
+    {
+      "file": "crystrack/src/lib/assignment-api.ts",
+      "sha256": "89b09a3e78144b3989df1d1e372e42ff2f740ee25f5a619a7864ae5610492f3c"
+    },
+    {
+      "file": "crystrack/src/lib/assignments.ts",
+      "sha256": "b1a19e683bec0216b160e5e4170a23449512b3a9603a50cbeeca26d1653b7886"
+    },
+    {
+      "file": "crystrack/src/lib/auth.ts",
+      "sha256": "0828b7e255822905036aa072d86085b9885d6b8846d75fc6323cb167aab43521"
+    },
+    {
+      "file": "crystrack/src/lib/bills.ts",
+      "sha256": "32e39f539fd437c9a0db3af61b22ca8ec84b5a8966962ffa4e0835b117180540"
+    },
+    {
+      "file": "crystrack/src/lib/budget-money.ts",
+      "sha256": "7feef8a1c38df424e4dcb4c8a1e79952a4121e7fda711de6592b8659871e430e"
+    },
+    {
+      "file": "crystrack/src/lib/budgets.ts",
+      "sha256": "ec01eea20c3cc7262e7bc35777b41afcdb2ef906fcd11c4993c26fbe7ea480b9"
+    },
+    {
+      "file": "crystrack/src/lib/crystals.ts",
+      "sha256": "b519edf7e1a371fe6639c15ed7026e63038af04627906be38027f569091a6c27"
+    },
+    {
+      "file": "crystrack/src/lib/csv/server.ts",
+      "sha256": "ec56c2a6cd7f8c4ade01d52f1ac3621dcb54f08d5cadd7cedeeca4b0b7133b13"
+    },
+    {
+      "file": "crystrack/src/lib/csv/statement.ts",
+      "sha256": "b5ee06b0158b430c9ef571664ab57ef9702496d657342a35c41cec0317ee1685"
+    },
+    {
+      "file": "crystrack/src/lib/daily-records-server.ts",
+      "sha256": "5e24b3fc8755e9dc1f7e71f5392b00bf04a83fbea1922c8b2f95f721c2cebdd4"
+    },
+    {
+      "file": "crystrack/src/lib/daily-records.ts",
+      "sha256": "dbe16ab8adbc9b1c413a453e86d2aaca9a2227f3d50039db0ba5aaa0a705d167"
+    },
+    {
+      "file": "crystrack/src/lib/daily-streak.ts",
+      "sha256": "63e776fb1d0d486ce29e1d3912ff7ff1d792de1d99ccfe4bca4be49384589cb1"
+    },
+    {
+      "file": "crystrack/src/lib/environment.ts",
+      "sha256": "694d2f36259931e817f17bf678f5b3a6c746d04fb7f400850e3f249df6fd9a83"
+    },
+    {
+      "file": "crystrack/src/lib/goals/analyze-goal.ts",
+      "sha256": "2e953e82fe69a55dff305a33c9228e2b55a0b7985a562355992c270eb4f38271"
+    },
+    {
+      "file": "crystrack/src/lib/goals/checkin-occurrence.ts",
+      "sha256": "76b75cbcc578ee46cd23754284040783db4d56edf3e00b57e6c1841cb9218541"
+    },
+    {
+      "file": "crystrack/src/lib/history-timeline.ts",
+      "sha256": "478b40a20b803e40bb2f28981a820a9990178c08cf1b8aa2415b5e679a34ed5c"
+    },
+    {
+      "file": "crystrack/src/lib/money-presentation.ts",
+      "sha256": "d7b017d90d96e581cfe4a647f360d7c8c2709f32926b109e382d50e2098d20c3"
+    },
+    {
+      "file": "crystrack/src/lib/offline-outcomes-server.ts",
+      "sha256": "0424e3b1282dc0a5e0504bc20cc17eab90c4f7fd549e7d9be4c420df0609a5a6"
+    },
+    {
+      "file": "crystrack/src/lib/offline-outcomes.ts",
+      "sha256": "ad14ad03f3dc0b4e40f67df9a12cdb945aad7cd7c4054c208e83b03f43361030"
+    },
+    {
+      "file": "crystrack/src/lib/preview/data.ts",
+      "sha256": "98aeb7086080e554423787f9607dccc6e018db8cc7591f8e88603bee17d64663"
+    },
+    {
+      "file": "crystrack/src/lib/preview/mode.ts",
+      "sha256": "e6aa279d101b4671579d567dad0010fffda096a52ae43b19029a141e084e7c9f"
+    },
+    {
+      "file": "crystrack/src/lib/preview/request.ts",
+      "sha256": "ff8241c47437ae862038370eb684e6dcff0bad0636bb00fa85cac96c8d368d32"
+    },
+    {
+      "file": "crystrack/src/lib/profile-avatar.ts",
+      "sha256": "a26a16adf0f45617979c06eceb8ea9b234eb99f78290b1ae4ef727af4f01c8c3"
+    },
+    {
+      "file": "crystrack/src/lib/push.ts",
+      "sha256": "58ccb13301992823e37e54b04ff17858d0d5f72caf751c94b946f42b9e2f7633"
+    },
+    {
+      "file": "crystrack/src/lib/reminders.ts",
+      "sha256": "d4c59f6b7a46ee9cef6cb9c390c4d8a0b1a6548ac33de842bd47669cb575b58d"
+    },
+    {
+      "file": "crystrack/src/lib/supabase/admin.ts",
+      "sha256": "2fa63d0d0a0f869d0ceebb6268a13bc645b25c5788f401578cb923f764f9f3c1"
+    },
+    {
+      "file": "crystrack/src/lib/supabase/client.ts",
+      "sha256": "2ee17c0d7c5789eb94fc0ca13fab96d795e79481a2c812532954b2fb1413f5f9"
+    },
+    {
+      "file": "crystrack/src/lib/supabase/middleware.ts",
+      "sha256": "44487ec95ac223385c3d30d99f5ea40d66da8363b836f22bbbafb0e56fd4ff14"
+    },
+    {
+      "file": "crystrack/src/lib/supabase/server.ts",
+      "sha256": "4d65eca46749906d284fad3630ef5c9d3df4fbfa4954d53ff19c412c149a8c12"
+    },
+    {
+      "file": "crystrack/src/lib/task-maintenance.ts",
+      "sha256": "5899807f87c8dda3fd88ab7ba9cd033429cd4daa1124a3d5f8e1037aad79b461"
+    },
+    {
+      "file": "crystrack/src/lib/theme.ts",
+      "sha256": "7b1955e936b2a3ba6239cafeaf56a26056b7b15ad0a146bb24801b449f6757b2"
+    },
+    {
+      "file": "crystrack/src/lib/three-rocker.ts",
+      "sha256": "0eb7a67385138c210434a8c312fd62d4808532d3076851283fc20143170fd3ec"
+    },
+    {
+      "file": "crystrack/src/lib/today-progress.ts",
+      "sha256": "7f570477a1f051b1d4f8792fb8a99cb9e6cf9627a473add4b03bcc5c4ac65fb8"
+    },
+    {
+      "file": "crystrack/src/lib/today-streak.ts",
+      "sha256": "d6b34768c418610e226031fc28c992b097549ef82770300c4fd0f660464b0f7b"
+    },
+    {
+      "file": "crystrack/src/lib/utils.ts",
+      "sha256": "9a20aae44d9fafa0644c48e49ec4e72089e84494081a190bda0ce7e15ba586d0"
+    },
+    {
+      "file": "crystrack/src/lib/wealth-currency.ts",
+      "sha256": "5b1618b9445915c406a68f3bfd6d85368e6b6b3e3a4c2533072db4f271ffc370"
+    },
+    {
+      "file": "crystrack/src/lib/wealth-report-server.ts",
+      "sha256": "962df4c00f25000f27c00cb7dd801874b77cc799d9d6d58996427f0a55fd6f6c"
+    },
+    {
+      "file": "crystrack/src/lib/wealth-report.ts",
+      "sha256": "ef684a259d647a85de5a461f7716d474227f36508d3f9f5bf25a728b7e7adac4"
+    },
+    {
+      "file": "crystrack/src/lib/wealth.ts",
+      "sha256": "7b6e8713ade0d1280f547042346bf12f0bd726fb5ed9a922397f7d09499321c0"
+    },
+    {
+      "file": "crystrack/src/lib/week-grid.ts",
+      "sha256": "a6caf01d933123ec3de3681e4b23d3cde824a0b5896e74ff41dcb82c7905c8ac"
+    },
+    {
+      "file": "crystrack/src/proxy.ts",
+      "sha256": "21fe69969f8d201ba1124e987cffb9c9edde4fa483ad899dc83d8e88ef9ea427"
+    },
+    {
+      "file": "crystrack/src/types/index.ts",
+      "sha256": "5c7aa315fb06fe3f1fc946756556404efe913ff840d8a82fb647338a7d9aa218"
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
+import {useOfflineToday} from '@/components/offline/offline-today-provider';
+import {OfflineTodayStatus,OfflineRoutineMarker} from '@/components/offline/offline-today-status';
 import {
   AlertTriangle,
   ArrowRight,
@@ -92,6 +94,7 @@ function goalPercent(goal: any) {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const offline=useOfflineToday();
   const { environment } = useTheme();
 
   const [loading, setLoading] = useState(true);
@@ -99,7 +102,8 @@ export default function DashboardPage() {
   useEffect(() => {
     const refreshDay = () => setDailyBoundary(value => value + 1);
     window.addEventListener('crystrack-daily-boundary', refreshDay);
-    return () => window.removeEventListener('crystrack-daily-boundary', refreshDay);
+    window.addEventListener('crystrack-offline-confirmed',refreshDay);
+    return () => {window.removeEventListener('crystrack-daily-boundary', refreshDay);window.removeEventListener('crystrack-offline-confirmed',refreshDay);};
   }, []);
   const [tasks, setTasks] = useState<any[]>([]);
   const [taskLoadFailed, setTaskLoadFailed] = useState(false);
@@ -202,11 +206,10 @@ export default function DashboardPage() {
     const before = task.today_status || 'pending';
     const next = nextTodayTaskStatus(before, action);
     if (!next) return;
+    if(await offline.stageAction(task.id,next))return;
 
     setBusyTaskId(task.id);
     setTaskError('');
-    setTasks((current) => current.map((entry) =>
-      entry.id === task.id ? { ...entry, today_status: next } : entry));
 
     try {
       const occurrence = await post(
@@ -317,6 +320,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-6">
+      <OfflineTodayStatus/>
       <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-1 scenic-readable-copy">
         <div>
           <p className="text-sm text-white/75">{greetingForLocalTime(environment.localTime)}, {displayName}</p>
@@ -416,7 +420,7 @@ export default function DashboardPage() {
                       {busyTaskId === task.id ? <Loader2 className="h-4 w-4 animate-spin" /> : task.today_status === 'completed' ? <Check className="h-4 w-4" /> : <span className="h-2 w-2 rounded-full bg-current" />}
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium break-words ${task.today_status === 'completed' ? 'text-white/55 line-through' : 'text-white'}`}>{task.title}</p>
+                      <OfflineRoutineMarker id={task.id}/><p className={`text-sm font-medium break-words ${task.today_status === 'completed' ? 'text-white/55 line-through' : 'text-white'}`}>{task.title}</p>
                       <p className="text-xs text-[var(--theme-text-muted)]">
                         {task.preferred_time || 'Any time'}
                         {task.today_status === 'skipped' ? ' · Skipped' : ''}
