@@ -244,7 +244,7 @@ try {
     assert.equal(await page.getByText('+₦25,000.00', { exact: true }).count(), 0);
     await page.getByText('-₦2,500.75', { exact: true }).waitFor();
     await page.getByText('You owe ₦1,250.25', { exact: false }).waitFor();
-    const inspect = page.getByRole('button', { name: /^Inspect ≈₦17,499\./ });
+    const inspect = page.getByText('Available', { exact: true }).locator('..').getByRole('button', { name: /^Inspect ≈₦17,499\./ });
     await inspect.waitFor();
     assert.match(await inspect.getAttribute('aria-label'), /Exact NGN amount: ₦17,499.25/);
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -269,6 +269,8 @@ try {
       await page.screenshot({ path: output + `/exact-details-${width}.png` });
     await page.keyboard.press('Escape');
     await detail.waitFor({ state: 'hidden' });
+    // Radix restores focus after its asynchronous dialog close lifecycle.
+    await page.waitForFunction(n => n === document.activeElement, await inspect.elementHandle(), {timeout:5000});
     assert.equal(await inspect.evaluate((n) => n === document.activeElement), true);
     const summaryAxe = await page.evaluate(async () => {
       const r = await window.axe.run('[data-money-presentation]', {

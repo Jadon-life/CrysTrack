@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -23,6 +23,8 @@ import { TodayStreak } from '@/components/dashboard/today-streak';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
 import { fetcher, post } from '@/lib/api';
+import { reportSchema } from '@/lib/wealth-report';
+import { nextDailyBoundary } from '@/lib/today-streak';
 import { MoneyAmount } from '@/components/wealth/money-amount';
 import {
   dayInTimezone,
@@ -108,6 +110,15 @@ export default function DashboardPage() {
     debts: [],
     expectedFlows: [],
   });
+  const wealthRead=useRef(0);
+  const reportZone=wealth.reporting?.timezone;const reportDay=wealth.reporting?.today;
+  useEffect(()=>{
+    let active=true;
+    const refresh=async()=>{if(document.visibilityState==='hidden')return;const seq=++wealthRead.current;setWealth((old:any)=>({...old,summary:null}));try{const r=reportSchema.parse(await fetcher('/api/wealth',{cache:'no-store'}));if(active&&seq===wealthRead.current)setWealth(r);}catch{if(active&&seq===wealthRead.current)setWealth({summary:null});}};
+    const trigger=()=>void refresh();window.addEventListener('focus',trigger);document.addEventListener('visibilitychange',trigger);
+    const t=reportZone?setTimeout(trigger,nextDailyBoundary(reportZone)):null;
+    return()=>{active=false;window.removeEventListener('focus',trigger);document.removeEventListener('visibilitychange',trigger);if(t)clearTimeout(t);};
+  },[user?.id,reportZone,reportDay]);
   const [history, setHistory] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
   const [dayContext, setDayContext] = useState<{ dateKey: string; weekday: number; timezone: string } | null>(null);
@@ -119,6 +130,7 @@ export default function DashboardPage() {
     let active = true;
     const load = async () => {
       setLoading(true);
+      const wealthSequence=++wealthRead.current;
 
       // Use the saved profile timezone for the daily date and task schedule.
       const profile = await fetcher('/api/profile').catch(() => null);
@@ -139,7 +151,7 @@ export default function DashboardPage() {
         fetcher(`/api/tasks?date=${date}&weekday=${weekday}`).catch(() => []),
         fetcher('/api/goals').catch(() => []),
         fetcher('/api/assignments').catch(() => []),
-        fetcher('/api/wealth').catch(() => ({
+        fetcher('/api/wealth').then(value=>reportSchema.parse(value)).catch(() => ({
           summary: null,
           entries: [],
           targets: [],
@@ -155,7 +167,7 @@ export default function DashboardPage() {
       setTasks(Array.isArray(taskData) ? taskData : []);
       setGoals(Array.isArray(goalData) ? goalData : []);
       setAssignments(Array.isArray(assignmentData) ? assignmentData : []);
-      setWealth(wealthData);
+      if(wealthSequence===wealthRead.current)setWealth(wealthData);
       setHistory(Array.isArray(historyData) ? historyData : []);
       setReminders(Array.isArray(reminderData) ? reminderData : []);
       setLoading(false);
@@ -250,8 +262,8 @@ export default function DashboardPage() {
       item.computed_status === 'due_today',
   ).length;
 
-  const wealthSummary = wealth.summary || {};
-  const totalSavings = Number(wealthSummary.savedBalance || 0);
+  const wealthSummary = wealth.summary;
+  const totalSavings = wealthSummary?.savedBalance;
 
   const summary = [
     {
@@ -285,7 +297,7 @@ export default function DashboardPage() {
     {
       href: '/finance',
       label: 'Savings logged',
-      value: <MoneyAmount amount={totalSavings} inspect={false} />,
+      value: totalSavings===undefined ? '—' : <MoneyAmount amount={totalSavings} inspect={false} />,
       note: 'from recorded saving entries',
       icon: CircleDollarSign,
       tone: 'text-sky-300',
@@ -533,6 +545,7 @@ export default function DashboardPage() {
               </Link>
             </div>
 
+            {!wealthSummary ? <p role="status" className="text-sm text-[var(--theme-text-muted)]">Wealth is temporarily unavailable. Open Wealth to refresh; no balances are assumed.</p> : <>
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                 <p className="text-xs text-[var(--theme-text-muted)]">Available</p>
@@ -593,6 +606,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+            </>}
           </GlassCard>
         </div>
 

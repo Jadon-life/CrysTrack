@@ -288,3 +288,23 @@ Normal signed-in browser tests run sequentially; add `scripts/test-csv.mjs` to t
 retained workflows. All fixtures under `tests/fixtures/csv/` are fictional. No real
 bank statement is required. Existing sandbox instructions and secret handling
 remain unchanged; Issue #18 still blocks any hosted release.
+
+### Piece 6E read candidate (Issue #37)
+
+The explicit guarded bootstrap now applies **fifteen** files: 0000–0005 and
+0013–0021. New `0021_wealth_overview_read.sql` adds no tables or financial writers:
+it exposes a read-only authenticated-owner snapshot with complete NUMERIC ledger
+aggregates, protected provenance checks and a private test clock. Existing RLS,
+0015/0019/0020 guards and legacy migration files are unchanged. The report fails
+unavailable on unsupported or incomplete evidence rather than truncating totals.
+Hosted numbering, compatibility and rollout remain UNKNOWN and blocked by #18.
+
+The final `tests/zzzz-overview.integration.mjs` runs after protected CSV fixtures.
+Reset the **disposable local sandbox** before repeating the full 122-test database
+suite. Never weaken a guard to remove immutable synthetic history. After a normal
+sanitized build, `CRYSTRACK_CHROMIUM_PATH=/usr/bin/chromium node
+scripts/test-overview.mjs` runs the five-width signed-in synthetic workflow. Run it
+sequentially with all other browser/database suites because their private clocks
+are shared. It accepts no hosted target override. Screenshots/evidence are written
+to ignored `.preview-test/overview/`; only reviewed synthetic evidence is committed.
+See `docs/piece6e-contract.md` for formulas, bounds and the matched DTO contract.

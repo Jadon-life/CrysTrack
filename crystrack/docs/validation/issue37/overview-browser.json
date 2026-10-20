@@ -1,0 +1,83 @@
+{
+  "checks": [
+    "375: whole everyday amounts, precise fractional decisions and CSV, explicit approximation/exact keyboard disclosure, input precision, canonical USD switch, 2005 archived imports and single paid bill included, full 2009-row export, zero financial/source/reward mutations",
+    "430: whole everyday amounts, precise fractional decisions and CSV, explicit approximation/exact keyboard disclosure, input precision, canonical USD switch, 2005 archived imports and single paid bill included, full 2009-row export, zero financial/source/reward mutations",
+    "768: whole everyday amounts, precise fractional decisions and CSV, explicit approximation/exact keyboard disclosure, input precision, canonical USD switch, 2005 archived imports and single paid bill included, full 2009-row export, zero financial/source/reward mutations",
+    "1280: whole everyday amounts, precise fractional decisions and CSV, explicit approximation/exact keyboard disclosure, input precision, canonical USD switch, 2005 archived imports and single paid bill included, full 2009-row export, zero financial/source/reward mutations",
+    "Saved-zone DST / next month: Overview and Budgets rebucket unchanged facts; focus refresh, unavailable and partial DTO clear stale balances; Retry recovers; Today uses same authority",
+    "1440: whole everyday amounts, precise fractional decisions and CSV, explicit approximation/exact keyboard disclosure, input precision, canonical USD switch, 2005 archived imports and single paid bill included, full 2009-row export, zero financial/source/reward mutations"
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "amountDialogViolations": []
+    },
+    {
+      "width": 430,
+      "amountDialogViolations": []
+    },
+    {
+      "width": 768,
+      "amountDialogViolations": []
+    },
+    {
+      "width": 1280,
+      "amountDialogViolations": []
+    },
+    {
+      "width": 1440,
+      "amountDialogViolations": []
+    }
+  ],
+  "exports": [
+    {
+      "width": 375,
+      "count": 2009,
+      "exactAmounts": [
+        "2500.75",
+        "25000.00"
+      ]
+    },
+    {
+      "width": 430,
+      "count": 2009,
+      "exactAmounts": [
+        "2500.75",
+        "25000.00"
+      ]
+    },
+    {
+      "width": 768,
+      "count": 2009,
+      "exactAmounts": [
+        "2500.75",
+        "25000.00"
+      ]
+    },
+    {
+      "width": 1280,
+      "count": 2009,
+      "exactAmounts": [
+        "2500.75",
+        "25000.00"
+      ]
+    },
+    {
+      "width": 1440,
+      "count": 2009,
+      "exactAmounts": [
+        "2500.75",
+        "25000.00"
+      ]
+    }
+  ],
+  "browserErrors": [],
+  "externalRequestsBlocked": 29
+}

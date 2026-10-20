@@ -1,0 +1,102 @@
+{
+  "checks": [
+    "375: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow",
+    "430: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow",
+    "768: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow",
+    "1280: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow",
+    "Oversized CSV response fails before attachment bytes; no truncation or export-side writes",
+    "1440: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow"
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 430,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 768,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 1280,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 1440,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    }
+  ],
+  "exports": [
+    {
+      "width": 375,
+      "count": 4,
+      "sha256": "3149d321ece968de479b7844231c6fcf366a55bc509dc49e95d7969e43839a79",
+      "notes": false
+    },
+    {
+      "width": 430,
+      "count": 4,
+      "sha256": "ddfa384ef7cb002f9ac346af7a85fdb45e238678fbd6f3473d36c96e6360a882",
+      "notes": false
+    },
+    {
+      "width": 768,
+      "count": 4,
+      "sha256": "32d6dbed7418e654d03647a6f2bb67cbbcfbf958fe362ccdcd39a60269970e68",
+      "notes": false
+    },
+    {
+      "width": 1280,
+      "count": 4,
+      "sha256": "d238c31fe8c7ac00bc42f2c5d6fc942e041f57b2d0412968029177f9409028d0",
+      "notes": true
+    },
+    {
+      "width": 1440,
+      "count": 2005,
+      "sha256": "8821ae197268f411744f1379b2cca67e1a190e287bcfed1aee987243ddd1eb5c",
+      "notes": false
+    }
+  ],
+  "browserErrors": [],
+  "externalRequestsBlocked": 28,
+  "brightContrast": [
+    {
+      "selector": "h2",
+      "ratio": 11.679978616039618
+    },
+    {
+      "selector": "p",
+      "ratio": 10.661611395292335
+    },
+    {
+      "selector": "button",
+      "ratio": 11.679978616039618
+    }
+  ]
+}

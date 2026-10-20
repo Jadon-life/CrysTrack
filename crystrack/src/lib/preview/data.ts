@@ -1,4 +1,5 @@
 /** Bundled fictional DTOs. No SDK, environment credentials, database, clock, or outbound calls. */
+import { buildWealthReport } from '../wealth-report';
 import { EXPERIENCE_CONFIG } from '../../config/experience';
 export const DEMO_DAY = '2026-09-28';
 export const DEMO_USER = {
@@ -22,10 +23,7 @@ const profile = {user_id:DEMO_USER.id,display_name:'Demo Explorer',timezone:'Afr
   scheduling_timezone:'Africa/Lagos',avatar_url:null,avatar_signed_url:null,locale:'en-NG'};
 const preferences = {theme_preference:'adaptive',reduced_motion:false,weather_enabled:false,dnd_enabled:false,
   default_reminder_channels:[],untimed_task_reminder_time:'10:00',incomplete_task_reminder_time:'19:00'};
-const summary = {availableBalance:0,savedBalance:0,receivables:0,liabilities:0,netPosition:0,monthIncome:0,monthExpenses:0,
-  monthSaved:0,netSpendableFlow:0,savingsRatePct:null,averageDailySpend:0,projectedMonthExpenses:0,priorMonthExpenses:0,
-  projectedExpenseChangePct:null,safeToSpend:0,projectedMonthEndLow:0,projectedMonthEndHigh:0,dataMonths:0,
-  categoryPatterns:[],spendingVelocity:'insufficient',deterministicRemark:'Synthetic demo — no financial records are connected.'};
+const demoWealth=buildWealthReport({timezone:'Africa/Lagos',today:DEMO_DAY,count:0,buckets:[],entries:[],targets:[],debts:[],expectedFlows:[]},DEMO_USER.id);
 const context = {day:DEMO_DAY,timezone:'Africa/Lagos',revision:1,captureStartsOn:DEMO_DAY};
 const conversation = {id:conversationId,title:'About this synthetic demo',created_at:DEMO_USER.created_at,updated_at:DEMO_USER.created_at};
 
@@ -49,7 +47,7 @@ export function demoRead(pathname: string, search = new URLSearchParams()): unkn
   if (pathname === '/api/daily-records/context') return context;
   if (pathname === '/api/daily-records') return {context,snapshots:[]};
   if (/^\/api\/daily-notes\/\d{4}-\d{2}-\d{2}$/.test(pathname)) return {day_key:DEMO_DAY,body:'',revision:0,updated_at:null};
-  if (pathname === '/api/wealth') return {entries:[],targets:[],debts:[],expectedFlows:[],summary};
+  if (pathname === '/api/wealth') return demoWealth;
   if (['/api/finance','/api/finance/entries','/api/finance/targets','/api/wealth/debts','/api/wealth/expected','/api/reminders'].includes(pathname)) return [];
   if (pathname === '/api/history') {
     const rows = [{id:'synthetic-history',type:'task_completed',entity_type:'task',entity_id:taskId,
