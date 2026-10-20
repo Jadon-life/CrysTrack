@@ -77,7 +77,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }}>
       <EnvironmentBackground />
       <TopNavigation />
-      <main className="relative z-10 min-h-screen pt-[88px] sm:pt-[96px] pb-10">
+      <main key={user.id} className="relative z-10 min-h-screen pt-[88px] sm:pt-[96px] pb-10">
         <div className="w-full max-w-[1560px] mx-auto px-3 sm:px-5 lg:px-7 xl:px-9">
           {isRestrictedPreview() && <div role="status" className="mb-4 rounded-xl border border-sky-300/20 bg-sky-950/40 p-3 text-center text-sm text-sky-100">Synthetic read-only demo · example data dated 28 September 2026 · changes, sign-in and integrations are disabled.</div>}
           {children}

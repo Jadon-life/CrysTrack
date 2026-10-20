@@ -27,6 +27,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastOwner = React.useRef<string | null>(null);
 
   const supabase = React.useMemo(() => isRestrictedPreview() ? null : createClient(), []);
 
@@ -68,6 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!supabase) return;
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextOwner=session?.user.id??null;
+      if(_event==='SIGNED_OUT'||(lastOwner.current&&lastOwner.current!==nextOwner))window.dispatchEvent(new Event('crystrack-auth-owner-changed'));
+      lastOwner.current=nextOwner;
       setUser(session?.user ?? null);
     });
 
@@ -76,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     if (!supabase) return; // No real session exists in the synthetic demo.
+    if(!window.dispatchEvent(new Event('crystrack-before-signout',{cancelable:true})))return;
     await supabase.auth.signOut();
   };
 

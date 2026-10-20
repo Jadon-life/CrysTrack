@@ -10,6 +10,7 @@ import './premium-controls.css';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { AuthProvider } from '@/components/layout/auth-provider';
 import { CrystalProvider } from '@/components/crystals/crystal-provider';
+import { OfflineTodayProvider } from '@/components/offline/offline-today-provider';
 import { AppLayout } from '@/components/layout/app-layout';
 const manrope = Manrope({
   subsets: ['latin'],
@@ -34,7 +35,7 @@ export default function RootLayout({
       <body className={`${manrope.variable} min-h-screen overflow-x-hidden`}>
         <AuthProvider>
           <ThemeProvider>
-            <CrystalProvider><AppLayout>{children}</AppLayout></CrystalProvider>
+            <OfflineTodayProvider><CrystalProvider><AppLayout>{children}</AppLayout></CrystalProvider></OfflineTodayProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>
