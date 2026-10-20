@@ -347,7 +347,7 @@ export default function DashboardPage() {
 
       {urgentAssignments > 0 && <a href="#today-deadlines" className="flex min-h-10 items-center gap-2 rounded-xl bg-slate-950/80 px-4 py-3 text-sm text-amber-100 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"><AlertTriangle aria-hidden="true" className="h-4 w-4 shrink-0" />{urgentAssignments} assignment{urgentAssignments===1?'':'s'} need attention · View deadlines</a>}
 
-      <section className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+      <section className="grid grid-cols-1 items-start xl:grid-cols-12 gap-4">
         <GlassCard padding="md" className="min-w-0 xl:col-span-5">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="min-w-0">

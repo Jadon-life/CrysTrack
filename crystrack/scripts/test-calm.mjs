@@ -344,6 +344,8 @@ try {
     await page.getByTestId('today-streak').waitFor();
   };
   const capture = async (name, fullPage = true) => {
+    if (fullPage)
+      await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
     await page.mouse.move(0, 0);
     await page.screenshot({
       path: output + '/' + name + '.jpg',
@@ -493,6 +495,28 @@ try {
       await capture(`wealth-${theme}-${width}`);
       if (phase === 'after') {
         await inspectAccessibility(width, theme);
+        // Secondary balances and all retained recent rows stay discoverable by keyboard.
+        const balances = page.getByTestId('wealth-balances').locator('summary');
+        await balances.focus();
+        await page.keyboard.press('Enter');
+        await page.getByText('Saved', { exact: true }).waitFor();
+        assert.equal(await balances.getAttribute('aria-expanded'), 'true');
+        await page.keyboard.press('Enter');
+        const recent = page.getByRole('button', {
+          name: 'Show all 14 recent transactions',
+          exact: true,
+        });
+        await recent.focus();
+        await page.keyboard.press('Enter');
+        assert.equal(await page.locator('#recent-money-rows > div').count(), 14);
+        assert.equal(
+          await page
+            .getByRole('button', { name: 'Show fewer transactions', exact: true })
+            .getAttribute('aria-expanded'),
+          'true',
+        );
+        await page.getByRole('button', { name: 'Show fewer transactions', exact: true }).click();
+        assert.equal(await page.locator('#recent-money-rows > div').count(), 4);
         const toggle = page.getByTestId('wealth-analysis').locator('summary');
         await toggle.focus();
         await page.keyboard.press('Enter');
@@ -509,6 +533,17 @@ try {
             .getAttribute('aria-expanded'),
           'true',
         );
+        const exactTable = page.getByRole('table', {
+          name: 'Six-month recorded cashflow, exact NGN',
+          exact: true,
+        });
+        const tableBox = await exactTable.locator('..').boundingBox();
+        assert.ok(
+          tableBox.width <= 1 && tableBox.height <= 1,
+          'exact accessible table stays visually clipped inside glass styles',
+        );
+        await page.getByTestId('wealth-analysis').locator('.recharts-area-curve').first().waitFor();
+        await page.getByTestId('wealth-analysis').locator('.recharts-pie-sector').first().waitFor();
         await capture(`wealth-expanded-${theme}-${width}`);
         await inspectAccessibility(width, theme + ' expanded');
         await page.getByTestId('wealth-analysis').locator('.recharts-wrapper').first().waitFor();
@@ -751,6 +786,8 @@ try {
     await d.getByRole('button', { name: 'Confirm paid expense', exact: true }).click();
     assert.equal(total('money_entries'), 2, 'missing payment consent blocks a write');
     await d.getByLabel('I have actually paid this bill', { exact: true }).check();
+    // Move focus off the formerly invalid consent field before the actual consent capture.
+    await d.getByLabel('Actual amount paid (NGN)', { exact: true }).click();
     await capture('journey-payment-consent-375', false);
     await d.getByRole('button', { name: 'Confirm paid expense', exact: true }).click();
     await d.waitFor({ state: 'hidden' });

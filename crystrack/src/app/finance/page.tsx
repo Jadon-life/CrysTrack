@@ -377,8 +377,7 @@ export default function WealthPage() {
             </div>
             <span className="text-xs text-[var(--theme-text-muted)]">This month: {money(summary?.monthIncome || 0)} in · {money(summary?.monthExpenses || 0)} out</span>
           </div>
-          <table className="sr-only"><caption>Six-month recorded cashflow, exact NGN</caption><thead><tr><th scope="col">Month</th><th scope="col">Income</th><th scope="col">Expenses</th><th scope="col">Savings less releases</th></tr></thead><tbody>{data.cashflow.map(month=><tr key={month.key}><th scope="row">{month.key}</th>{[month.income,month.expenses,month.savings].map((amount,index)=><td key={index}><MoneyAmount amount={amount} mode="statement" inspect={false}/></td>)}</tr>)}</tbody></table>
-          <div className="h-64">
+          <div className="h-64"><div className="sr-only"><table><caption>Six-month recorded cashflow, exact NGN</caption><thead><tr><th scope="col">Month</th><th scope="col">Income</th><th scope="col">Expenses</th><th scope="col">Savings less releases</th></tr></thead><tbody>{data.cashflow.map(month=><tr key={month.key}><th scope="row">{month.key}</th>{[month.income,month.expenses,month.savings].map((amount,index)=><td key={index}><MoneyAmount amount={amount} mode="statement" inspect={false}/></td>)}</tr>)}</tbody></table></div>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series} aria-label="Six-month recorded income and expenses; exact NGN amounts are in the accompanying table">
                 <defs>
@@ -398,8 +397,8 @@ export default function WealthPage() {
                   contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
                   formatter={(_value: any, name: any, info: any) => money(info.payload[name+'Exact'])}
                 />
-                <Area type="monotone" dataKey="income" stroke="#4ade80" fill="url(#incomeFill)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expenses" stroke="#fb7185" fill="url(#expenseFill)" strokeWidth={2} />
+                <Area isAnimationActive={false} type="monotone" dataKey="income" stroke="#4ade80" fill="url(#incomeFill)" strokeWidth={2} />
+                <Area isAnimationActive={false} type="monotone" dataKey="expenses" stroke="#fb7185" fill="url(#expenseFill)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -449,7 +448,7 @@ export default function WealthPage() {
               {categoryData.length ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart aria-label="Expenses by category this month; exact amounts are listed beside the chart">
-                    <Pie data={categoryData} innerRadius={58} outerRadius={82} paddingAngle={2} dataKey="value">
+                    <Pie isAnimationActive={false} data={categoryData} innerRadius={58} outerRadius={82} paddingAngle={2} dataKey="value">
                       {categoryData.map((item: any, index: number) => (
                         <Cell key={index} aria-label={`${item.name}: NGN ${item.exact} recorded expenses this month`} fill={['#60a5fa', '#4ade80', '#f59e0b', '#a78bfa', '#fb7185'][index % 5]} />
                       ))}

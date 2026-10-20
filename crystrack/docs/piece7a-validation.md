@@ -1,5 +1,9 @@
 # Issue #39 — Calm Today + Wealth validation
 
+Sanitized logs retain actual messages/results with terminal trailing whitespace
+normalized. The final paired suite covers final visual polish; nine domain suites
+ran on the same unchanged financial authority before that small polish.
+
 Source: verified green development head `65bd0807a6f41921b2fb0d176fb66d6a17b2dbae`,
 post-merge CI [39345147461](https://github.com/Jadon-life/CrysTrack/actions/runs/39345147461).
 Feature branch: `feat/piece7a-calm-today-wealth`; development-only draft review.
@@ -56,8 +60,9 @@ No migrations, dependencies, locks, source records or financial formulas changed
   analysis in both themes at every width. Manual conservative white-backdrop
   contrast calculations and >=40px checks cover new disclosure/currency/urgent
   controls; all pass. This is scoped evidence, not whole-app WCAG certification.
-- Nine retained signed-in browser regressions and exact-head GitHub CI are being
-  completed; their final outcomes will be recorded before review handoff.
+- All nine retained signed-in Chromium regressions pass: Assignments, Today streak,
+  Crystal Shards, Week Grid, Budgets, Bills, CSV, money presentation and Overview.
+  Exact-head GitHub CI and commit synchronization are linked from the draft PR.
 
 The 375px journey completes/undoes/skips/undoes a routine, opens Tasks Week grid
 and Assignments, keyboard-inspects an approximate exact-money dialog (Escape
@@ -70,7 +75,7 @@ Two separate comparison owners retain the exact same financial, savings, debts,
 budgets, bill occurrences/provenance, CSV, shard and durable daily-record hash
 before and after navigation, disclosures, theme changes, cancellation and
 same-context account switching:
-`2069a6c61c9180e2a67b01af7d1d74409cb000d523cc7ca911487e98701e4c6c`.
+`23e1075552d43efc035e021bdd26461773b4230d5f8c6bef46b577b2b72b542a`.
 Explicit writes occur only in a third synthetic journey account and cannot affect
 either comparison owner. The established owner has **2,009** actual local ledger
 rows, exact available **17514.55** and current expense **2505.50**, unchanged.
@@ -104,7 +109,22 @@ Retained browser suites must run sequentially because they use private local clo
 Initial tests caught a denied fixture DML (corrected to the authorized assignment
 RPC), an existing unnamed AI icon button and unnamed pie-sector SVGs (now explicitly
 labeled). Screenshot review caught wrapping Add actions and cached-rate visibility;
-these were corrected and the full paired run repeated successfully. An initial
+these were corrected and the full paired run repeated successfully. Final visual
+review also caught a glass direct-child positioning rule overriding the hidden
+exact table and stretched desktop checklist whitespace. The table now sits inside
+a neutral wrapper, charts reveal immediately without animation delay, and the
+checklist aligns to its content. Regression assertions enforce a clipped 1px
+accessible table, rendered chart paths, keyboard balance expansion and 4→14→4
+recent-row expansion. Full-page captures scroll to the top first so the fixed
+navbar appears in the correct position; consent images keep their actual viewport. A later final capture deliberately stopped when the retained dispatcher tests had
+changed the original comparison owners’ daily closure records: those suites invoke
+authorized local cron across all synthetic profiles. The hash assertion was kept.
+No closed daily record was unfrozen or restored. The original successful paired
+JSON remains as initial evidence; a fresh pair is captured from byte-exact pinned
+baseline UI and final feature UI after the dispatcher suites finish. Feature files
+are saved/restored byte-for-byte, without resetting Git or importing main.
+
+An initial
 local startup/reset overlap was stopped; only after startup completed was the
 fresh guarded reset/integration suite run successfully. No database guard was bypassed.
 

@@ -72,5 +72,6 @@ and pixels will be committed with final validation evidence.
    No new packages, migrations, endpoints, financial arithmetic, auth, RLS,
    reminders, reward accounting, theme switch or global navigation rewrite.
 
-After validation, document actual height/control-position deltas and any retained
-accessibility/hosted limitations. All production operations remain prohibited.
+Completed measurements and retained limitations are in [the validation report](piece7a-validation.md).
+The first 375px task control moves up 330.5px; default Wealth document height falls
+52.2%. All production operations remain prohibited.
