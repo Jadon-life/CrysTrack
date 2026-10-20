@@ -5,11 +5,12 @@ import{isRestrictedPreview}from'@/lib/preview/mode';
 import{offlineSourceSchema,type OfflineSource}from'@/lib/offline-source';
 import{offlineOutcomeResolutionSchema,type OfflineOutcomeIntent}from'@/lib/offline-outcomes';
 import{DEVICE_TTL,readQueue,stage,sourceMatches,reconciled,type DeviceQueue,type QueueItem}from'@/lib/offline-queue';
+import{offlineJSON}from'@/lib/offline-transport';
 import{deviceStore,DEVICE_LOCK}from'@/lib/offline-device';
 const FLAG='crystrack-offline-enabled-v1';
 type Store=Awaited<ReturnType<typeof deviceStore>>;
-type Context={enabled:boolean;online:boolean;busy:boolean;items:QueueItem[];notice:string;confirmed:boolean;enable:()=>Promise<void>;clear:()=>Promise<void>;sync:()=>Promise<void>;stageAction:(id:string,status:OfflineOutcomeIntent['desiredStatus'])=>Promise<boolean>;discard:(id:string)=>Promise<void>};
-const empty:Context={enabled:false,online:false,busy:false,items:[],notice:'',confirmed:false,enable:async()=>{},clear:async()=>{},sync:async()=>{},stageAction:async()=>false,discard:async()=>{}};
+type Context={locked:boolean;enabled:boolean;online:boolean;busy:boolean;items:QueueItem[];notice:string;confirmed:boolean;enable:()=>Promise<void>;clear:()=>Promise<void>;sync:()=>Promise<void>;stageAction:(id:string,status:OfflineOutcomeIntent['desiredStatus'])=>Promise<boolean>;discard:(id:string)=>Promise<void>};
+const empty:Context={locked:false,enabled:false,online:false,busy:false,items:[],notice:'',confirmed:false,enable:async()=>{},clear:async()=>{},sync:async()=>{},stageAction:async()=>false,discard:async()=>{}};
 const OfflineContext=createContext(empty);
 export const useOfflineToday=()=>useContext(OfflineContext);
 export function OfflineTodayProvider({children}:{children:React.ReactNode}){
@@ -20,20 +21,22 @@ function NormalOfflineProvider({children}:{children:React.ReactNode}){
   const{user,refreshUser}=useAuth();const owner=user?.id??'';const ownerRef=useRef(owner);
   useEffect(()=>{ownerRef.current=owner;},[owner]);
   const store=useRef<Store|null>(null),channel=useRef<BroadcastChannel|null>(null),abort=useRef<AbortController|null>(null);
-  const queue=useRef<DeviceQueue|null>(null),fence=useRef(0);
+  const queue=useRef<DeviceQueue|null>(null),fence=useRef(0),retained=useRef<{owner:string;count:number;expiresAt:number}|null>(null);
+  const[lockedOwner,setLockedOwner]=useState<string|null>(null);
   const[view,setView]=useState<DeviceQueue|null>(null),[online,setOnline]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[confirmed,setConfirmed]=useState(false);
-  const publish=useCallback((q:DeviceQueue|null)=>{queue.current=q;setView(q);},[]);
+  const publish=useCallback((q:DeviceQueue|null)=>{if(q)retained.current={owner:q.owner,count:q.items.length,expiresAt:q.expiresAt};queue.current=q;setView(q);},[]);
   const valid=(id:string,epoch:number)=>ownerRef.current===id&&fence.current===epoch;
   const source=useCallback(async(id:string,signal?:AbortSignal):Promise<OfflineSource>=>{
     const readFence=fence.current;
     if(ownerRef.current!==id)throw new Error('Account changed. Reconnect before syncing.');
-    let response:Response;try{response=await fetch('/api/tasks/offline/source',{cache:'no-store',signal});}catch{setOnline(false);throw new Error('Connection uncertain. Keep this page open and retry Sync when online.');}
+    let reply;try{reply=await offlineJSON('/api/tasks/offline/source',{signal});}catch{setOnline(false);throw new Error('Connection uncertain. Keep this page open and retry Sync when online.');}
+    const{response,data:body}=reply;
     if(ownerRef.current!==id||fence.current!==readFence)throw new Error('Device session changed. Reconnect before syncing.');
-    if(!response.ok){setOnline(false);if(response.status===401){fence.current++;abort.current?.abort();publish(null);channel.current?.postMessage('fence');}throw new Error(response.status===401?'Sign in again to review pending device actions. No new action was sent.':'Today could not be verified. Reconnect and try again.');}
-    const parsed=offlineSourceSchema.safeParse(await response.json());if(!parsed.success)throw new Error('Today metadata could not be verified. Reconnect before editing.');const data=parsed.data;
+    if(!response.ok){setOnline(false);if(response.status===401){setLockedOwner(id);fence.current++;abort.current?.abort();publish(null);channel.current?.postMessage('fence');}throw new Error(response.status===401?'Sign in again to review pending device actions. No new action was sent.':'Today could not be verified. Reconnect and try again.');}
+    const parsed=offlineSourceSchema.safeParse(body);if(!parsed.success)throw new Error('Today metadata could not be verified. Reconnect before editing.');const data=parsed.data;
     if(ownerRef.current!==id||fence.current!==readFence)throw new Error('Device session changed. Reconnect before syncing.');
-    if(data.owner!==id){fence.current++;abort.current?.abort();publish(null);void store.current?.clear();channel.current?.postMessage('fence');try{localStorage.removeItem(FLAG);}catch{}throw new Error('Account changed. Device actions were cleared; no new action was sent.');}
-    setOnline(true);return data;
+    if(data.owner!==id){retained.current=null;setLockedOwner(null);fence.current++;abort.current?.abort();publish(null);void store.current?.clear().catch(()=>setNotice('Device data could not be cleared. Use your browser’s site-data controls before sharing this device.'));channel.current?.postMessage('fence');try{localStorage.removeItem(FLAG);}catch{}throw new Error('Account changed. Device actions were cleared; no new action was sent.');}
+    setLockedOwner(null);setOnline(true);return data;
   },[publish]);
   const notify=()=>channel.current?.postMessage('changed');
   const persist=async(q:DeviceQueue,epoch:string|null)=>{const version=fence.current;await store.current!.replace(q,epoch);if(!valid(q.owner,version))throw new Error('Device session changed. Reconnect before syncing.');publish(q);notify();};
@@ -53,35 +56,37 @@ function NormalOfflineProvider({children}:{children:React.ReactNode}){
           const raw=await db.read();if(!valid(id,version))return;
           if(raw){try{restored=readQueue(raw,id);}catch{await db.clear();if(!valid(id,version))return;localStorage.removeItem(FLAG);setNotice('Expired or different-account offline data was cleared. Unsynced actions were not saved.');}}
         }
+        if(restored)publish(restored); // Auth was verified, even if the current source is temporarily unavailable.
         await source(id);if(!valid(id,version))return;
-        if(restored)publish(restored);
       }catch{if(valid(id,version))setOnline(false);}
     };void init();
     if(typeof BroadcastChannel!=='undefined'){
       const c=new BroadcastChannel(DEVICE_LOCK);channel.current=c;
       c.onmessage=async e=>{
-        if(e.data==='fence'){fence.current++;abort.current?.abort();publish(null);setOnline(false);setNotice('Offline edits were cleared or the account changed in another tab. Reconnect before enabling them again.');return;}
-        if(e.data==='changed'&&store.current&&ownerRef.current===id){try{const version=fence.current;const raw=await store.current.read();if(valid(id,version))publish(raw?readQueue(raw,id):null);}catch{publish(null);setNotice('Offline data needs review. Reconnect or clear it.');}}
+        if(e.data==='fence'){setLockedOwner(id);fence.current++;abort.current?.abort();publish(null);setOnline(false);setNotice('Offline edits were cleared or the account changed in another tab. Reconnect before enabling them again.');return;}
+        if(e.data==='changed'&&store.current&&ownerRef.current===id){try{const version=fence.current;const raw=await store.current.read();if(valid(id,version)){if(!raw){retained.current=null;setLockedOwner(null);}publish(raw?readQueue(raw,id):null);}}catch{publish(null);setNotice('Offline data needs review. Reconnect or clear it.');}}
       };
     }
     return closeSession;
   // Owner identity changes are the only initialization boundary.
   },[owner,publish,source,closeSession,refreshUser]);
   const clear=async()=>{
-    if(queue.current?.items.length&&!window.confirm('Clear unsynchronized routine actions from this device? They have not been saved to your account.'))return;
-    stop();try{const db=store.current??await deviceStore();await db.clear();localStorage.removeItem(FLAG);setNotice('Offline data cleared. Already received server actions are not reversed.');}catch{setNotice('Device storage could not be cleared. Close this tab and use your browser’s site-data controls.');}
+    if(retained.current?.owner===ownerRef.current&&retained.current.count>0&&!window.confirm('Clear unsynchronized routine actions from this device? They have not been saved to your account.'))return;
+    stop();retained.current=null;setLockedOwner(null);try{const db=store.current??await deviceStore();await db.clear();localStorage.removeItem(FLAG);notify();setNotice('Offline data cleared. Already received server actions are not reversed.');}catch{setNotice('Device storage could not be cleared. Close this tab and use your browser’s site-data controls.');}
   };
   useEffect(()=>{
-    const before=(e:BeforeUnloadEvent)=>{if(queue.current?.items.length){e.preventDefault();e.returnValue='';}};
-    const logout=(e:Event)=>{if(queue.current?.items.length&&!window.confirm('Signing out clears unsynchronized actions on this device. Leave without syncing?')){e.preventDefault();return;}stop();localStorage.removeItem(FLAG);void store.current?.clear();};
+    const before=(e:BeforeUnloadEvent)=>{if(retained.current?.owner===ownerRef.current&&retained.current.count>0){e.preventDefault();e.returnValue='';}};
+    const logout=(e:Event)=>{if(retained.current?.owner===ownerRef.current&&retained.current.count>0&&!window.confirm('Signing out clears unsynchronized actions on this device. Leave without syncing?')){e.preventDefault();return;}stop();retained.current=null;setLockedOwner(null);localStorage.removeItem(FLAG);void store.current?.clear().catch(()=>setNotice('Device data could not be cleared. Use your browser’s site-data controls before sharing this device.'));};
     const offline=()=>setOnline(false);
-    const authChanged=()=>{stop();try{localStorage.removeItem(FLAG);}catch{}void store.current?.clear();};
+    const authChanged=()=>{stop();retained.current=null;setLockedOwner(null);try{localStorage.removeItem(FLAG);}catch{}void store.current?.clear().catch(()=>setNotice('Device data could not be cleared. Use your browser’s site-data controls before sharing this device.'));};
     window.addEventListener('crystrack-auth-owner-changed',authChanged);
     window.addEventListener('beforeunload',before);window.addEventListener('crystrack-before-signout',logout);window.addEventListener('offline',offline);
     return()=>{window.removeEventListener('beforeunload',before);window.removeEventListener('crystrack-before-signout',logout);window.removeEventListener('offline',offline);window.removeEventListener('crystrack-auth-owner-changed',authChanged);};
   },[stop]);
   const enable=async()=>{
-    if(!owner||busy)return;setBusy(true);setNotice('');const version=fence.current;
+    if(!owner||busy)return;
+    if(!navigator.locks||typeof indexedDB==='undefined'||typeof BroadcastChannel==='undefined'){setNotice('Offline edits are unavailable in this browser. Stay online to save.');return;}
+    setBusy(true);setNotice('');const version=fence.current;
     try{await navigator.locks.request(DEVICE_LOCK,async()=>{
       const fresh=await source(owner);if(!valid(owner,version))return;
       const db=store.current??await deviceStore();store.current=db;
@@ -94,7 +99,10 @@ function NormalOfflineProvider({children}:{children:React.ReactNode}){
   const stageAction=async(id:string,status:OfflineOutcomeIntent['desiredStatus'])=>{
     // Opt-in mode owns these actions even when storage fails: never fall through to a second online writer.
     if(!queue.current)return false;
-    if(online&&!queue.current.items.some(x=>x.intent.routineId===id)&&!queue.current.source.routines.some(x=>x.routineId===id))return false;const version=fence.current;setConfirmed(false);
+    // Preserve ordinary online writes, including frozen Today records after archival.
+    // A pending action for this routine must still resolve its original offline intent.
+    if(online&&navigator.onLine&&!queue.current.items.some(x=>x.intent.routineId===id))return false;
+    const version=fence.current;setConfirmed(false);
     try{await navigator.locks.request(DEVICE_LOCK,async()=>{
       if(!valid(owner,version))throw new Error('Account changed. Reconnect before editing.');
       const q=readQueue(await store.current!.read(),owner);
@@ -107,9 +115,10 @@ function NormalOfflineProvider({children}:{children:React.ReactNode}){
       let q=readQueue(await store.current!.read(),owner);
       const check=()=>{if(!valid(owner,version)||controller.signal.aborted)throw new Error('Account or device session changed. Review before syncing.');};
       const post=async(path:string,i:OfflineOutcomeIntent)=>{
-        check();let r:Response;try{r=await fetch('/api/tasks/offline/'+path,{method:'POST',cache:'no-store',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(i)});}catch{throw new Error('Connection uncertain. The original request is retained; retry checks its receipt first.');}
+        check();let reply;try{reply=await offlineJSON('/api/tasks/offline/'+path,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(i)});}catch{throw new Error('Connection uncertain. The original request is retained; retry checks its receipt first.');}
+        const{response:r,data}=reply;
         if(!r.ok){if(r.status<500)throw new Error('Review required: authorization, routine or day changed.');throw new Error('Connection uncertain. The original request is retained; retry checks its receipt first.');}
-        try{return offlineOutcomeResolutionSchema.parse(await r.json());}catch{throw new Error('Connection uncertain. The original request is retained; retry checks its receipt first.');}
+        try{return offlineOutcomeResolutionSchema.parse(data);}catch{throw new Error('Connection uncertain. The original request is retained; retry checks its receipt first.');}
       };
       // This GET verifies Auth.getUser on every sync. It is not a cached session assertion.
       let fresh=await source(owner,controller.signal);check();
@@ -140,11 +149,12 @@ function NormalOfflineProvider({children}:{children:React.ReactNode}){
   // Reconnection is an opportunity to verify; navigator.onLine alone never sets Online.
   const syncRef=useRef(sync);useEffect(()=>{syncRef.current=sync;});
   useEffect(()=>{const reconnect=()=>{if(queue.current)void syncRef.current();else if(owner)void source(owner).catch(()=>{});};window.addEventListener('online',reconnect);return()=>window.removeEventListener('online',reconnect);},[owner,source]);
+  useEffect(()=>{const refreshEmpty=()=>{if(queue.current&&!queue.current.items.length)void syncRef.current();};window.addEventListener('crystrack-activity-updated',refreshEmpty);return()=>window.removeEventListener('crystrack-activity-updated',refreshEmpty);},[]);
   const discard=async(id:string)=>{
     if(!window.confirm('Discard this device action? A request already received by the server may still be recorded. Review the refreshed routine before editing again.'))return;
     try{await navigator.locks.request(DEVICE_LOCK,async()=>{const q=readQueue(await store.current!.read(),owner);await persist({...q,items:q.items.filter(x=>x.intent.routineId!==id)},q.epoch);setNotice('Device action discarded. Reconnect and refresh before making another change.');});}catch{setNotice('Could not discard safely. Clear offline data instead.');}
   };
-  useEffect(()=>{const timer=setInterval(()=>{const q=queue.current;if(q&&Date.now()>=q.expiresAt){stop();void store.current?.clear();try{localStorage.removeItem(FLAG);}catch{}setNotice('Offline device data expired and was cleared. Unsynchronized actions were not saved.');}},30000);return()=>clearInterval(timer);},[stop]);
+  useEffect(()=>{const timer=setInterval(()=>{const metadata=retained.current;if(metadata?.owner===ownerRef.current&&Date.now()>=metadata.expiresAt){stop();retained.current=null;setLockedOwner(null);void store.current?.clear().then(()=>{channel.current?.postMessage('changed');setNotice('Expired device data cleared. Unsynchronized actions were not saved.');}).catch(()=>setNotice('Device data could not be cleared. Use your browser’s site-data controls before sharing this device.'));try{localStorage.removeItem(FLAG);}catch{}}},30000);return()=>clearInterval(timer);},[stop]);
   const owned=view?.owner===owner?view:null;
-  return <OfflineContext.Provider value={{enabled:!!owned,online,busy,items:owned?.items??[],notice,confirmed,enable,clear,sync,stageAction,discard}}>{children}</OfflineContext.Provider>;
+  return <OfflineContext.Provider value={{locked:lockedOwner===owner,enabled:!!owned,online,busy,items:owned?.items??[],notice,confirmed,enable,clear,sync,stageAction,discard}}>{children}</OfflineContext.Provider>;
 }

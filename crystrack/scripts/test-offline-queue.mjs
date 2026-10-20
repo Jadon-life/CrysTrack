@@ -19,7 +19,7 @@ try{
  const owner=sql=>localSql(`BEGIN;SET LOCAL ROLE authenticated;SET LOCAL request.jwt.claims='{"sub":"${uid}","role":"authenticated"}';${sql};COMMIT;`);
  const json=sql=>JSON.parse(owner('SELECT '+sql).split('\n').at(-1));
  clock(previous.toISOString());json('daily_context()');json('sep28_crystal_state()');
- const tasks=[...evidence.widths.map((width,i)=>({id:randomUUID(),title:`Synthetic offline routine ${i+1}`,width})),...['race','uncertain','archive','delete','stale','rollover','logout','zone'].map(label=>({id:randomUUID(),title:'Synthetic '+label,width:1440}))];
+ const tasks=[...evidence.widths.map((width,i)=>({id:randomUUID(),title:`Synthetic offline routine ${i+1}`,width})),...['race','uncertain','archive','delete','stale','rollover','logout','zone','online archived'].map(label=>({id:randomUUID(),title:'Synthetic '+label,width:1440}))];
  for(const t of tasks)owner(`INSERT INTO recurring_tasks(id,user_id,title)VALUES('${t.id}','${uid}',${q(t.title)});INSERT INTO task_schedules(task_id,weekday)SELECT '${t.id}',generate_series(0,6)`);
  clock(day+'T12:00:00Z');const ctx=json('daily_context()');
  const h=JSON.parse(localSql(`SELECT to_jsonb(h)FROM daily_records h WHERE user_id='${uid}'AND day_key='${day}'`).split('\n').at(-1));
@@ -42,7 +42,7 @@ try{
  const readDevice=p=>p.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('crystrack-offline-today-v1',1);r.onsuccess=()=>{const db=r.result;const t=db.transaction('device','readonly');const x=t.objectStore('device').get('queue');x.onsuccess=()=>{resolve(x.result);db.close();};};r.onerror=reject;}));
  const waitItems=async(p,n)=>{await p.waitForFunction(n=>new Promise(resolve=>{const r=indexedDB.open('crystrack-offline-today-v1',1);r.onsuccess=()=>{const db=r.result;const x=db.transaction('device','readonly').objectStore('device').get('queue');x.onsuccess=()=>{resolve(x.result?.items.length===n);db.close();};};}),n);if(n===0)await p.waitForFunction(()=>document.querySelector('[aria-label="Offline Today controls"] button')?.disabled===false);};
  const apiSource=await page.request.get(origin+'/api/tasks/offline/source');assert.equal(apiSource.status(),200);assert.match(apiSource.headers()['cache-control'],/private, no-store/);const verified=await apiSource.json();assert.equal(verified.snapshotId,h.id);assert.equal(verified.routines[0].definitionVersion.length,36);assert.equal(verified.context.timezone,'Africa/Lagos');
- const enable=async()=>{const button=controls.getByRole('button',{name:'Enable offline edits on this device'});if(!await button.isVisible())await controls.getByText('Optional offline routine edits',{exact:true}).click();await button.click();await controls.getByRole('button',{name:'Clear offline data'}).waitFor();};
+ const enable=async()=>{const button=controls.getByRole('button',{name:'Enable offline edits on this device'});if(!await button.isVisible())await controls.getByText('Optional offline routine edits',{exact:true}).click();await button.click();await controls.getByRole('button',{name:'Sync now',exact:true}).waitFor();};
  await enable();
  const total=()=>json('sep28_crystal_state()').total;
  const sourceStatus=t=>owner(`SELECT status FROM daily_routine_records WHERE user_id='${uid}'AND day_key='${day}'AND routine_key='${t.id}'`).split('\n').at(-1);
@@ -58,6 +58,7 @@ try{
   assert.equal(await page.getByRole('button',{name:'Complete '+t.title,exact:true}).getAttribute('aria-pressed'),'false');
   await page.getByRole('button',{name:'Skip '+t.title+' today',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[aria-label="Offline Today controls"]').textContent.includes(': skipped'));
   assert.equal((await readDevice(page)).items[0].intent.requestId,first.intent.requestId);
+  await controls.getByText('Change queued action',{exact:true}).click();await controls.getByLabel('Queued action for '+t.title,{exact:true}).selectOption('completed');await page.waitForFunction(()=>document.querySelector('[aria-label="Offline Today controls"]').textContent.includes(': completed'));assert.equal((await readDevice(page)).items[0].intent.requestId,first.intent.requestId);await controls.getByText('Change queued action',{exact:true}).click();
   await controls.getByRole('button',{name:'Undo locally '+t.title,exact:true}).click();await waitItems(page,0);
   await clickComplete(page,t);await waitItems(page,1);
   for(const light of[false,true]){
@@ -73,7 +74,7 @@ try{
   evidence.checks.push({width:t.width,offlineCompleteSkipUndo:true,stableCoalescing:true,canonicalUnchangedWhileQueued:true,oneReceipt:true,serverShards:total()});
  }
  // Undo of a previously verified completion remains local until acknowledged, with server-only reward reversal.
- await context.setOffline(true);await page.getByRole('button',{name:'Mark '+tasks[0].title+' incomplete',exact:true}).click();await waitItems(page,1);assert.equal(sourceStatus(tasks[0]),'completed');assert.equal(total(),'25');await context.setOffline(false);await waitItems(page,0);assert.equal(sourceStatus(tasks[0]),'pending');assert.equal(total(),'20');await page.getByRole('button',{name:'Complete '+tasks[0].title,exact:true}).waitFor();await context.setOffline(true);await clickComplete(page,tasks[0]);await waitItems(page,1);await context.setOffline(false);await waitItems(page,0);assert.equal(total(),'25');evidence.verifiedUndoRemainsServerAuthoritative=true;
+ await context.setOffline(true);await page.getByRole('button',{name:'Mark '+tasks[0].title+' incomplete',exact:true}).click();await waitItems(page,1);assert.equal(sourceStatus(tasks[0]),'completed');assert.equal(total(),'25');await context.setOffline(false);await waitItems(page,0);assert.equal(sourceStatus(tasks[0]),'pending');assert.equal(total(),'20');await page.getByRole('button',{name:'Complete '+tasks[0].title,exact:true}).waitFor();await context.setOffline(true);await clickComplete(page,tasks[0]);await waitItems(page,1);await context.setOffline(false);await waitItems(page,0);assert.equal(total(),'25');evidence.verifiedUndoRemainsServerAuthoritative=true;await page.screenshot({path:output+'/confirmed-1440.jpg',type:'jpeg',quality:76,fullPage:true});
  // Two tabs coalesce under one Web Lock/IDB envelope; simultaneous reconnects cannot duplicate delivery.
  const second=await context.newPage();await second.goto(origin+'/');await second.getByRole('button',{name:'Complete '+tasks[5].title,exact:true}).waitFor();await second.getByRole('button',{name:'Clear offline data',exact:true}).waitFor();
  await context.setOffline(true);await clickComplete(page,tasks[5]);await waitItems(second,1);
@@ -89,6 +90,11 @@ try{
  await context.setOffline(false);await controls.getByText(/Connection uncertain/).waitFor();assert.equal((await readDevice(page)).items[0].phase,'attempted');assert.equal(sourceStatus(tasks[6]),'completed');assert.equal(total(),'35');
  await page.unroute('**/api/tasks/offline/replay');await page.reload();await page.getByRole('button',{name:'Sync now',exact:true}).waitFor();assert.equal((await readDevice(page)).items[0].intent.requestId,uncertainId);await sync();assert.equal(total(),'35');
  assert.equal(owner(`SELECT count(*) FROM daily_mutation_requests WHERE user_id='${uid}'AND request_id='${uncertainId}'`).split('\n').at(-1),'1');evidence.lostAcknowledgmentOnlineReloadReceiptResolved=true;console.log('PASS lost acknowledgment and online reload receipt resolution');
+ // A committed request whose response stalls must release the lock at the transport deadline.
+ await page.route('**/api/tasks/offline/replay',async route=>{const response=await route.fetch();assert.equal(response.status(),200);await new Promise(resolve=>setTimeout(resolve,17000));await route.abort('failed').catch(()=>{});});
+ await page.getByRole('button',{name:'Mark '+tasks[0].title+' incomplete',exact:true}).waitFor();await context.setOffline(true);await page.getByRole('button',{name:'Mark '+tasks[0].title+' incomplete',exact:true}).click();await waitItems(page,1);const deadlineId=(await readDevice(page)).items[0].intent.requestId;
+ await context.setOffline(false);await controls.getByText(/Connection uncertain/).waitFor();assert.equal((await readDevice(page)).items[0].phase,'attempted');assert.equal(sourceStatus(tasks[0]),'pending');assert.equal(total(),'30');await page.unroute('**/api/tasks/offline/replay');await sync();assert.equal(total(),'30');assert.equal(owner(`SELECT count(*) FROM daily_mutation_requests WHERE user_id='${uid}'AND request_id='${deadlineId}'`).split('\n').at(-1),'1');
+ await page.getByRole('button',{name:'Complete '+tasks[0].title,exact:true}).waitFor();await clickComplete(page,tasks[0]);await page.getByRole('button',{name:'Mark '+tasks[0].title+' incomplete',exact:true}).waitFor();assert.equal(total(),'35');await page.waitForFunction(()=>document.querySelector('[aria-label="Offline Today controls"] button')?.disabled===false);evidence.stalledCommittedResponseDeadlineReceiptResolved=true;
  // Archive, delete and stale revision during offline interval all require manual review, never rebase.
  for(const [index,change]of[[7,'archive'],[8,'delete'],[9,'stale']]){
    const t=tasks[index];await page.getByRole('button',{name:'Complete '+t.title,exact:true}).waitFor();await context.setOffline(true);await clickComplete(page,t);await waitItems(page,1);
@@ -96,7 +102,7 @@ try{
    if(change==='delete')owner(`DELETE FROM recurring_tasks WHERE id='${t.id}'`);
    if(change==='stale')json(`daily_set_outcome('${day}','${t.id}','skipped',1,'${randomUUID()}')`);
    await context.setOffline(false);await controls.getByText('Conflict · 1 pending — not yet verified',{exact:true}).waitFor();
-   assert.equal((await readDevice(page)).items[0].phase,'conflict');assert.equal(total(),'35');
+   assert.equal((await readDevice(page)).items[0].phase,'conflict');assert.equal(total(),'35');if(change==='archive')await page.screenshot({path:output+'/manual-review-1440.jpg',type:'jpeg',quality:76,fullPage:true});
    await controls.getByRole('button',{name:'Discard '+t.title,exact:true}).click();await waitItems(page,0);evidence.checks.push({change,manualReview:true,noRewards:true});
  }
  // A saved scheduling change invalidates context revision immediately, without rebasing old intents.
@@ -125,19 +131,23 @@ try{
  await page.getByRole('button',{name:'Complete Synthetic other owner routine',exact:true}).waitFor();await enable();await context.setOffline(true);await page.getByRole('button',{name:'Complete Synthetic other owner routine',exact:true}).click();await waitItems(page,1);
  await context.clearCookies();await context.setOffline(false);await controls.getByText(/Sign in again/).waitFor();assert.equal((await page.request.get(origin+'/api/tasks/offline/source')).status(),401);
  assert.equal(localSql(`SELECT status FROM daily_routine_records WHERE user_id='${other.data.user.id}'AND routine_key='${otherRoutine}'AND day_key='${day}'`).split('\n').at(-1),'pending');
- assert.equal(localSql(`SELECT count(*) FROM daily_mutation_requests WHERE user_id='${other.data.user.id}'`).split('\n').at(-1),'0');evidence.revokedAuthNoReplay=true;evidence.anonymous401=true;
+ assert.equal(localSql(`SELECT count(*) FROM daily_mutation_requests WHERE user_id='${other.data.user.id}'`).split('\n').at(-1),'0');
+ await controls.getByRole('button',{name:'Clear offline data',exact:true}).waitFor();await page.screenshot({path:output+'/verification-required-1440.jpg',type:'jpeg',quality:76,fullPage:true});await page.getByRole('button',{name:'Open profile menu',exact:true}).click();acceptDialogs=false;await page.getByRole('button',{name:'Sign out',exact:true}).click();acceptDialogs=true;assert.equal((await readDevice(page)).items.length,1);evidence.revokedAuthRetainsUnsyncedWarning=true;evidence.revokedAuthNoReplay=true;evidence.anonymous401=true;
  // An ONLINE boot under a different owner clears even retained B data before labels can display.
  await page.goto(origin+'/auth');await page.locator('input[type=email]').fill(email);await page.locator('input[type=password]').fill(password);await page.getByRole('button',{name:'Sign In',exact:true}).click();await page.waitForURL(origin+'/');await page.getByRole('button',{name:'Complete '+tasks[10].title,exact:true}).waitFor();
- await page.waitForFunction(()=>localStorage.getItem('crystrack-offline-enabled-v1')===null);assert.equal(await readDevice(page),undefined);assert.equal(await page.getByText('Synthetic other owner routine',{exact:true}).count(),0);evidence.ownerIsolation=true;
+ await page.waitForFunction(()=>localStorage.getItem('crystrack-offline-enabled-v1')===null);assert.equal(await readDevice(page),undefined);assert.equal(await page.getByText('Synthetic other owner routine',{exact:true}).count(),0);evidence.ownerIsolation=true;await page.screenshot({path:output+'/owner-switch-cleared-1440.jpg',type:'jpeg',quality:76,fullPage:true});
  await enable();
+ // Opt-in must not redirect a legitimate ONLINE frozen-Today completion into offline replay.
+ json(`daily_retire_routine('${tasks[13].id}')`);await clickComplete(page,tasks[13]);await page.getByRole('button',{name:'Mark '+tasks[13].title+' incomplete',exact:true}).waitFor();assert.equal(sourceStatus(tasks[13]),'completed');assert.equal(total(),'40');assert.equal(owner(`SELECT count(*) FROM daily_mutation_requests WHERE user_id='${uid}'AND payload->>'routine'='${tasks[13].id}'AND NOT(payload ? 'mode')`).split('\n').at(-1),'1');evidence.onlineFrozenTodayPreserved=true;
+ await page.getByRole('button',{name:'Sync now',exact:true}).waitFor({state:'visible'});await page.waitForFunction(()=>document.querySelector('[aria-label="Offline Today controls"] button')?.disabled===false);
  // Day rollover after staging cannot replay yesterday, even if the loaded UI still displays it.
  await context.setOffline(true);await clickComplete(page,tasks[10]);await waitItems(page,1);
- const tomorrow=new Date(day+'T12:00:00Z');tomorrow.setUTCDate(tomorrow.getUTCDate()+1);clock(tomorrow.toISOString());await context.setOffline(false);await controls.getByText('Conflict · 1 pending — not yet verified',{exact:true}).waitFor();assert.notEqual(sourceStatus(tasks[10]),'completed');assert.equal(total(),'35');
+ const tomorrow=new Date(day+'T12:00:00Z');tomorrow.setUTCDate(tomorrow.getUTCDate()+1);clock(tomorrow.toISOString());await context.setOffline(false);await controls.getByText('Conflict · 1 pending — not yet verified',{exact:true}).waitFor();assert.notEqual(sourceStatus(tasks[10]),'completed');assert.equal(total(),'40');
  await controls.getByRole('button',{name:'Clear offline data',exact:true}).click();evidence.dayRolloverNoReplay=true;
  // No offline reload guarantee: verify the browser cannot boot this private document disconnected.
  await context.setOffline(true);const probe=await context.newPage();let reloadBlocked=false;try{await probe.goto(origin+'/',{timeout:10000});}catch{reloadBlocked=true;}assert.equal(reloadBlocked,true);await probe.close();await context.setOffline(false);evidence.disconnectedPrivateBootBlocked=true;
  // Missing lock support fails closed before storage or writers can be enabled.
- await page.evaluate(()=>Object.defineProperty(navigator,'locks',{value:undefined,configurable:true}));if(!await controls.getByRole('button',{name:'Enable offline edits on this device'}).isVisible())await controls.getByText('Optional offline routine edits',{exact:true}).click();await controls.getByRole('button',{name:'Enable offline edits on this device'}).click();assert.equal(await page.getByRole('button',{name:'Sync now',exact:true}).count(),0);evidence.unsupportedBrowserFailClosed=true;
+ await page.evaluate(()=>Object.defineProperty(navigator,'locks',{value:undefined,configurable:true}));if(!await controls.getByRole('button',{name:'Enable offline edits on this device'}).isVisible())await controls.getByText('Optional offline routine edits',{exact:true}).click();await controls.getByRole('button',{name:'Enable offline edits on this device'}).click();assert.equal(await page.getByRole('button',{name:'Sync now',exact:true}).count(),0);await controls.getByText('Offline edits are unavailable in this browser. Stay online to save.',{exact:true}).waitFor();evidence.unsupportedBrowserFailClosed=true;
  assert.deepEqual(evidence.browserErrors,[]);fs.writeFileSync(output+'/result.json',JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence,null,2));
 }finally{
  if(browser)await browser.close();if(server&&server.exitCode===null){const done=once(server,'exit');server.kill('SIGTERM');const force=setTimeout(()=>server.kill('SIGKILL'),5000);await done;clearTimeout(force);}

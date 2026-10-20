@@ -167,7 +167,8 @@ function OwnerWeekGrid({ owner, onChange }: { owner: string; onChange: () => Pro
   }, [view, busy, writing, pending]);
   const submit = async (intent: Intent) => {
     if (writeLock.current || intent.owner !== ownerRef.current || isRestrictedPreview()) return;
-    if(await offline.stageAction(intent.id,intent.desiredStatus))return;
+    // A legacy online uncertain attempt retains its original requestId and writer.
+    if(!pending&&await offline.stageAction(intent.id,intent.desiredStatus))return;
     focusTarget.current = `week-action-${intent.id}-${intent.day}`;
     writeLock.current = true;
     setWriting(true);
