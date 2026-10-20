@@ -55,7 +55,7 @@ function bootstrap() {
   }
   const folder = path.join(ROOT, 'src/db/migrations');
   const names = ['0000_initial.sql', '0001_product_integrity.sql', '0002_adaptive_experience.sql',
-    '0003_wealth_intelligence.sql', '0004_profile_avatar_storage.sql', '0005_intelligence_layer.sql', '0013_daily_records.sql', '0014_daily_http_conflicts.sql', '0015_sep28_crystal_shards.sql', '0016_assignment_lifecycle.sql', '0017_task_week_grid.sql', '0018_wealth_monthly_budgets.sql', '0019_wealth_recurring_bills.sql', '0020_wealth_csv_statements.sql', '0021_wealth_overview_read.sql', '0022_ai_privacy_consent.sql'];
+    '0003_wealth_intelligence.sql', '0004_profile_avatar_storage.sql', '0005_intelligence_layer.sql', '0013_daily_records.sql', '0014_daily_http_conflicts.sql', '0015_sep28_crystal_shards.sql', '0016_assignment_lifecycle.sql', '0017_task_week_grid.sql', '0018_wealth_monthly_budgets.sql', '0019_wealth_recurring_bills.sql', '0020_wealth_csv_statements.sql', '0021_wealth_overview_read.sql', '0022_ai_privacy_consent.sql', '0023_offline_outcome_guard.sql'];
   for (const name of names) {
     const sql = fs.readFileSync(path.join(folder, name), 'utf8');
     const hash = createHash('sha256').update(sql).digest('hex');
@@ -131,7 +131,7 @@ function main(args) {
     console.log('Reset and reseeded only the dedicated local Docker database.');
   } else if (action === 'test') {
     assertTarget();
-    const result = spawnSync(process.execPath, ['--test', '--test-concurrency=1', 'tests/local-supabase.integration.mjs', 'tests/daily-records.integration.mjs', 'tests/crystals.integration.mjs', 'tests/assignments.integration.mjs', 'tests/week-grid.integration.mjs', 'tests/budgets.integration.mjs', 'tests/zz-bills.integration.mjs', 'tests/zzz-csv.integration.mjs', 'tests/zzzz-overview.integration.mjs', 'tests/zzzzz-ai-privacy.integration.mjs'], { cwd: ROOT, env, stdio: 'inherit' });
+    const result = spawnSync(process.execPath, ['--test', '--test-concurrency=1', 'tests/local-supabase.integration.mjs', 'tests/daily-records.integration.mjs', 'tests/crystals.integration.mjs', 'tests/assignments.integration.mjs', 'tests/week-grid.integration.mjs', 'tests/offline-outcomes.integration.mjs', 'tests/budgets.integration.mjs', 'tests/zz-bills.integration.mjs', 'tests/zzz-csv.integration.mjs', 'tests/zzzz-overview.integration.mjs', 'tests/zzzzz-ai-privacy.integration.mjs'], { cwd: ROOT, env, stdio: 'inherit' });
     if (result.status !== 0) process.exitCode = 1;
   } else if (action === 'dev') {
     const values = readLocalKeys();

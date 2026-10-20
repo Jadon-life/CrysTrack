@@ -94,3 +94,12 @@ bindings and serves a closed synthetic read adapter. Normal Production behavior
 is retained. This changes the earlier statement that no application guard exists
 **for this new branch only**; it does not protect old deployed artifacts. Preview
 Branch Tracking stays OFF; the reversible Vercel cutover is documentation only.
+
+### Issue #46 server prerequisite
+
+POST `/api/tasks/offline/replay` is a new authenticated, atomic daily outcome writer;
+POST `/api/tasks/offline/receipt` invokes only a read-only, owner-bound receipt RPC.
+Both are conservatively inventoried as POST surfaces and denied by restricted
+Preview before services, and both inherit `/api/tasks` maintenance blocking.
+Neither activates offline UI/storage/workers or caches private responses. This is
+source/local-only validation; no deployed configuration or hosted data was changed.

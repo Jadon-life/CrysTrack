@@ -1,0 +1,1 @@
+PASS: 65 task/daily/cron method probes denied with 503 before auth; ordinary auth page remains accessible.

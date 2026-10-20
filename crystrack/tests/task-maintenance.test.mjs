@@ -7,7 +7,7 @@ test('maintenance API gate is inert by default, fails closed on typos, and never
  const old=process.env.CRYSTRACK_TASK_WRITE_MAINTENANCE;
  try{for(const flag of [undefined,'','off','on','typo']){
   if(flag===undefined)delete process.env.CRYSTRACK_TASK_WRITE_MAINTENANCE;else process.env.CRYSTRACK_TASK_WRITE_MAINTENANCE=flag;
-  for(const method of ['GET','POST','PUT','PATCH','DELETE'])for(const path of ['/api/tasks','/api/tasks/week','/api/tasks/id/occurrences/day/toggle','/api/daily-records/context','/api/daily-notes/day','/api/reminders/dispatch']){
+  for(const method of ['GET','POST','PUT','PATCH','DELETE'])for(const path of ['/api/tasks','/api/tasks/week','/api/tasks/offline/replay','/api/tasks/offline/receipt','/api/tasks/id/occurrences/day/toggle','/api/daily-records/context','/api/daily-notes/day','/api/reminders/dispatch']){
    const response=compiled.exports.taskMaintenance(new NextRequest('http://localhost'+path,{method}));
    if(flag&&flag!=='off'){assert.equal(response.status,503);assert.equal(response.headers.get('Retry-After'),'60');assert.match(response.headers.get('Cache-Control'),/no-store/);}else assert.equal(response,null);
   }

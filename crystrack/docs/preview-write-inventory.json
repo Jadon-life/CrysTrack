@@ -178,6 +178,18 @@
     ]
   },
   {
+    "file": "src/app/api/tasks/offline/receipt/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/tasks/offline/replay/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
     "file": "src/app/api/tasks/route.ts",
     "methods": [
       "POST"
