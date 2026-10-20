@@ -51,8 +51,7 @@ versus saved scheduling timezone Lagos.
   The synthetic exact available balance remained **NGN 33,749.75**; no financial
   source math or write handler was changed. New check-in rewards were confined to
   a separate synthetic action-test owner and verified as legitimate source writes.
-- No page overflow or browser errors. 281 non-loopback browser requests (existing
-  scenic assets/weather/font attempts) were blocked; none were allowed by the
+- No page overflow or browser errors. 281 non-loopback browser requests were blocked; none were allowed by the
   harness. Server transport permits loopback and intercepts only the fixed model
   endpoint; other external destinations are rejected.
 - **86 actual JPEG captures**: [screenshot index](screenshots/issue41/README.md).
