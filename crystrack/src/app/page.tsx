@@ -20,6 +20,7 @@ import {
 import { GlassCard } from '@/components/shared/glass-card';
 import { MiniCalendar } from '@/components/dashboard/mini-calendar';
 import { TodayStreak } from '@/components/dashboard/today-streak';
+import { CalmDisclosure } from '@/components/shared/calm-disclosure';
 import { useAuth } from '@/components/layout/auth-provider';
 import { useTheme } from '@/components/layout/theme-provider';
 import { fetcher, post } from '@/lib/api';
@@ -101,6 +102,7 @@ export default function DashboardPage() {
     return () => window.removeEventListener('crystrack-daily-boundary', refreshDay);
   }, []);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [taskLoadFailed, setTaskLoadFailed] = useState(false);
   const [goals, setGoals] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [wealth, setWealth] = useState<any>({
@@ -148,7 +150,7 @@ export default function DashboardPage() {
         historyData,
         reminderData,
       ] = await Promise.all([
-        fetcher(`/api/tasks?date=${date}&weekday=${weekday}`).catch(() => []),
+        fetcher(`/api/tasks?date=${date}&weekday=${weekday}`).catch(() => null),
         fetcher('/api/goals').catch(() => []),
         fetcher('/api/assignments').catch(() => []),
         fetcher('/api/wealth').then(value=>reportSchema.parse(value)).catch(() => ({
@@ -165,6 +167,7 @@ export default function DashboardPage() {
       if (!active) return;
       setDayContext(context);
       setTasks(Array.isArray(taskData) ? taskData : []);
+      setTaskLoadFailed(!Array.isArray(taskData));
       setGoals(Array.isArray(goalData) ? goalData : []);
       setAssignments(Array.isArray(assignmentData) ? assignmentData : []);
       if(wealthSequence===wealthRead.current)setWealth(wealthData);
@@ -269,8 +272,8 @@ export default function DashboardPage() {
     {
       href: '/tasks',
       label: 'Tasks today',
-      value: `${completedTasks}/${todayTasks.length}`,
-      note: todayTasks.length
+      value: taskLoadFailed ? '—' : `${completedTasks}/${todayTasks.length}`,
+      note: taskLoadFailed ? 'Tasks not verified' : todayTasks.length
         ? `${Math.round((completedTasks / todayTasks.length) * 100)}% complete`
         : 'Nothing scheduled',
       icon: CheckCircle2,
@@ -316,22 +319,22 @@ export default function DashboardPage() {
     <div className="space-y-5 pb-6">
       <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 px-1 scenic-readable-copy">
         <div>
-          <p className="text-sm text-white/75">{greetingForLocalTime(environment.localTime)},</p>
+          <p className="text-sm text-white/75">{greetingForLocalTime(environment.localTime)}, {displayName}</p>
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-1">
-            {displayName}
+            Today
           </h1>
           <p className="text-sm text-[var(--theme-text-muted)] mt-2">
-            See what needs attention, act on it, and keep moving.
+            One task at a time. Make room for what matters.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-[var(--theme-border)] bg-black/20 px-3 py-1.5 text-xs text-[var(--theme-text-muted)]">
+          {(environment.city || environment.temperatureC != null) && <span className="rounded-full border border-[var(--theme-border)] bg-black/20 px-3 py-1.5 text-xs text-[var(--theme-text-muted)]">
             {environment.city || 'Local'} ·{' '}
             {environment.temperatureC == null
               ? '--'
               : `${Math.round(environment.temperatureC)}°C`}
-          </span>
+          </span>}
           <Link
             href="/plan"
             className="glass-button-primary inline-flex items-center gap-2"
@@ -342,50 +345,35 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {summary.map(({ label, value, note, icon: Icon, tone, href }) => (
-          <GlassCard key={label} padding="md">
-            <div className="flex items-center justify-between">
-              <div className={tone}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <Link href={href} aria-label={`Open ${label}`} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--theme-primary)] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <p className="text-xs text-[var(--theme-text-muted)] mt-1">{label}</p>
-            <p className="text-2xl font-semibold text-white mt-1 truncate">{value}</p>
-            <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
-          </GlassCard>
-        ))}
-      </section>
+      {urgentAssignments > 0 && <a href="#today-deadlines" className="flex min-h-10 items-center gap-2 rounded-xl bg-slate-950/80 px-4 py-3 text-sm text-amber-100 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"><AlertTriangle aria-hidden="true" className="h-4 w-4 shrink-0" />{urgentAssignments} assignment{urgentAssignments===1?'':'s'} need attention · View deadlines</a>}
 
       <section className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <GlassCard padding="md" className="xl:col-span-5">
+        <GlassCard padding="md" className="min-w-0 xl:col-span-5">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-white">Today&apos;s tasks</p>
               <p className="text-xs text-[var(--theme-text-muted)] mt-1" aria-live="polite">
-                {progress.total === 0
+                {taskLoadFailed ? 'Tasks are temporarily unavailable' : progress.total === 0
                   ? 'Nothing scheduled today'
                   : `${progress.completed} of ${progress.total} done · ${progress.remaining} left`}
                 {progress.skipped > 0 ? ` · ${progress.skipped} skipped` : ''}
               </p>
             </div>
-            <div className="relative h-[72px] w-[72px] shrink-0" role="img" aria-label={`${progress.percent}% of scheduled tasks completed`}>
+            <div className="relative h-[72px] w-[72px] shrink-0" role="img" aria-label={taskLoadFailed ? 'Task progress not verified' : `${progress.percent}% of scheduled tasks completed`}>
               <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90" aria-hidden="true">
                 <circle cx="40" cy="40" r="31" pathLength="100" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="7" />
                 <circle cx="40" cy="40" r="31" pathLength="100" fill="none" stroke="var(--theme-primary)" strokeWidth="7" strokeLinecap="round" strokeDasharray={`${progress.percent} 100`} />
               </svg>
-              <span className="absolute inset-0 grid place-items-center text-sm font-semibold text-white">{progress.percent}%</span>
+              <span className="absolute inset-0 grid place-items-center text-sm font-semibold text-white">{taskLoadFailed ? '—' : `${progress.percent}%`}</span>
             </div>
           </div>
 
-          {progress.allDone && (
+          {!taskLoadFailed && progress.allDone && (
             <div className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100" role="status">
               <CheckCircle2 className="h-4 w-4 shrink-0" /> All done today
             </div>
           )}
+          {taskLoadFailed && <p role="alert" className="mb-3 rounded-xl bg-slate-950/85 px-3 py-3 text-sm text-amber-100">Your tasks could not be verified. Refresh this page when you’re ready; no progress is assumed.</p>}
           {taskError && (
             <p className="mb-3 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200" role="alert">{taskError}</p>
           )}
@@ -401,7 +389,7 @@ export default function DashboardPage() {
           )}
 
           <div className="max-h-[28rem] space-y-4 overflow-y-auto pr-1">
-            {todayTasks.length === 0 ? (
+            {taskLoadFailed ? null : todayTasks.length === 0 ? (
               <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-5 text-center">
                 <p className="text-sm font-medium text-white">Nothing scheduled today</p>
                 <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
@@ -454,16 +442,96 @@ export default function DashboardPage() {
           </div>
           <div className="pt-3 mt-3 border-t border-white/10">
             <Link href="/tasks" className="inline-flex min-h-10 items-center gap-1 text-xs font-semibold text-[var(--theme-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
-              Manage routines <ArrowRight className="w-3.5 h-3.5" />
+              Tasks & Week grid <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </GlassCard>
 
-        <div className="xl:col-span-4 space-y-4">
-          <TodayStreak />
+        <div className="min-w-0 space-y-4 xl:col-span-3 xl:col-start-10 xl:row-start-1">
           <GlassCard padding="md">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-white">Goal check-ins</p>
+              <h2 id="today-deadlines" tabIndex={-1} className="text-sm font-semibold text-white">Assignments & reminders</h2>
+              <Link
+                href="/assignments"
+                className="text-xs text-[var(--theme-primary)]"
+              >
+                View all
+              </Link>
+            </div>
+
+            <div className="space-y-2">
+              {upcomingAssignments.map((assignment) => (
+                <div
+                  key={assignment.id}
+                  className="rounded-xl border border-white/10 bg-black/10 p-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-medium text-white line-clamp-1">
+                      {assignment.title}
+                    </p>
+                    {assignment.computed_status === 'overdue' && (
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-300 shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">
+                    {new Date(assignment.deadline).toLocaleString([], {
+                      timeZone: assignment.scheduling_timezone,
+                      weekday: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              ))}
+
+              {upcomingAssignments.length === 0 && (
+                <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-4">
+                  <p className="text-sm font-medium text-white">Nothing due soon</p>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
+                    Assignments approaching their deadlines will appear here.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {reminders.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <div className="flex items-center gap-2 text-xs text-[var(--theme-text-muted)]">
+                  <Bell className="w-3.5 h-3.5 text-[var(--theme-primary)]" />
+                  {reminders.length} reminder event
+                  {reminders.length === 1 ? '' : 's'} visible
+                </div>
+              </div>
+            )}
+          </GlassCard>
+          <CalmDisclosure title="Calendar preview" description="Assignment dates · separate from the task Week grid">
+          <GlassCard padding="md">
+            <MiniCalendar
+              eventDates={assignments
+                .map((item) => item.deadline)
+                .filter(Boolean)}
+            />
+          </GlassCard>
+          </CalmDisclosure>
+          <CalmDisclosure title="Daily reminder">
+          <GlassCard padding="md">
+            <p className="text-sm font-semibold text-white">Daily reminder</p>
+            <div className="mt-4 flex gap-3">
+              <MessageSquareText className="w-4 h-4 text-[var(--theme-primary)] shrink-0" />
+              <p className="text-xs leading-relaxed text-white/80">
+                Small progress is still progress. CrysTrack records what you actually
+                execute, not whether you followed a perfect clock.
+              </p>
+            </div>
+          </GlassCard>
+          </CalmDisclosure>
+        </div>
+        <div className="min-w-0 space-y-4 xl:col-span-4 xl:col-start-6 xl:row-start-1">
+          <TodayStreak />
+          <CalmDisclosure title="Goal check-ins" description={`${goals.length} goals · check-ins and progress`}>
+          <GlassCard padding="md">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-white">Your goals</p>
               <Link href="/goals" className="text-xs text-[var(--theme-primary)]">
                 View all
               </Link>
@@ -532,6 +600,7 @@ export default function DashboardPage() {
             </div>
           </GlassCard>
 
+          </CalmDisclosure>
           <GlassCard padding="md">
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -546,19 +615,21 @@ export default function DashboardPage() {
             </div>
 
             {!wealthSummary ? <p role="status" className="text-sm text-[var(--theme-text-muted)]">Wealth is temporarily unavailable. Open Wealth to refresh; no balances are assumed.</p> : <>
-            <div className="grid grid-cols-3 gap-2">
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                 <p className="text-xs text-[var(--theme-text-muted)]">Available</p>
                 <p className="wealth-number text-sm font-semibold text-emerald-300 mt-1">
                   <MoneyAmount amount={wealthSummary.availableBalance || 0} />
                 </p>
               </div>
+            <CalmDisclosure title="Wealth details" description="Safe to spend, net position and spending patterns">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
 
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
                 <p className="text-xs text-[var(--theme-text-muted)]">Safe to spend</p>
                 <p className="wealth-number text-sm font-semibold text-amber-300 mt-1">
                   <MoneyAmount amount={wealthSummary.safeToSpend || 0} />
                 </p>
+
               </div>
 
               <div className="rounded-xl border border-white/10 bg-black/10 p-3">
@@ -606,91 +677,35 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            </CalmDisclosure>
             </>}
           </GlassCard>
         </div>
 
-        <div className="xl:col-span-3 space-y-4">
-          <GlassCard padding="md">
-            <MiniCalendar
-              eventDates={assignments
-                .map((item) => item.deadline)
-                .filter(Boolean)}
-            />
-          </GlassCard>
-
-          <GlassCard padding="md">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-white">
-                Assignments & reminders
-              </p>
-              <Link
-                href="/assignments"
-                className="text-xs text-[var(--theme-primary)]"
-              >
-                View all
-              </Link>
-            </div>
-
-            <div className="space-y-2">
-              {upcomingAssignments.map((assignment) => (
-                <div
-                  key={assignment.id}
-                  className="rounded-xl border border-white/10 bg-black/10 p-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-medium text-white line-clamp-1">
-                      {assignment.title}
-                    </p>
-                    {assignment.computed_status === 'overdue' && (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-300 shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">
-                    {new Date(assignment.deadline).toLocaleString([], {
-                      timeZone: assignment.scheduling_timezone,
-                      weekday: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-              ))}
-
-              {upcomingAssignments.length === 0 && (
-                <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-4">
-                  <p className="text-sm font-medium text-white">Nothing due soon</p>
-                  <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
-                    Assignments approaching their deadlines will appear here.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {reminders.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/10">
-                <div className="flex items-center gap-2 text-xs text-[var(--theme-text-muted)]">
-                  <Bell className="w-3.5 h-3.5 text-[var(--theme-primary)]" />
-                  {reminders.length} reminder event
-                  {reminders.length === 1 ? '' : 's'} visible
-                </div>
-              </div>
-            )}
-          </GlassCard>
-
-          <GlassCard padding="md">
-            <p className="text-sm font-semibold text-white">Daily reminder</p>
-            <div className="mt-4 flex gap-3">
-              <MessageSquareText className="w-4 h-4 text-[var(--theme-primary)] shrink-0" />
-              <p className="text-xs leading-relaxed text-white/80">
-                Small progress is still progress. CrysTrack records what you actually
-                execute, not whether you followed a perfect clock.
-              </p>
-            </div>
-          </GlassCard>
-        </div>
       </section>
 
+      <CalmDisclosure title="Day overview" description="Task, goal, assignment and savings summaries">
+      <section className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {summary.map(({ label, value, note, icon: Icon, tone, href }) => (
+          <GlassCard key={label} padding="md">
+            <div className="flex items-center justify-between">
+              <div className={tone}>
+                <Icon className="w-5 h-5" />
+              </div>
+              <Link href={href} aria-label={`Open ${label}`} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--theme-primary)] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1">{label}</p>
+            <p className="text-2xl font-semibold text-white mt-1 truncate">{value}</p>
+            <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
+          </GlassCard>
+        ))}
+      </section>
+
+      </CalmDisclosure>
+      <CalmDisclosure title="Recent activity" description="Your recorded activity and full history">
       <GlassCard padding="md">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-white">Recent activity</p>
@@ -727,6 +742,7 @@ export default function DashboardPage() {
           )}
         </div>
       </GlassCard>
+      </CalmDisclosure>
     </div>
   );
 }

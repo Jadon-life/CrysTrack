@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAuth } from '@/components/layout/auth-provider';
 import { GlassCard } from '@/components/shared/glass-card';
+import { CalmDisclosure } from '@/components/shared/calm-disclosure';
 import { Button } from '@/components/ui/button';
 import {
   billMutationResultSchema,
@@ -319,9 +320,7 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
               <h2 id="bills-heading" className="text-xl font-semibold text-white">
                 Bills & subscriptions
               </h2>
-              <p className="mt-1 text-sm text-slate-100">
-                Plans you can trust. Payments you explicitly confirm.
-              </p>
+
             </div>
             <div className="flex flex-wrap gap-2">
               <Button id="bill-refresh" variant="ghost" onClick={reload} disabled={writing}>
@@ -335,17 +334,13 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
               </Button>
             </div>
           </div>
-          <p className="mt-3 text-sm text-slate-100">
-            No automatic charges. Plans below are not added to Overview’s safe-to-spend or month-end
-            forecast, which uses Expected money. Keep one planning source for each obligation; don’t
-            also confirm the same payment there.
-          </p>
+          <p className="mt-3 text-sm text-slate-100">Bills never auto-charge. Mark as paid opens a confirmation; only confirmed payments record an expense.</p>
           {view && (
             <>
               <p className="mt-2 text-sm text-white">
                 {view.today} · {view.timezone}
               </p>
-              <dl className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm tabular-nums text-white">
+              <dl className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm tabular-nums text-white">
                 <div>
                   <dt>Next 7 days · planned</dt>
                   <dd className="font-semibold">{money(view.plans.seven)}</dd>
@@ -361,11 +356,18 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
               </dl>
             </>
           )}
+          <CalmDisclosure title="How bill plans work" description="Forecasts, month-end dates and payment history" className="mt-3" testId="bill-planning-help">
+          <p className="mt-3 text-sm text-slate-100">
+            No automatic charges. Plans below are not added to Overview’s safe-to-spend or month-end
+            forecast, which uses Expected money. Keep one planning source for each obligation; don’t
+            also confirm the same payment there.
+          </p>
           <p className="mt-3 text-xs text-slate-200">
             Due records extend 30 days ahead. Month-end dates clamp then return to the original day.
             Missed payments stay open. Cancel is permanent; paid entries stay recorded. Record only
             actual refunds separately in Wealth.
           </p>
+          </CalmDisclosure>
           <p role="status" className="mt-2 text-sm text-cyan-100">
             {busy ? 'Checking authoritative plans and payment proof…' : notice}
           </p>
