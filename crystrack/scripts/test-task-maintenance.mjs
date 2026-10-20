@@ -10,7 +10,7 @@ try{
  const origin=`http://127.0.0.1:${port}`;let ready=false;
  for(let i=0;i<150;i++){try{await fetch(origin+'/auth');ready=true;break;}catch{await new Promise(r=>setTimeout(r,200));}}
  assert.ok(ready,'Ordinary local server did not start');let assertions=0;
- for(const path of ['/api/tasks','/api/tasks/week','/api/tasks/id','/api/tasks/id/archive','/api/tasks/id/occurrences/day/toggle','/api/tasks/id/occurrences/day/skip','/api/daily-records','/api/daily-records/context','/api/daily-records/timezone','/api/daily-notes/day','/api/reminders/dispatch'])for(const method of ['GET','POST','PUT','PATCH','DELETE']){
+ for(const path of ['/api/tasks','/api/tasks/week','/api/tasks/offline/replay','/api/tasks/offline/receipt','/api/tasks/id','/api/tasks/id/archive','/api/tasks/id/occurrences/day/toggle','/api/tasks/id/occurrences/day/skip','/api/daily-records','/api/daily-records/context','/api/daily-records/timezone','/api/daily-notes/day','/api/reminders/dispatch'])for(const method of ['GET','POST','PUT','PATCH','DELETE']){
   const response=await fetch(origin+path,{method,signal:AbortSignal.timeout(3000),headers:{authorization:'Bearer synthetic-not-a-live-cron-secret'},...(!['GET','HEAD'].includes(method)?{body:'{}'}:{})});
   assert.equal(response.status,503,method+' '+path);assert.equal(response.headers.get('Retry-After'),'60');assert.match(response.headers.get('Cache-Control'),/no-store/);assertions++;
  }
