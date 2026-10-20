@@ -1,0 +1,23 @@
+{
+  "routes": [
+    "/",
+    "/plan",
+    "/tasks",
+    "/goals",
+    "/assignments",
+    "/calendar",
+    "/finance",
+    "/insights",
+    "/history",
+    "/ai",
+    "/settings",
+    "/auth"
+  ],
+  "apiWriters": 43,
+  "externalRequests": [],
+  "offlineStorageActivations": 0,
+  "offlineLockRequests": 0,
+  "clientArtifactMarkersAbsent": 5,
+  "blockedMode": "passed",
+  "browserErrors": []
+}

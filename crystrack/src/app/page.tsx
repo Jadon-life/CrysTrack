@@ -454,7 +454,7 @@ export default function DashboardPage() {
         <div className="min-w-0 space-y-4 xl:col-span-3 xl:col-start-10 xl:row-start-1">
           <GlassCard padding="md">
             <div className="flex items-center justify-between mb-3">
-              <h2 id="today-deadlines" tabIndex={-1} className="text-sm font-semibold text-white">Assignments & reminders</h2>
+              <h2 id="today-deadlines" tabIndex={-1} className="scroll-mt-24 text-sm font-semibold text-white">Assignments & reminders</h2>
               <Link
                 href="/assignments"
                 className="text-xs text-[var(--theme-primary)]"

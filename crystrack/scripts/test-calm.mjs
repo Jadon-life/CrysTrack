@@ -13,7 +13,7 @@ import { chromium } from 'playwright';
 import { ROOT, readLocalKeys, localSql } from './local-supabase.mjs';
 import { localEnvironment } from './local-supabase-policy.mjs';
 const phase = process.argv[2]?.split('=')[1];
-assert.ok(['before', 'after'].includes(phase));
+assert.ok(['before', 'after', 'fixture'].includes(phase));
 assert.equal(process.argv.length, 3);
 assert.equal(process.argv[2], '--phase=' + phase);
 const keys = readLocalKeys();
@@ -93,7 +93,7 @@ try {
   let fixture;
   if (fs.existsSync(fixturePath)) fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
   else {
-    assert.equal(phase, 'before', 'Capture before first, with the unchanged interface.');
+    assert.ok(['before', 'fixture'].includes(phase), 'Prepare the synthetic fixture before the after regression.');
     fixture = await (async () => {
       const email = `money-display-${randomUUID()}@example.invalid`,
         password = randomUUID() + 'Aa1!';
@@ -299,7 +299,7 @@ try {
   const before = snapshot();
   const financialHash = () => createHash('sha256').update(snapshot()).digest('hex');
   evidence.sourceHash = financialHash();
-  if (phase === 'before')
+  if (phase !== 'after')
     fs.writeFileSync(ROOT + '/.preview-test/calm-before-hash.txt', evidence.sourceHash);
   else
     assert.equal(
@@ -307,6 +307,10 @@ try {
       fs.readFileSync(ROOT + '/.preview-test/calm-before-hash.txt', 'utf8'),
       'same synthetic records as baseline',
     );
+  // Fixture mode provisions local synthetic records without asserting the obsolete pre-Issue-39 UI.
+  if (phase === 'fixture') {
+    console.log('PASS: guarded synthetic Calm fixture and financial baseline prepared; no UI comparison claimed.');
+  } else {
   const socket = net.createServer();
   socket.listen(0, '127.0.0.1');
   await once(socket, 'listening');
@@ -479,6 +483,10 @@ try {
         await urgent.focus();
         await page.keyboard.press('Enter');
         await page.waitForFunction(() => document.activeElement?.id === 'today-deadlines');
+        await page.waitForFunction(() => {
+          const top = document.getElementById('today-deadlines')?.getBoundingClientRect().top;
+          return top !== undefined && top >= 88 && top < window.innerHeight;
+        });
         assert.ok((await page.locator('#today-deadlines').boundingBox()).y < 812);
       }
       await page.goto(origin + '/finance');
@@ -857,6 +865,7 @@ try {
   assert.equal(evidence.sourceHashAfter, evidence.sourceHash);
   fs.writeFileSync(output + '/result.json', JSON.stringify(evidence, null, 2));
   console.log(JSON.stringify(evidence, null, 2));
+  }
 } catch (e) {
   if (page)
     await page.screenshot({ path: output + '/failure.png', fullPage: true }).catch(() => null);
