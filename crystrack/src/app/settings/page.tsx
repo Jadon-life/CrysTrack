@@ -2,10 +2,11 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Bell, Camera, ChevronRight, Database, ExternalLink, Loader2, MapPin, Monitor, Moon, Palette, Send, Shield, Sun, Trash2, User, Zap,
+  Bell, Camera, ChevronRight, ExternalLink, Loader2, MapPin, Monitor, Moon, Palette, Send, Shield, Sun, Trash2, User, Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { AiPrivacyControls } from '@/components/ai/ai-privacy';
+import {AccountExport} from '@/components/settings/account-export';
 import { CrystalSettings } from '@/components/crystals/crystal-card';
 import { GlassCard } from '@/components/shared/glass-card';
 import { ImmersiveIntroToggle } from '@/components/settings/immersive-intro-toggle';
@@ -472,7 +473,7 @@ export default function SettingsPage() {
   : ''} </p></div><Button variant="default" onClick={() => void requestLocation({ prompt: true })}>{environmentLoading ? 'Updating…' : 'Use current location'}</Button></div></div><p className="text-xs text-slate-500 mt-4">When you travel, CrysTrack can update after you open the site and location access succeeds. A website cannot continue tracking your physical location after it is closed.</p></GlassCard>}
 
           {active === 'rewards' && <CrystalSettings />}
-          {active === 'privacy' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-4">Privacy & data</h2><div className="space-y-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex gap-2"><Shield className="w-4 h-4 text-emerald-300" /><div><p className="text-sm font-medium text-white">Private-first location</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack does not persist precise GPS coordinates in your database. Location requests are sent directly from your browser to the configured weather/geocoding services.</p></div></div></div><AiPrivacyControls/><div className="rounded-xl border border-white/15 bg-slate-950/80 p-4 text-sm text-slate-100"><Button variant="outline" disabled className="w-full justify-start"><Database className="w-4 h-4 mr-2" /> Full-account export — not available yet</Button><p className="mt-2">Full account export and deletion are separate planned work. Existing financial CSV export remains available in <Link href="/finance" className="inline-flex min-h-10 items-center text-cyan-200 underline">Wealth → CSV tools</Link>.</p></div></div></GlassCard>}
+          {active === 'privacy' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-4">Privacy & data</h2><div className="space-y-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex gap-2"><Shield className="w-4 h-4 text-emerald-300" /><div><p className="text-sm font-medium text-white">Private-first location</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack does not persist precise GPS coordinates in your database. Location requests are sent directly from your browser to the configured weather/geocoding services.</p></div></div></div><AiPrivacyControls/><AccountExport/></div></GlassCard>}
         </div>
       </div>
     </div>
