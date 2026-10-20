@@ -1,0 +1,49 @@
+{
+  "base": "4df6584eb12f9a9fedaa428f43db5b6fdca7630d",
+  "branch": "feat/piece7b-explicit-ai-consent",
+  "draftPR": 42,
+  "appTests": 228,
+  "databaseTests": 137,
+  "retainedBrowserSuites": 9,
+  "privacyWidths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "physicalThemes": [
+    "dark",
+    "light"
+  ],
+  "axeScans": 60,
+  "axeViolations": 0,
+  "readingContrastMinimum": 11.370916431216052,
+  "sourceHashesUnchanged": true,
+  "screenshots": 86,
+  "modelStubCalls": 29,
+  "realProviderCalls": 0,
+  "browserErrors": [],
+  "previewRoutes": 12,
+  "previewWriterFiles": 41,
+  "maintenanceProbes": 55,
+  "typescript": "passed",
+  "eslint": {
+    "errors": 0,
+    "preExistingWarnings": 4
+  },
+  "productionBuild": "passed locally; not deployed",
+  "candidate": "0022_ai_privacy_consent.sql",
+  "candidateSHA256": "3848d1828eb4dc279fd3aa0586bbcdd8b6a88b12fb03ead99a7827daec5d8c55",
+  "migrationTarget": "guarded disposable local only",
+  "hostedHistory": "UNKNOWN, not inspected or modified",
+  "productionReleaseBlocker": "Issue #18",
+  "localNode": "v24.19.0",
+  "localChromium": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+  "limitations": [
+    "real provider availability/retention unverified",
+    "hosted compatibility/rollout not authorized",
+    "manual screen-reader/cross-browser certification not performed"
+  ],
+  "CI": "Final-head CI evidence is recorded on draft PR #42 after this evidence commit."
+}

@@ -1,0 +1,33 @@
+{
+  "base": "4df6584eb12f9a9fedaa428f43db5b6fdca7630d",
+  "protected_source_changes": [],
+  "legacy_migration_changes": [],
+  "schema_original_prefix_identical": true,
+  "finance_write_functions": [
+    {
+      "name": "saveEntry",
+      "identical": true
+    },
+    {
+      "name": "saveTarget",
+      "identical": true
+    },
+    {
+      "name": "saveDebt",
+      "identical": true
+    },
+    {
+      "name": "repayDebt",
+      "identical": true
+    },
+    {
+      "name": "saveExpected",
+      "identical": true
+    },
+    {
+      "name": "confirmFlow",
+      "identical": true
+    }
+  ],
+  "candidate_sha256": "3848d1828eb4dc279fd3aa0586bbcdd8b6a88b12fb03ead99a7827daec5d8c55"
+}

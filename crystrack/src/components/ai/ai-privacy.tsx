@@ -228,7 +228,11 @@ export function AiPrivacyControls() {
       className="space-y-4 rounded-2xl border border-white/20 bg-slate-950/85 p-4 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
     >
       <h3 className="text-lg font-semibold text-white">AI & Privacy</h3>
-      <div className="space-y-3 text-sm leading-relaxed">{explanation}</div>
+      <p className="text-sm leading-relaxed">
+        AI is optional and off by default. If enabled, OpenRouter and its selected model providers
+        receive your chat text and limited task, goal and assignment counts, states and numeric
+        progress. Wealth requires a separate choice. Do not type private information or credentials.
+      </p>
       {error && (
         <p role="alert" className="text-sm text-amber-100">
           {error}
@@ -276,6 +280,12 @@ export function AiPrivacyControls() {
           </button>
         </div>
       </div>
+      <details className="rounded-xl border border-white/15 px-3">
+        <summary className="min-h-10 cursor-pointer list-inside py-3 text-sm font-semibold text-cyan-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">
+          How context and providers work
+        </summary>
+        <div className="space-y-3 pb-3 text-sm leading-relaxed">{explanation}</div>
+      </details>
       {state?.enabled && !state.configured && (
         <p role="status" className="text-sm text-amber-100">
           AI is not configured on this server. Permission does not mean a provider request
@@ -358,7 +368,7 @@ export function AiPrivacyControls() {
                 ? 'This deletes your local AI conversations, messages and saved insights. Your source activity and finances stay intact. It does not delete data held by external providers.'
                 : dialog === 'wealth'
                   ? 'Future approved requests may include exact aggregate NGN balances, income, spending, savings, due debt and category patterns. Individual transaction details, notes and bank statements stay excluded.'
-                  : 'You are choosing external processing by OpenRouter and its selected model providers for chat and the disclosed activity context. Wealth remains off until separately enabled. Provider retention cannot be guaranteed.'}
+                  : 'You choose to send your chat text and limited task, goal and assignment counts, states and numeric progress to OpenRouter and its selected model providers. Private source notes and reflections are excluded; do not type secrets or identity details. Wealth requires a separate choice. Provider retention cannot be guaranteed, and already transmitted data cannot be recalled.'}
             </Dialog.Description>
             <form
               className="mt-4 space-y-4"

@@ -373,6 +373,16 @@ try {
       }
       await shot(`off-${label}-${width}`);
       await axe('[data-testid="ai-privacy-controls"]', width, 'off ' + label);
+      const disclosure = page.locator('summary').filter({ hasText: 'How context and providers work' });
+      await disclosure.focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await disclosure.evaluate((el) => el.parentElement.open), true);
+      await shot(`disclosure-${label}-${width}`);
+      await axe('[data-testid="ai-privacy-controls"]', width, 'disclosure ' + label);
+      await page.keyboard.press('Enter');
+      assert.equal(await disclosure.evaluate((el) => el.parentElement.open), false);
+      const prominence = await page.getByRole('switch', { name: 'Use external AI', exact: true }).evaluate((el) => el.getBoundingClientRect().top - el.closest('[data-testid="ai-privacy-controls"]').getBoundingClientRect().top);
+      assert.ok(prominence < 400, 'Consent switch stays prominent within its section');
       const deniedCount = events().length,
         chatBefore = scalar(`SELECT count(*) FROM ai_messages WHERE user_id='${a.id}'`);
       const denied = await page.request.post(origin + '/api/ai/chat', {
@@ -691,6 +701,7 @@ try {
       availableNGN: '33749.75',
     });
     evidence.widths.push(width);
+    console.log(`PASS: AI privacy flows, both themes, owner isolation and source invariants at ${width}px`);
     await holder.context.close();
     page = null;
   }
