@@ -616,15 +616,15 @@
     padding: 3px;
     border-radius: 12px;
     border: 1px solid var(--theme-border);
-    background: rgba(0,0,0,.16);
+    background: rgba(3,10,24,.78);
   }
 
   .wealth-segmented button {
-    min-width: 54px;
-    height: 30px;
+    min-width: 60px;
+    min-height: 40px;
     border-radius: 9px;
-    color: var(--theme-text-muted);
-    font-size: 11px;
+    color: rgba(255,255,255,.92);
+    font-size: 12px;
     font-weight: 750;
     transition: 160ms ease;
   }

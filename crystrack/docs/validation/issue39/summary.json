@@ -1,0 +1,90 @@
+{
+  "issue": 39,
+  "base": "65bd0807a6f41921b2fb0d176fb66d6a17b2dbae",
+  "branch": "feat/piece7a-calm-today-wealth",
+  "draftPR": "https://github.com/Jadon-life/CrysTrack/pull/40",
+  "applicationTests": 211,
+  "localDatabaseTests": 122,
+  "maintenanceProbes": 55,
+  "previewRoutes": 12,
+  "previewWriterRoutes": 40,
+  "pairedWidths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "pairedThemes": [
+    "physical Light",
+    "physical Dark"
+  ],
+  "beforeScreenshots": 70,
+  "afterScreenshots": 85,
+  "scopedAxeRuns": 30,
+  "minimumNewControlContrast": 6.4077331065924925,
+  "minimumNewControlHeight": 40,
+  "retainedBrowsers": [
+    {
+      "suite": "assignments",
+      "exitCode": 0,
+      "seconds": 72.5
+    },
+    {
+      "suite": "today-streak",
+      "exitCode": 0,
+      "seconds": 13.2
+    },
+    {
+      "suite": "crystals",
+      "exitCode": 0,
+      "seconds": 22.01
+    },
+    {
+      "suite": "week-grid",
+      "exitCode": 0,
+      "seconds": 22.28
+    },
+    {
+      "suite": "budgets",
+      "exitCode": 0,
+      "seconds": 25.27
+    },
+    {
+      "suite": "bills",
+      "exitCode": 0,
+      "seconds": 57.33
+    },
+    {
+      "suite": "csv",
+      "exitCode": 0,
+      "seconds": 63.36
+    },
+    {
+      "suite": "money-presentation",
+      "exitCode": 0,
+      "seconds": 43.01
+    },
+    {
+      "suite": "overview",
+      "exitCode": 0,
+      "seconds": 66.89
+    }
+  ],
+  "byteIdenticalCoreFiles": 113,
+  "identicalHandlerASTs": 14,
+  "sourceRecordHash": "23e1075552d43efc035e021bdd26461773b4230d5f8c6bef46b577b2b72b542a",
+  "newMigrations": [],
+  "hostedChanges": false,
+  "productionReleaseBlockedBy": 18,
+  "finalHeadCI": "See draft PR checks after final evidence push; no live release authorized.",
+  "initialPairedRecordHash": "2069a6c61c9180e2a67b01af7d1d74409cb000d523cc7ca911487e98701e4c6c",
+  "normalBuildID": "DNz5QrINjw1wre0oVc3B_",
+  "implementationFileHashes": {
+    "src/app/page.tsx": "813be6e6cad06bfd1318a784a52d34e7912bca58ba0c6acc647bf6e2bc889143",
+    "src/app/finance/page.tsx": "f8211fc814071f771dc9b1ef753e20e2157fe349ff33f12ad109c9527ff5e9f6",
+    "src/app/globals.css": "b17833e6380114f393fc536d4eca5ed84e9a685acff7eb07d31f222687e48f0c",
+    "src/components/wealth/recurring-bills.tsx": "dca1aec5098803f98488e95ab5c6612aa192ae501b7ce9e3dd0f169657dda563",
+    "src/components/shared/calm-disclosure.tsx": "1a97a78560e7a08c41df899d575d54f34a85001e35f13279a6c23cae7375f45f"
+  }
+}

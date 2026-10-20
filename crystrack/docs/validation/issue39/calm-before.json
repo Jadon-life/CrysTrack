@@ -1,0 +1,127 @@
+{
+  "checks": [
+    {
+      "width": 375,
+      "theme": "dark",
+      "todayFirstTaskY": 826.09375
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "wealthHeight": 4354,
+      "count": 2009
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "todayFirstTaskY": 826.09375
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "wealthHeight": 4354,
+      "count": 2009
+    },
+    {
+      "width": 430,
+      "theme": "dark",
+      "todayFirstTaskY": 750.59375
+    },
+    {
+      "width": 430,
+      "theme": "dark",
+      "wealthHeight": 4250,
+      "count": 2009
+    },
+    {
+      "width": 430,
+      "theme": "light",
+      "todayFirstTaskY": 750.59375
+    },
+    {
+      "width": 430,
+      "theme": "light",
+      "wealthHeight": 4250,
+      "count": 2009
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "todayFirstTaskY": 782.59375
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "wealthHeight": 3848,
+      "count": 2009
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "todayFirstTaskY": 782.59375
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "wealthHeight": 3848,
+      "count": 2009
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "todayFirstTaskY": 552.5
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "wealthHeight": 2250,
+      "count": 2009
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "todayFirstTaskY": 552.5
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "wealthHeight": 2250,
+      "count": 2009
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "todayFirstTaskY": 552.5
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "wealthHeight": 2223,
+      "count": 2009
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "todayFirstTaskY": 552.5
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "wealthHeight": 2223,
+      "count": 2009
+    }
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "accessibility": [],
+  "exports": [],
+  "browserErrors": [],
+  "externalRequestsBlocked": 140,
+  "sourceHash": "23e1075552d43efc035e021bdd26461773b4230d5f8c6bef46b577b2b72b542a",
+  "sourceHashAfter": "23e1075552d43efc035e021bdd26461773b4230d5f8c6bef46b577b2b72b542a"
+}
