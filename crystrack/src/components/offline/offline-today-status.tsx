@@ -5,7 +5,7 @@ import{isRestrictedPreview}from'@/lib/preview/mode';
 export function OfflineTodayStatus(){
   const q=useOfflineToday();if(isRestrictedPreview())return null;
   const conflicts=q.items.some(x=>x.phase==='conflict');
-  const state=q.locked?'Verification required':conflicts?'Conflict':q.items.length?'Pending sync':!q.online?'Offline':q.confirmed?'Confirmed':'Online';
+  const state=q.locked?'Verification required':conflicts?'Conflict':q.items.length?'Pending sync':q.unavailable?'Today unavailable':!q.online?'Offline':q.confirmed?'Confirmed':'Online';
   return <GlassCard padding="sm" className="mb-4 text-sm"><section aria-label="Offline Today controls">
     <div className="flex flex-wrap items-center justify-between gap-2"><p role="status" aria-live="polite" className="text-white">{state}{q.locked?' — device actions hidden':` · ${q.items.length} pending ${q.items.length?'— not yet verified':''}`}</p>
     {q.enabled||q.locked?<div className="flex flex-wrap gap-2">{!q.locked&&<button className="min-h-10 rounded-lg border border-cyan-200/30 px-3 text-cyan-100" disabled={q.busy} onClick={()=>void q.sync()}>Sync now</button>}<button className="min-h-10 rounded-lg border border-white/20 px-3 text-slate-100" disabled={q.busy} onClick={()=>void q.clear()}>Clear offline data</button></div>:null}</div>

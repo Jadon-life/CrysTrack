@@ -62,6 +62,8 @@ does not promise safe offline restart.
 
 ## Synchronization
 
+Connectivity distinguishes a failed transport (Offline), an unavailable Today
+service, and failed Auth verification; navigator.onLine alone never establishes Online.
 Canonical checkmarks, counts, streaks and Shards remain server data. Staged intents
 have separate unmistakable pending markers. Unsent taps coalesce against their
 original revision; attempted/conflicting envelopes cannot be edited or rebased.
