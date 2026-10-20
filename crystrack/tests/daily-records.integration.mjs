@@ -154,6 +154,34 @@ test('hard deletion preserves durable identity/outcomes; current-day action work
  clock('2026-09-22T10:00:00Z');assert.equal(window(uid,'2026-09-22','2026-09-22').records[0].expected_count,0);
 });
 
+// Issue #43 prerequisite audit: these characterize intentional ONLINE semantics,
+// not permission to replay an offline queue. A browser preflight can become stale
+// between its read and POST; only a server-side check under lock_owner can fence it.
+for (const removal of ['archive','delete']) {
+ test(`offline prerequisite: ${removal} after preflight does not fence an existing online outcome`,()=>{
+  const {uid,ids:[id]}=fixture();clock('2026-09-21T10:00:00Z');context(uid);
+  const before=window(uid,'2026-09-21','2026-09-21').records[0].routines[0];
+  assert.equal(before.status,'pending'); assert.equal(before.revision,1);
+  assert.equal(scalar(`SELECT active FROM public.recurring_tasks WHERE id='${id}'`),'t');
+  // Deterministic interleaving: device A finishes its preflight; device B commits
+  // removal; then A delivers its original, now-ineligible offline intent.
+  if (removal==='archive') json(uid,`public.daily_retire_routine('${id}')`);
+  else owner(uid,`DELETE FROM public.recurring_tasks WHERE id='${id}'`);
+  assert.equal(scalar(`SELECT count(*) FROM public.recurring_tasks WHERE id='${id}' AND active AND archived_at IS NULL`),'0');
+  const frozen=window(uid,'2026-09-21','2026-09-21').records[0].routines[0];
+  assert.equal(frozen.revision,before.revision);
+  assert.equal(frozen.status,'pending');
+  const request=randomUUID();
+  const result=mutation(uid,id,'completed',before.revision,request);
+  assert.equal(result.status,'completed'); assert.equal(result.revision,2);
+  assert.equal(scalar(`SELECT count(*) FROM public.daily_mutation_requests WHERE user_id='${uid}' AND request_id='${request}'`),'1');
+  assert.deepEqual(mutation(uid,id,'completed',before.revision,request),result);
+  assert.equal(scalar(`SELECT count(*) FROM public.activity_events WHERE user_id='${uid}'`),'1');
+  // Existing online idempotency is sound, but cannot enforce the stricter
+  // offline archive/delete conflict requirement. Do not change legacy behavior.
+ });
+}
+
 test('missed-worker recovery is bounded, idempotent and uses version history, not current schedules',()=>{
  const {uid,ids:[id]}=fixture();
  clock('2026-09-21T10:00:00Z');mutation(uid,id,'skipped');
