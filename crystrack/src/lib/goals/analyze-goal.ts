@@ -1,3 +1,5 @@
+import type { AiLease } from '@/lib/ai/privacy-server';
+import { scopedGoal } from '@/lib/ai/scopes';
 import { analyzeWithOpenRouter, type GoalAnalysis } from '@/lib/ai/goal-openrouter';
 
 function daysBetween(from: Date, to: Date) {
@@ -42,30 +44,7 @@ export function deterministicGoalContext(goal: any, checkins: any[]) {
   };
 }
 
-export async function analyzeGoal(goal: any, checkins: any[]): Promise<GoalAnalysis | null> {
-  const recent = [...checkins]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 12)
-    .map((checkin) => ({
-      created_at: checkin.created_at,
-      response_text: checkin.response_text,
-      learned_text: checkin.learned_text,
-      blockers: checkin.blockers,
-      duration_minutes: checkin.duration_minutes,
-      progress_percent: checkin.progress_percent,
-      progress_value: checkin.progress_value,
-    }));
-
-  return analyzeWithOpenRouter({
-    goal: {
-      title: goal.title,
-      description: goal.description,
-      category: goal.category,
-      deadline: goal.deadline,
-      progress_mode: goal.progress_mode,
-      ai_coaching: goal.ai_coaching,
-    },
-    deterministic_context: deterministicGoalContext(goal, recent),
-    recent_checkins: recent,
-  });
+export async function analyzeGoal(goal: any, checkins: any[], lease: AiLease): Promise<GoalAnalysis | null> {
+  const recent = [...checkins].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,12);
+  return analyzeWithOpenRouter(scopedGoal(goal,recent,deterministicGoalContext(goal,recent)), lease);
 }

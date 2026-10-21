@@ -1,0 +1,63 @@
+{
+  "base": "4df6584eb12f9a9fedaa428f43db5b6fdca7630d",
+  "securityReviewBase": "262fc042b752ea06b6edd7c3ff9885be14257088",
+  "reviewComment": 6288493686,
+  "branch": "feat/piece7b-explicit-ai-consent",
+  "draftPR": 42,
+  "appTests": 232,
+  "databaseTests": 139,
+  "privacyAppTests": 21,
+  "privacyDatabaseTests": 17,
+  "retainedBrowserSuites": 9,
+  "privacyWidths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "physicalThemes": [
+    "dark",
+    "light"
+  ],
+  "axeScans": 70,
+  "axeViolations": 0,
+  "readingContrastMinimum": 11.370916431216052,
+  "sourceHashesUnchanged": true,
+  "screenshots": 106,
+  "modelStubCalls": 29,
+  "realProviderCalls": 0,
+  "browserErrors": [],
+  "externalBrowserAttemptsBlocked": 296,
+  "previewRoutes": 12,
+  "previewWriterFiles": 41,
+  "maintenanceProbes": 55,
+  "typescript": "passed",
+  "eslint": {
+    "errors": 0,
+    "preExistingWarnings": 4
+  },
+  "productionBuild": "passed locally; not deployed",
+  "candidate": "0022_ai_privacy_consent.sql",
+  "candidateSHA256": "6f1ab2d3a6f9dc3a6fe324fcf04a2bb30997115a979ceb3237dcf6faf014cdc3",
+  "migrationTarget": "guarded disposable local only; revised unmerged candidate per explicit review",
+  "hostedHistory": "UNKNOWN; not inspected or modified",
+  "backendCompletionAuthority": "service_role only; owner verified by Next auth.getUser; exact permit owner/revision/domain bound in SQL",
+  "ordinaryAuthenticatedResultForgery": "denied by real Auth/PostgREST; direct embedded Goal result writes denied",
+  "missingBackendCredential": "fails closed, including provider-key-present browser server",
+  "clientCredentialBoundary": {
+    "clientAssetFiles": 39,
+    "backendCredentialExposures": 0,
+    "scope": "Normal local optimized client assets; known generated local backend credential; server-only module also enforced by Next build"
+  },
+  "goalContextExpansion": false,
+  "productionReleaseBlocker": "Issue #18",
+  "localNode": "v24.19.0",
+  "localChromium": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+  "limitations": [
+    "hosted backend credential presence/validity and rollout unverified",
+    "real provider availability/retention unverified",
+    "manual screen-reader/cross-browser certification not performed"
+  ],
+  "CI": "Exact final-head CI evidence recorded on draft PR #42 after evidence commit."
+}

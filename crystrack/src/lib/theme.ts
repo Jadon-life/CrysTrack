@@ -132,25 +132,3 @@ export function getFallbackPhase(date = new Date()): TimePhase {
 export function getCurrentTheme(): ThemeColors {
   return getThemeForPhase(getFallbackPhase());
 }
-
-/** Scoped Piece 4 surfaces. Existing scene palettes and navigation remain intact. */
-export const goalThemeTokens = {
-  '--goal-gold': '#D9B65D',
-  '--goal-ivory': '#F6F1E4',
-  '--goal-muted': '#B7BED1',
-  '--goal-glass': 'rgba(10,22,52,.55)',
-  '--goal-shade': 'rgba(3,5,11,.70)',
-  '--goal-border': 'linear-gradient(135deg,rgba(217,182,93,.4),rgba(255,255,255,.08))',
-};
-
-/** Wealth keeps the shared glass shell and uses opaque inner surfaces for data. */
-export const wealthThemeTokens = {
- ...goalThemeTokens,
- '--wealth-data': '#0A1634',
- '--wealth-raised': '#13244F',
- '--wealth-gold': '#D9B65D',
- '--wealth-ivory': '#F6F1E4',
- '--wealth-muted': '#B7BED1',
-};
-
-export const gamificationThemeTokens={...goalThemeTokens,'--xp-gold':'#D9B65D','--xp-bright':'#F0D48A','--xp-muted':'#B7BED1','--xp-ivory':'#F6F1E4'};

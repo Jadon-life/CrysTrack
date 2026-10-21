@@ -1,0 +1,34 @@
+{
+  "day": "2026-10-20",
+  "timezone": "Africa/Lagos",
+  "from": "2026-10-14",
+  "classification": [
+    "unknown",
+    "unknown (installation day incomplete evidence)",
+    "incomplete",
+    "success",
+    "neutral",
+    "success",
+    "today"
+  ],
+  "checks": [
+    "Authoritative seven-day strip; installation day unknown, verified neutral, closed streak 2, today pending",
+    "Complete today does not award closed day",
+    "Skip and undo refresh; no closed streak changes",
+    "Identical repeated desired-state request replays once, authoritative today refreshed",
+    "Missing RPC and absent snapshots gracefully unknown; stale racing read cannot overwrite latest success",
+    "Keyboard refresh; seven accessible ISO/date-status labels; reduced motion; five widths; no finance mutation",
+    "Saved-zone next day on tab return refreshes authoritative strip and Today tasks; yesterday now counts"
+  ],
+  "externalRequestsBlocked": 6,
+  "labels": [
+    "2026-10-14: History not yet verified",
+    "2026-10-15: History not yet verified",
+    "2026-10-16: Incomplete day",
+    "2026-10-17: Completed day",
+    "2026-10-18: Verified no tasks",
+    "2026-10-19: Completed day",
+    "2026-10-20: Today in progress · 0 of 1 completed"
+  ],
+  "boundaryDay": "2026-10-21"
+}

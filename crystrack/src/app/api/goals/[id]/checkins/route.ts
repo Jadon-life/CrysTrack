@@ -1,7 +1,9 @@
-import { goalError as goalOperationError } from '@/lib/goals/service';
+import { aiProviderConfigured } from '@/lib/ai/privacy-server';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { analyzeGoal } from '@/lib/goals/analyze-goal';
+import { readAiPrivacy, beginAi, finishAi, assertAiOrigin, aiJson, aiFailure } from '@/lib/ai/privacy-server';
 import { goalCheckinWindow } from '@/lib/goals/checkin-occurrence';
 
 export const runtime = 'nodejs';
@@ -12,8 +14,13 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await request.json();
-  const [{ data: goal, error: goalError }, { data: profile, error: profileError }] = await Promise.all([
+  let body;
+  try {
+    const measurement=z.union([z.string().max(64),z.number().finite(),z.null()]).optional();
+    const text=z.string().max(6000).nullable().optional();
+    body=z.object({progressValue:measurement,durationMinutes:measurement,responseText:text,learnedText:text,blockers:text}).strict().parse(await aiJson(request));
+  } catch(e) { return aiFailure(e); }
+  const [{ data: goal, error: goalError }, { data: profile }] = await Promise.all([
     supabase
       .from('goals')
       .select('*')
@@ -23,17 +30,16 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       .single(),
     supabase
       .from('profiles')
-      .select('timezone, current_timezone')
+      .select('timezone, scheduling_timezone')
       .eq('user_id', user.id)
       .maybeSingle(),
   ]);
-  if (profileError) return goalOperationError(profileError);
   if (goalError || !goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
   if (goal.deadline && new Date(goal.deadline).getTime() < Date.now()) {
     return NextResponse.json({ error: 'Goal deadline has passed; check-ins are closed' }, { status: 409 });
   }
 
-  const timezone = profile?.current_timezone || profile?.timezone || 'UTC';
+  const timezone = profile?.scheduling_timezone || profile?.timezone || 'UTC';
   const window = goalCheckinWindow(goal.checkin_config, new Date(), timezone);
   if (!window.available || !window.occurrenceKey || !window.startDate || !window.endDate) {
     return NextResponse.json({ error: 'No check-in is scheduled for this goal today' }, { status: 409 });
@@ -46,12 +52,12 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     .eq('user_id', user.id)
     .eq('occurrence_key', window.occurrenceKey)
     .maybeSingle();
-  if (existingError) return goalOperationError(existingError);
+  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
   if (existing) return NextResponse.json({ error: 'This goal occurrence has already been checked in' }, { status: 409 });
 
   let progressValue: number | null = null;
   let progressPercent: number | null = null;
-  if ((goal.progress_source || 'manual') === 'manual' && (goal.progress_mode === 'percentage' || goal.measurable) && body.progressValue !== '' && body.progressValue != null) {
+  if ((goal.progress_mode === 'percentage' || goal.measurable) && body.progressValue !== '' && body.progressValue != null) {
     progressValue = Number(body.progressValue);
     if (!Number.isFinite(progressValue)) return NextResponse.json({ error: 'Progress value is invalid' }, { status: 400 });
 
@@ -85,30 +91,39 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     .single();
 
   if (error?.code === '23505') return NextResponse.json({ error: 'This goal occurrence has already been checked in' }, { status: 409 });
-  if (error) return goalOperationError(error);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (progressValue != null) {
+    const { error: progressError } = await supabase
+      .from('goals')
+      .update({ progress_value: progressValue })
+      .eq('id', goal.id)
+      .eq('user_id', user.id);
+    if (progressError) console.error('Goal progress update failed after saved check-in:', progressError);
+  }
 
   let analysis: any = null;
-  const aiConfigured = Boolean(process.env.OPENROUTER_API_KEY);
-  if (aiConfigured && (goal.progress_mode === 'ai' || goal.ai_coaching)) {
-    const { data: refreshedGoal } = await supabase.from('goals').select('*').eq('id', goal.id).eq('user_id', user.id).single();
-    const { data: checkins } = await supabase.from('goal_checkins').select('*').eq('goal_id', goal.id).eq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
-    try {
-      analysis = await analyzeGoal(refreshedGoal || goal, checkins || []);
-      if (analysis) {
-        await supabase.from('goal_checkins').update({ ai_analysis: analysis }).eq('id', checkin.id).eq('user_id', user.id);
-        await supabase.from('goal_insights').insert({
-          goal_id: goal.id,
-          summary: analysis.summary,
-          risk_level: analysis.status,
-          estimate_text: analysis.confidence,
-          recommendations: analysis.next_action,
-          model_version: process.env.OPENROUTER_ANALYSIS_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free',
-        });
+  const aiConfigured = aiProviderConfigured();
+  let aiStatus = 'off';
+  try {
+    assertAiOrigin(request);
+    const permission = await readAiPrivacy(supabase);
+    if (permission.enabled && goal.ai_coaching && aiConfigured) {
+      const lease = await beginAi(supabase, 'goal', request.signal);
+      const { data: refreshedGoal } = await supabase.from('goals').select('*').eq('id', goal.id).eq('user_id', user.id).single();
+      const { data: checkins, error: readError } = await supabase.from('goal_checkins').select('created_at,duration_minutes,progress_value,progress_percent').eq('goal_id',goal.id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(20);
+      if (readError) throw new Error('AI_CONTEXT_UNAVAILABLE');
+      const proposed = await analyzeGoal(refreshedGoal || goal, checkins || [], lease);
+      if (proposed) {
+        const result = await finishAi(lease, {goalId:goal.id,checkinId:checkin.id,analysis:proposed,model:process.env.OPENROUTER_ANALYSIS_MODEL||'nvidia/nemotron-3-super-120b-a12b:free'});
+        analysis = result.analysis;
+        aiStatus = 'generated';
       }
-    } catch (aiError: any) {
-      console.error('Goal AI analysis failed after check-in was safely saved:', aiError);
-      analysis = { status: 'unavailable', summary: 'The check-in was saved, but AI analysis is temporarily unavailable.' };
-    }
+    } else if (permission.enabled) aiStatus = aiConfigured ? 'not-requested' : 'unconfigured';
+  } catch {
+    // Check-in/reward transaction already succeeded. Never expose upstream/DB error objects.
+    console.error('Optional goal AI not confirmed', {code:'AI_UNAVAILABLE_OR_CHANGED'});
+    aiStatus = 'unavailable';
   }
 
   await supabase.from('activity_events').insert({
@@ -125,5 +140,5 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     },
   });
 
-  return NextResponse.json({ checkin: { ...checkin, ai_analysis: analysis }, analysis, aiConfigured }, { status: 201 });
+  return NextResponse.json({ checkin: { ...checkin, ai_analysis: analysis }, analysis, aiConfigured, aiStatus }, { status: 201 });
 }

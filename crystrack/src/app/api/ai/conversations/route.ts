@@ -1,37 +1,49 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-
+import {
+  beginAi,
+  finishAi,
+  aiJson,
+  aiFailure,
+  aiHeaders,
+  AiPrivacyError,
+} from '@/lib/ai/privacy-server';
 export const dynamic = 'force-dynamic';
-
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { data, error } = await supabase
-    .from('ai_conversations')
-    .select('id, title, created_at, updated_at')
-    .eq('user_id', user.id)
-    .order('updated_at', { ascending: false })
-    .limit(100);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data || []);
+  try {
+    const supabase = await createClient(),
+      {
+        data: { user },
+      } = await supabase.auth.getUser();
+    if (!user) throw new AiPrivacyError('AUTH', 401);
+    const { data, error } = await supabase
+      .from('ai_conversations')
+      .select('id,title,created_at,updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(100);
+    if (error) throw new AiPrivacyError('UNAVAILABLE');
+    return NextResponse.json(data || [], { headers: aiHeaders });
+  } catch (e) {
+    return aiFailure(e);
+  }
 }
-
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await request.json().catch(() => ({}));
-  const title = String(body?.title || 'New conversation').trim().slice(0, 180) || 'New conversation';
-  const { data, error } = await supabase
-    .from('ai_conversations')
-    .insert({ user_id: user.id, title })
-    .select('id, title, created_at, updated_at')
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
+  try {
+    const supabase = await createClient(),
+      {
+        data: { user },
+      } = await supabase.auth.getUser();
+    if (!user) throw new AiPrivacyError('AUTH', 401);
+    const lease = await beginAi(supabase, 'conversation', request.signal),
+      body = z
+        .object({ title: z.string().trim().min(1).max(180).optional() })
+        .strict()
+        .parse(await aiJson(request));
+    const result = await finishAi(lease, { title: body.title || 'New conversation' });
+    return NextResponse.json(result.conversation, { status: 201, headers: aiHeaders });
+  } catch (e) {
+    return aiFailure(e);
+  }
 }

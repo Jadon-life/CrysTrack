@@ -6,6 +6,11 @@ on:
     branches:
       - main
       - "fix/**"
+      - "feat/crystrack-premium-sep28"
+
+# Tests require no repository write permissions or deployment credentials.
+permissions:
+  contents: read
 
 jobs:
   validate:
@@ -56,3 +61,21 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+  preview-safety:
+    name: Synthetic boundary tests (local Chromium)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crystrack
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: crystrack/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Local loopback build/browser only: no Vercel action, environment or secrets.
+      - run: npm run test:preview

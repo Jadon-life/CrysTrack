@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "Create in saved Africa/Lagos despite browser America/New_York; exact stored instant and both reminder channels",
+    "Today assignment caption uses saved Africa/Lagos despite America/New_York browser",
+    "Actual local cron: absent Push/Telegram config records failed channels gracefully; immediate repeat does not duplicate delivery",
+    "Bright daytime scenic photo screenshot; 14px description, reduced-motion glass animation disabled",
+    "Physical 3D rocker switches light/dark; approved local scenic photograph loaded; glass layout unchanged",
+    "Edit/reschedule to overdue; no gray lockout; stale revision 409, client shards 400; atomic reminder replacement",
+    "Finish Late commit/lost response/replay: one completion timestamp, one event, one +30, original deadline unchanged; visible finished history",
+    "Today and Plan keep active-only assignment contract; completed reminders absent; verified Today card retained",
+    "Confirmed permanent delete removes assignment/history/reminders and reverses 30; all local finance rows byte-for-byte unchanged",
+    "Server rejects nonexistent spring and ambiguous fall saved-zone times",
+    "Modal Escape closes and restores keyboard focus; edit modal traps keyboard focus and restores its trigger"
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "externalAttemptsBlocked": 20,
+  "browserErrors": []
+}

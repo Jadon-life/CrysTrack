@@ -1,8 +1,10 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PUBLIC_FILES = new Set([
   '/manifest.webmanifest',
+  '/offline.html',
   '/sw.js',
   '/robots.txt',
   '/sitemap.xml',
@@ -25,6 +27,7 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 }
 
 export async function updateSession(request: NextRequest) {
+  assertRealServicesAllowed();
   let response = NextResponse.next({
     request: {
       headers: request.headers,

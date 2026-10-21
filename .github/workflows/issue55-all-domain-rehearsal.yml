@@ -1,0 +1,56 @@
+name: Issue 55 synthetic all-domain write barrier
+
+on:
+  pull_request:
+    branches:
+      - feat/crystrack-premium-sep28
+    paths:
+      - ".github/workflows/issue55-all-domain-rehearsal.yml"
+      - "crystrack/release/all-write-barrier/**"
+      - "crystrack/scripts/all-write-barrier.mjs"
+      - "crystrack/tests/all-write-barrier.integration.mjs"
+      - "crystrack/tests/all-write-barrier.test.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-complete-writer-freeze:
+    if: github.event.pull_request.head.ref == 'feat/issue55-all-domain-rehearsal'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: crystrack
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ""
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+      SUPABASE_SECRET_KEY: ""
+      SUPABASE_SERVICE_ROLE_KEY: ""
+      DATABASE_URL: ""
+      SUPABASE_ACCESS_TOKEN: ""
+      OPENROUTER_API_KEY: ""
+      CRON_SECRET: ""
+      TELEGRAM_BOT_TOKEN: ""
+    steps:
+      - name: Checkout exact PR commit
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: crystrack/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install checksum-pinned local Supabase CLI
+        run: python3 scripts/install-local-supabase.py
+      - name: Start isolated loopback synthetic Supabase
+        run: npm run local:start
+      - name: Guarded task/finance freeze and migration sequence on fake PG only
+        env:
+          CRYSTRACK_RELEASE_REHEARSAL: ISSUE55-SYNTHETIC-ONLY
+        run: node --test tests/all-write-barrier.integration.mjs
+      - name: Stop local synthetic Supabase
+        if: always()
+        run: npm run local:stop || true

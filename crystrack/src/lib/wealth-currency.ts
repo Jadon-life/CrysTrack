@@ -1,5 +1,6 @@
 'use client';
 
+import { isRestrictedPreview } from '@/lib/preview/mode';
 import { useCallback, useEffect, useState } from 'react';
 import type { WealthDisplayCurrency } from '@/config/experience';
 import type { ExchangeRateSnapshot } from '@/lib/wealth';
@@ -34,6 +35,7 @@ export function useWealthCurrency() {
   const [loadingRate, setLoadingRate] = useState(true);
 
   useEffect(() => {
+    if (isRestrictedPreview()) { queueMicrotask(() => setLoadingRate(false)); return; }
     const storedCurrency = window.localStorage.getItem(CURRENCY_KEY);
     const cached = readCachedRate();
 
@@ -53,14 +55,13 @@ export function useWealthCurrency() {
         return response.json();
       })
       .then((data) => {
-        if(!Number.isFinite(Number(data.usdNgn))||Number(data.usdNgn)<=0)throw new Error('Rate unavailable');
         const snapshot: ExchangeRateSnapshot = {
           usdNgn: Number(data.usdNgn),
           ngnUsd: Number(data.ngnUsd),
           updatedAt: data.updatedAt || null,
           nextUpdateAt: data.nextUpdateAt || null,
           provider: data.provider || 'ExchangeRate-API',
-          stale: !data.updatedAt || Date.now()-Date.parse(data.updatedAt)>STALE_AFTER_MS,
+          stale: false,
         };
         setRate(snapshot);
         window.localStorage.setItem(RATE_KEY, JSON.stringify({ ...snapshot, cachedAt: Date.now() }));
@@ -73,7 +74,7 @@ export function useWealthCurrency() {
 
   const setCurrency = useCallback((next: WealthDisplayCurrency) => {
     setCurrencyState(next);
-    window.localStorage.setItem(CURRENCY_KEY, next);
+    if (!isRestrictedPreview()) window.localStorage.setItem(CURRENCY_KEY, next);
   }, []);
 
   return { currency, setCurrency, rate, loadingRate };

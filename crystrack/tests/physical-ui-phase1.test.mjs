@@ -19,12 +19,12 @@ test('GlassCard provides substantial depth and pointer/tap liquid response', asy
   assert.match(glass, /--glass-pointer-x/);
 });
 
-test('calendar uses a deeper interactive glass sheet for unified timeboxing', async () => {
+test('calendar opts into the deeper glass sheet without changing its data model', async () => {
   const calendar = await read('src/app/calendar/page.tsx');
   assert.match(calendar, /depth="substantial"/);
-  assert.match(calendar, /rhythm-calendar-surface/);
-  assert.match(calendar, /rhythm-month-grid/);
-  assert.match(calendar, /rhythm-event/);
+  assert.match(calendar, /calendar-glass--grid/);
+  assert.match(calendar, /calendar-day/);
+  assert.match(calendar, /calendar-event-glass/);
 });
 
 test('navigation collapses before tablet widths become crowded', async () => {

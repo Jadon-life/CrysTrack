@@ -1,0 +1,95 @@
+{
+  "issue": 37,
+  "base": "326be53606dddac5fdd192ed4460d6eaaed6821e",
+  "baseCi": 39340785211,
+  "branch": "feat/piece6e-exact-overview",
+  "draftPr": 38,
+  "application": {
+    "pass": 211,
+    "fail": 0,
+    "skipped": 0,
+    "typescript": "PASS",
+    "lintErrors": 0,
+    "preExistingWarnings": 4
+  },
+  "database": {
+    "pass": 122,
+    "fail": 0,
+    "skipped": 0,
+    "localOnly": true,
+    "bootstrapFiles": 15,
+    "newCandidate": "0021_wealth_overview_read.sql",
+    "sha256": "01ec3ad4f4ca1b0d509fb34229c2c3b38d8c00e42050151617e798f63ec4b937",
+    "hostedNumbering": "UNKNOWN"
+  },
+  "productionBuild": "PASS; local only, normal artifact restored after separate Preview build",
+  "browsers": {
+    "passed": [
+      "overview",
+      "money-presentation",
+      "assignments",
+      "today-streak",
+      "crystals",
+      "week-grid",
+      "budgets",
+      "bills",
+      "csv"
+    ],
+    "overviewWidths": [
+      375,
+      430,
+      768,
+      1280,
+      1440
+    ],
+    "scopedAxeViolations": 0,
+    "completeExportsPerWidth": 2009,
+    "archivedImportedRows": 2005,
+    "recentLimit": 14,
+    "financialSnapshotsUnchanged": true,
+    "unavailableAndPartialClearStale": true,
+    "savedTimezoneAndBudgetAgreement": true,
+    "externalTrafficPrevented": true
+  },
+  "preview": {
+    "routes": [
+      "/",
+      "/plan",
+      "/tasks",
+      "/goals",
+      "/assignments",
+      "/calendar",
+      "/finance",
+      "/insights",
+      "/history",
+      "/ai",
+      "/settings",
+      "/auth"
+    ],
+    "apiWriters": 40,
+    "externalRequests": [],
+    "clientArtifactMarkersAbsent": 5,
+    "blockedMode": "passed",
+    "browserErrors": []
+  },
+  "maintenanceDeniedBeforeAuth": 55,
+  "screenshots": 17,
+  "dependenciesChanged": false,
+  "legacyMigrationsChanged": false,
+  "financialWritersChanged": false,
+  "hostedOrVercelChanges": false,
+  "releaseBlocker": 18,
+  "sourceAndEvidenceHashes": {
+    "src/lib/wealth-report.ts": "ef684a259d647a85de5a461f7716d474227f36508d3f9f5bf25a728b7e7adac4",
+    "src/lib/wealth-report-server.ts": "962df4c00f25000f27c00cb7dd801874b77cc799d9d6d58996427f0a55fd6f6c",
+    "src/app/finance/page.tsx": "8ffca3510597d2d81c4cf3a28dd58c2e5f6056fe17fd4a69abedf9f93e2ed6f8",
+    "src/app/page.tsx": "169c5d42a37e036bceb135c93ea0c4c47ea4b3ef0d46bfa05f9ef07fbcc4e328",
+    "src/lib/ai/context.ts": "f7ea9ebbff7d048be362e42efb40f09470f6304b280c4fb9c778b907a343d48d"
+  },
+  "limitations": [
+    "Hosted data/schema/backup/numbering unknown; no rollout",
+    "Invalid/future actuals or documented response bounds fail unavailable",
+    "External AI provider connectivity untested",
+    "Four pre-existing lint warnings; scoped accessibility evidence only"
+  ]
+}

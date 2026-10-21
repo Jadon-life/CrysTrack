@@ -1,0 +1,31 @@
+{
+  "kind": "synthetic-local-only",
+  "sourceCommit": "6975fe300bc264e61ff8075f02f1d291a112795b",
+  "workflowRun": 39560292175,
+  "workflowUrl": "https://github.com/Jadon-life/CrysTrack/actions/runs/39560292175",
+  "databaseEngine": "15.8",
+  "archiveSha256": "7737c0e41b5385378e0b3a5417c2ba5d7b7fff40277c0ff0593923d61b565c79",
+  "archiveBytes": 409190,
+  "restoreDurationMs": 1004,
+  "verifiedTables": [
+    "recurring_tasks",
+    "task_occurrences",
+    "money_entries",
+    "sep28_crystal_preferences",
+    "sep28_crystal_awards",
+    "sep28_crystal_events",
+    "ai_privacy_preferences"
+  ],
+  "ownerRlsChecked": true,
+  "foreignOwnerDenied": true,
+  "rlsGrantTriggerRpcCompared": true,
+  "missingBackupRejected": true,
+  "corruptRestoreRejected": true,
+  "barrierTests": {
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0
+  },
+  "hostedRecoveryVerified": false,
+  "notes": "Same-cluster synthetic PG15 recovery only. No real rows, dump, hosted metadata, secrets or production compatibility proven."
+}

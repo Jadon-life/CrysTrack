@@ -1,0 +1,17 @@
+✔ enable drains or times out on in-flight writes, rolling back all partially installed guards (10948.698064ms)
+✔ enable is atomic, idempotent, persistent across processes and rejects a stale repeatable-read transaction (15679.033402ms)
+✔ legacy SQL/REST/service-role and immutable old API handlers deny promptly without partial effects (13531.395524ms)
+✔ task activity classifications cannot bypass authenticated SQL/HTTP guards on INSERT, OLD/NEW UPDATE or DELETE (16515.896718ms)
+✔ task action-key prefix and kind independently protect OLD/NEW gamification rows through service-role SQL/HTTP (9382.971608ms)
+✔ genuine financial activity and expense awards retain SQL/HTTP create, update and delete during freeze (9210.01898ms)
+✔ failed migration rolls back its new-table hook; exact 0013 then 0014 install while every daily writer remains frozen (21463.918931ms)
+✔ schema/guard drift and wrong database fail closed; private controls cannot be invoked by API roles (9738.72039ms)
+✔ unfreeze preserves metadata/evidence and restores only intended new writers; bounded owner smoke runs AFTER release (28138.447638ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 139373.316404
