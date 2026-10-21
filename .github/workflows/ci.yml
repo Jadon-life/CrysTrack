@@ -6,6 +6,11 @@ on:
     branches:
       - main
       - "fix/**"
+      - "feat/crystrack-premium-sep28"
+
+# Tests require no repository write permissions or deployment credentials.
+permissions:
+  contents: read
 
 jobs:
   validate:
