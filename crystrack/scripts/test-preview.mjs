@@ -89,7 +89,7 @@ try {
   if(navigator.serviceWorker) { const original=navigator.serviceWorker.register.bind(navigator.serviceWorker); navigator.serviceWorker.register=(...args)=>{window.__previewSignals.worker++;return original(...args);}; }
   if(window.PushManager) PushManager.prototype.subscribe=()=>{window.__previewSignals.push++;return Promise.reject(new Error('Push forbidden'));};
  });
- const routes=['/','/plan','/tasks','/goals','/assignments','/calendar','/finance','/insights','/history','/ai','/settings','/auth'];
+ const routes=['/','/plan','/tasks','/goals','/assignments','/calendar','/finance','/insights','/history','/ai','/settings','/auth','/auth/reset-password'];
  const signals=[];
  for(const route of routes) {
   console.log('Browser route:',route);
@@ -105,7 +105,7 @@ try {
   if(route==='/finance') { await page.getByRole('button',{name:'Budgets',exact:true}).click(); await page.getByTestId('monthly-budgets').getByRole('heading',{name:'Food',exact:true}).waitFor(); assert.equal(await page.getByRole('button',{name:'Set Food budget',exact:true}).isDisabled(),true); await page.getByRole('button',{name:'Bills & subscriptions',exact:true}).click();await page.getByTestId('recurring-bills').getByText('No recurring bills yet.',{exact:false}).waitFor();assert.equal(await page.getByRole('button',{name:'Add bill',exact:true}).isDisabled(),true);await page.getByRole('button',{name:'CSV tools',exact:true}).click();await page.getByTestId('csv-tools').waitFor();assert.equal(await page.getByRole('button',{name:'Import CSV',exact:true}).isDisabled(),true);assert.equal(await page.getByRole('button',{name:'Export CSV',exact:true}).isDisabled(),true);assert.equal((await page.request.get(origin+'/api/wealth/csv/export?from=2026-09-01&to=2026-09-28')).status(),403); }
   if(route==='/history') await page.getByRole('heading',{name:'History',exact:true}).waitFor();
   if(route==='/ai') await page.getByText('About this synthetic demo',{exact:false}).first().waitFor();
-  if(route==='/auth') assert.equal(await page.locator('input[type=password]').count(),0);
+  if(route==='/auth'||route==='/auth/reset-password') assert.equal(await page.locator('input[type=password]').count(),0);
   signals.push(await page.evaluate(()=>window.__previewSignals));
  }
  await page.goto(origin+'/settings');
@@ -153,7 +153,7 @@ try {
  await page.getByText('Explore your calm workspace',{exact:false}).first().waitFor();
  await page.screenshot({path:path.join(artifactDir,'synthetic-mobile.png'),fullPage:true});
  await browser.close();browser=undefined;await stop();
- console.log('PASS: Chromium navigation across 12 routes, switch interaction and upload probe made zero external requests, no geolocation/push/session transport, and no runtime errors.');
+ console.log('PASS: Chromium navigation across 13 routes, switch interaction and upload probe made zero external requests, no geolocation/push/session transport, and no runtime errors.');
  const blocked=await start({...demoEnv,CRYSTRACK_PREVIEW_MODE:''});
  for(const route of ['/','/api/profile','/api/auth/callback?code=fake','/_next/static/synthetic.js']) assert.equal((await fetch(blocked+route)).status,503,route);
  await stop();
