@@ -49,6 +49,7 @@ import { CalmDisclosure } from '@/components/shared/calm-disclosure';
 import { nextDailyBoundary } from '@/lib/today-streak';
 import { useWealthCurrency } from '@/lib/wealth-currency';
 import { sourceAmountToNgn, type InputMoneyCurrency } from '@/lib/wealth-input-currency';
+import { isRestrictedPreview } from '@/lib/preview/mode';
 
 const emptyData = {
   entries: [] as any[],
@@ -265,6 +266,7 @@ export default function WealthPage() {
 
       {status && <div className="rounded-xl border border-[var(--theme-border)] bg-black/25 px-4 py-3 text-sm text-white">{status}</div>}
 
+      {isRestrictedPreview() && <p role="status" className="rounded-xl border border-cyan-400/30 bg-slate-950/80 px-3 py-2 text-xs text-cyan-100">Synthetic demonstration: $1 = ₦1,600 is an example only, not a real or tradeable exchange rate. All demo finances are read-only.</p>}
       {rate?.stale && <p role="status" className="rounded-xl bg-slate-950/75 px-3 py-2 text-xs text-white">Using a cached USD reference rate. NGN records stay exact.</p>}
       {!rate && <p role="status" className="rounded-xl bg-slate-950/75 px-3 py-2 text-xs text-white">{loadingRate ? 'Loading reference exchange rate…' : 'USD conversion unavailable; NGN ledger remains intact.'}</p>}
 
@@ -568,9 +570,9 @@ export default function WealthPage() {
         {rate ? (
           <>
             <span>$1 = ₦{rate.usdNgn.toLocaleString('en-NG', { maximumFractionDigits: 2 })}</span>
-            <span>{rate.stale ? 'Cached reference rate' : 'Current reference rate'}</span>
+            <span>{isRestrictedPreview() ? 'Synthetic example quote — not current market FX' : rate.stale ? 'Cached reference rate' : 'Current reference rate'}</span>
             {rate.updatedAt && <span>Updated {new Date(rate.updatedAt).toLocaleString()}</span>}
-            <a className="hover:text-white underline underline-offset-2" href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates by ExchangeRate-API</a>
+            {!isRestrictedPreview() && <a className="hover:text-white underline underline-offset-2" href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates by ExchangeRate-API</a>}
           </>
         ) : <span>{loadingRate ? 'Loading reference exchange rate…' : 'USD conversion unavailable; NGN ledger remains intact.'}</span>}
       </section>
