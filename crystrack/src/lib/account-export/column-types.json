@@ -162,6 +162,7 @@
     "debt_id": "uuid",
     "expected_flow_id": "uuid",
     "bill_id": "uuid",
+    "sep28_bill_id": "uuid",
     "bill_occurrence_id": "uuid",
     "import_batch_id": "uuid",
     "import_row_id": "uuid"
