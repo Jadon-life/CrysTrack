@@ -31,7 +31,7 @@ test('CSV, Crystal Shards and overview cannot launder cross-bill provenance', ()
   assert.match(csv,/rowdata->>'bill_id' IS NULL AND rowdata->>'sep28_bill_id' IS NULL/);
   assert.match(over,/e\.sep28_bill_id=o\.bill_id/);
   assert.match(over,/e\.sep28_bill_id IS NOT NULL/);
-  assert.doesNotMatch(over,/e\.bill_id/o);
+  assert.doesNotMatch(over,/e\.bill_id/);
 });
 test('Private export identifies the separate old/new bill relationships', () => {
   const s=sql('0024_private_account_export');
