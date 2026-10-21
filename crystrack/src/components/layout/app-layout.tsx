@@ -27,12 +27,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (isRestrictedPreview() || !user || isAuthPage) return;
-    const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'CrysTrack';
+    // A device's timezone is only a first-account hint. The saved home and
+    // scheduling timezones are owner-controlled and must not be overwritten.
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-    fetch('/api/profile', {
-      method: 'PUT',
+    void fetch('/api/profile/bootstrap', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName, timezone }),
+      body: JSON.stringify({ timezone }),
     }).catch(() => null);
   }, [user, isAuthPage]);
 
