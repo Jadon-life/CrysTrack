@@ -5,7 +5,7 @@ export default function NotFound() {
     <main className="mx-auto flex min-h-[65vh] w-full max-w-2xl items-center justify-center px-4">
       <section className="crys-glass-card w-full rounded-3xl border border-white/15 p-7 text-center sm:p-10">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-primary)]">CrysTrack</p>
-        <h1 className="mt-3 text-2xl font-semibold text-white">This page isn't here</h1>
+        <h1 className="mt-3 text-2xl font-semibold text-white">This page isn&apos;t here</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--theme-text-muted)]">
           The link may have moved. Your saved information is still in your account.
         </p>
