@@ -120,6 +120,9 @@ test('public offline HTML contains no owner data, scripts or requests; Preview S
   assert.doesNotMatch(html, /<script|<iframe|<form|fetch\(|navigator|localStorage|accounts?\/|token=/i);
   const middleware = fs.readFileSync('src/lib/supabase/middleware.ts', 'utf8');
   assert.match(middleware, /'\/offline.html'/);
+  const proxy = fs.readFileSync('src/proxy.ts', 'utf8');
+  assert.match(proxy, /path === '\/offline.html'/);
+  assert.ok(proxy.indexOf('previewRequest(request)') < proxy.indexOf("path === '/offline.html'"), 'Preview must still block worker and protect public fallback');
   const preview = fs.readFileSync('src/lib/preview/request.ts', 'utf8');
   assert.match(preview, /pathname === '\/sw.js'/);
   assert.match(preview, /self\.registration\.unregister\(\)/);
