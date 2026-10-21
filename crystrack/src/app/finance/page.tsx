@@ -48,7 +48,7 @@ import { AiDomainContent } from '@/components/ai/domain-insight-card';
 import { CalmDisclosure } from '@/components/shared/calm-disclosure';
 import { nextDailyBoundary } from '@/lib/today-streak';
 import { useWealthCurrency } from '@/lib/wealth-currency';
-import { WealthCurrencyConverter } from '@/components/wealth/currency-converter';
+import { sourceAmountToNgn, type InputMoneyCurrency } from '@/lib/wealth-input-currency';
 
 const emptyData = {
   entries: [] as any[],
@@ -71,6 +71,7 @@ export default function WealthPage() {
   const { currency, setCurrency, rate, loadingRate } = useWealthCurrency();
 
   const [showEntry, setShowEntry] = useState(false);
+  const [entryCurrency, setEntryCurrency] = useState<InputMoneyCurrency>('NGN');
   const expenseIntent = useRef<{key:string;id:string;date:string}|null>(null);
   const [showTarget, setShowTarget] = useState(false);
   const [showDebt, setShowDebt] = useState(false);
@@ -135,20 +136,23 @@ export default function WealthPage() {
 
 
   const saveEntry = async () => {
-    const amount = Number(entry.amount);
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Amount must be greater than zero');
+    const normalized = sourceAmountToNgn(entry.amount, entryCurrency, rate?.usdNgn, rate?.stale);
+    if (!normalized) throw new Error('Use a positive exact amount, or refresh the USD quote before saving.');
+    const amount = Number(normalized.ngn);
 
     const key = JSON.stringify(entry);
     if (!expenseIntent.current || expenseIntent.current.key !== key) expenseIntent.current = {key,id:crypto.randomUUID(),date:entry.date || new Date().toISOString()};
     await post('/api/finance/entries', {
       ...entry,
       amount,
+      note: entryCurrency === 'USD' ? [entry.note, `Source ${normalized.origin}, at $1 = ₦${normalized.quote} (reference quote at entry time)`].filter(Boolean).join(' · ') : entry.note,
       targetId: entry.targetId || null,
       date: entry.flowKind === 'expense' ? expenseIntent.current.date : entry.date || new Date().toISOString(),
       ...(entry.flowKind === 'expense' ? {requestId:expenseIntent.current.id} : {}),
     });
     expenseIntent.current = null;
     setEntry({ flowKind: 'expense', amount: '', date: '', source: '', category: '', note: '', targetId: '' });
+    setEntryCurrency('NGN');
     await load();
   };
 
@@ -263,8 +267,6 @@ export default function WealthPage() {
 
       {rate?.stale && <p role="status" className="rounded-xl bg-slate-950/75 px-3 py-2 text-xs text-white">Using a cached USD reference rate. NGN records stay exact.</p>}
       {!rate && <p role="status" className="rounded-xl bg-slate-950/75 px-3 py-2 text-xs text-white">{loadingRate ? 'Loading reference exchange rate…' : 'USD conversion unavailable; NGN ledger remains intact.'}</p>}
-
-      <WealthCurrencyConverter rate={rate} loadingRate={loadingRate} />
 
       <div className="scenic-readable-strip flex flex-wrap gap-2" role="group" aria-label="Wealth views">
         <Button variant={wealthView==='overview'?'primary':'ghost'} aria-pressed={wealthView==='overview'} onClick={()=>setWealthView('overview')}>Overview</Button>
@@ -590,9 +592,17 @@ export default function WealthPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-white/85 mb-1.5">Amount (NGN) *</label>
-            <input aria-label="Amount (NGN)" aria-describedby="manual-money-hint" inputMode="decimal" type="number" min="0.01" step="0.01" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder="e.g. 2500" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-            <p id="manual-money-hint" className="mt-2 text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
+            <label htmlFor="wealth-entry-unit" className="block text-xs font-semibold text-white/85 mb-1.5">Enter amount in</label>
+            <select id="wealth-entry-unit" value={entryCurrency} onChange={(e) => {setEntryCurrency(e.target.value as InputMoneyCurrency); setEntry(v => ({...v,amount:''}));}} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
+              <option value="NGN">₦ Nigerian naira</option><option value="USD">$ US dollars</option>
+            </select>
+            <label htmlFor="wealth-entry-amount" className="block text-xs font-semibold text-white/85 mt-3 mb-1.5">Amount ({entryCurrency}) *</label>
+            <input id="wealth-entry-amount" aria-label={`Amount (${entryCurrency})`} aria-describedby="manual-money-hint" inputMode="decimal" type="text" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder={entryCurrency==='USD'?'e.g. 30.00':'e.g. 30000'} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <p id="manual-money-hint" role="status" className="mt-2 text-xs text-[var(--theme-text-muted)]">
+              {entryCurrency==='NGN'? manualMoneyHint : rate && !rate.stale
+                ? `Saved as ${sourceAmountToNgn(entry.amount, 'USD', rate.usdNgn)?.ngn ?? '—'} NGN at $1 = ₦${rate.usdNgn.toLocaleString('en-NG')}; original USD and quote are noted on the transaction.`
+                : 'USD entries require a current exchange rate. Refresh when it becomes available.'}
+            </p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Source / description</label>
