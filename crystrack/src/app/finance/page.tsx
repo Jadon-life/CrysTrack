@@ -48,6 +48,7 @@ import { AiDomainContent } from '@/components/ai/domain-insight-card';
 import { CalmDisclosure } from '@/components/shared/calm-disclosure';
 import { nextDailyBoundary } from '@/lib/today-streak';
 import { useWealthCurrency } from '@/lib/wealth-currency';
+import { WealthCurrencyConverter } from '@/components/wealth/currency-converter';
 
 const emptyData = {
   entries: [] as any[],
@@ -262,6 +263,8 @@ export default function WealthPage() {
 
       {rate?.stale && <p role="status" className="rounded-xl bg-slate-950/75 px-3 py-2 text-xs text-white">Using a cached USD reference rate. NGN records stay exact.</p>}
       {!rate && <p role="status" className="rounded-xl bg-slate-950/75 px-3 py-2 text-xs text-white">{loadingRate ? 'Loading reference exchange rate…' : 'USD conversion unavailable; NGN ledger remains intact.'}</p>}
+
+      <WealthCurrencyConverter rate={rate} loadingRate={loadingRate} />
 
       <div className="scenic-readable-strip flex flex-wrap gap-2" role="group" aria-label="Wealth views">
         <Button variant={wealthView==='overview'?'primary':'ghost'} aria-pressed={wealthView==='overview'} onClick={()=>setWealthView('overview')}>Overview</Button>
