@@ -150,8 +150,6 @@ function LiveAuthPage() {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-          </div>
-
           </div>}
           {!forgotPassword && !isSignUp && (
             <button type="button" onClick={() => { setForgotPassword(true); setError(''); setMessage(''); }}
