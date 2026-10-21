@@ -9,3 +9,9 @@ test('release inventory is an exact, sequential 0013–0024 extension of the six
   assert.deepEqual(ledger.slice(6).map(item => item.name), candidates);
   for (const item of ledger) assert.match(item.hash, /^[a-f0-9]{64}$/);
 });
+
+import {rehearseSyntheticRestore} from '../scripts/issue18-synthetic-backup-restore.mjs';
+test('synthetic restore refuses arbitrary callers before touching Docker',()=>{
+  assert.throws(()=>rehearseSyntheticRestore(''),/Explicit local-only synthetic restore confirmation/);
+  assert.throws(()=>rehearseSyntheticRestore('--remote-target=example.invalid'),/Explicit local-only synthetic restore confirmation/);
+});

@@ -2,7 +2,8 @@
 import {createServer} from 'node:http';import {once} from 'node:events';
 import test,{before,after} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {randomUUID} from 'node:crypto';import {spawn,execFileSync} from 'node:child_process';import {createClient} from '@supabase/supabase-js';import ts from 'typescript';import {createRequire} from 'node:module';
 import {prepare,destroy,action,sql,raw,startRest,stopRest,DATABASE,PORT,CONFIRM,preflightSql} from '../scripts/task-release-barrier.mjs';
-import {readLocalKeys,ROOT} from '../scripts/local-supabase.mjs';import {DOCKER_SOCKET,PROJECT,localEnvironment} from '../scripts/local-supabase-policy.mjs';
+import {readLocalKeys,ROOT} from '../scripts/local-supabase.mjs';
+import {rehearseSyntheticRestore,CONFIRM_RESTORE} from '../scripts/issue18-synthetic-backup-restore.mjs';import {DOCKER_SOCKET,PROJECT,localEnvironment} from '../scripts/local-supabase-policy.mjs';
 const require=createRequire(import.meta.url);let owned=false,client,admin,uid,task,legacy,baseline;
 const taskActivityTypes=['task_completed','task_missed','task_skipped'];
 const events={activity:{},finance:randomUUID(),taskEntity:randomUUID(),award:randomUUID(),expense:randomUUID(),taskKind:randomUUID()};
@@ -215,6 +216,19 @@ test('failed 0013 and 0020 roll back; exact 0013–0024 sequence installs while 
  assert.equal(sql("SELECT has_table_privilege('authenticated','public.task_occurrences','INSERT')"),'f');
  assert.equal(sql("SELECT has_function_privilege('authenticated','public.recover_daily_records(uuid,integer)','EXECUTE')"),'f');
  assert.equal(sql("SELECT has_function_privilege('service_role','public.recover_daily_records(uuid,integer)','EXECUTE')"),'t');
+});
+test('actual local synthetic logical backup restores protected data and fails closed on a damaged dump',()=>{
+  assert.equal(action('check'),true);
+  const result=rehearseSyntheticRestore(CONFIRM_RESTORE);
+  assert.equal(result.hostedRecoveryVerified,false);
+  assert.equal(result.ownerRlsChecked,true);
+  assert.equal(result.foreignOwnerDenied,true);
+  assert.equal(result.corruptRestoreRejected,true);
+  assert.match(result.archiveSha256,/^[a-f0-9]{64}$/);
+  assert.ok(result.archiveBytes>256 && result.restoreDurationMs>=0);
+  assert.equal(action('check'),true);
+  // No backup or synthetic private rows in CI or Git evidence.
+  console.log('Issue #18 synthetic restore',JSON.stringify(result));
 });
 test('schema/guard drift and wrong database fail closed; private controls cannot be invoked by API roles',()=>{
  sql("UPDATE crystrack_sandbox_identity.marker SET value='wrong'");assert.throws(()=>action('disable'));sql("UPDATE crystrack_sandbox_identity.marker SET value='ISSUE19-SYNTHETIC-ONLY'");
