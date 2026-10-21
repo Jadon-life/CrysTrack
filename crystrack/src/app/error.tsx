@@ -5,9 +5,9 @@ export default function ErrorPage({ reset }: { error: Error & { digest?: string 
     <main className="mx-auto flex min-h-[65vh] w-full max-w-2xl items-center justify-center px-4">
       <section role="alert" className="crys-glass-card w-full rounded-3xl border border-white/15 p-7 text-center sm:p-10">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-primary)]">CrysTrack</p>
-        <h1 className="mt-3 text-2xl font-semibold text-white">Something didn't load</h1>
+        <h1 className="mt-3 text-2xl font-semibold text-white">Something didn&apos;t load</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--theme-text-muted)]">
-          Your information hasn't been changed here. You can try opening this page again.
+          Your information hasn&apos;t been changed here. You can try opening this page again.
         </p>
         <button
           type="button"
