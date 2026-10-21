@@ -7,6 +7,7 @@ import { GlassCard } from '@/components/shared/glass-card';
 import { fetcher } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { dayInTimezone } from '@/lib/today-progress';
+import { calendarDeadlineDay } from '@/lib/calendar-date';
 
 const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -32,13 +33,12 @@ export default function CalendarPage() {
     const load = async () => {
       const profile = await fetcher('/api/profile').catch(() => null);
       let zone = String(profile?.scheduling_timezone || profile?.timezone || 'UTC');
-      let current;
       try {
-        current = dayInTimezone(zone);
+        new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(new Date());
       } catch {
         zone = 'UTC';
-        current = dayInTimezone(zone);
       }
+      const current = dayInTimezone(zone);
       const [taskData, goalData, assignmentData] = await Promise.all([
         fetcher(`/api/tasks?date=${current.dateKey}&weekday=${current.weekday}`).catch(() => []),
         fetcher('/api/goals').catch(() => []),
@@ -104,12 +104,7 @@ export default function CalendarPage() {
     );
   }, [cursor]);
 
-  const eventDay = (value: unknown) => {
-    if (!value) return null;
-    const instant = new Date(String(value));
-    if (Number.isNaN(instant.getTime())) return null;
-    return dayInTimezone(timezone, instant).dateKey;
-  };
+  const eventDay = (value: unknown) => calendarDeadlineDay(value, timezone);
   const todayKey = dayInTimezone(timezone).dateKey;
   const eventsFor = (date: Date) => {
     const key = dateKey(date);
