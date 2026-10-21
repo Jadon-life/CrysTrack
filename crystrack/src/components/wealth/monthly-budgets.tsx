@@ -17,6 +17,7 @@ import {
 import { budgetSignal, progressWidth } from '@/lib/budget-money';
 import { latestDailyRead, nextDailyBoundary } from '@/lib/today-streak';
 import { moneyPresentation, editableMoney, manualMoneyHint } from '@/lib/money-presentation';
+import { sourceAmountToNgn, type InputMoneyCurrency } from '@/lib/wealth-input-currency';
 import type { ExchangeRateSnapshot } from '@/lib/wealth';
 const inputClass =
   'min-h-10 w-full rounded-xl border border-white/25 bg-slate-950/80 px-3 py-2 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200';
@@ -61,6 +62,7 @@ function OwnedBudgets({
   );
   const [editor, setEditor] = useState<CategoryBudget | null>(null),
     [limit, setLimit] = useState(''),
+    [limitCurrency, setLimitCurrency] = useState<InputMoneyCurrency>('NGN'),
     [removing, setRemoving] = useState(false),
     [writing, setWriting] = useState(false);
   const [uncertain, setUncertain] = useState<Intent | null>(null);
@@ -206,7 +208,9 @@ function OwnedBudgets({
       void submit({ method: 'DELETE', body });
       return;
     }
-    const parsed = budgetSetSchema.safeParse({ ...body, limit });
+    const normalized = sourceAmountToNgn(limit, limitCurrency, rate?.usdNgn, rate?.stale);
+    if (!normalized) {setWriteError('Enter a valid amount. USD limits require a current reference rate.');return;}
+    const parsed = budgetSetSchema.safeParse({ ...body, limit: normalized.ngn });
     if (!parsed.success) {
       setWriteError('Enter a positive NGN limit, with no more than two decimal places.');
       return;
@@ -412,6 +416,7 @@ function OwnedBudgets({
                           setEditorContext({ month: view.month, timezone: view.timezone });
                           setEditor(b);
                           setLimit(b.limit === null ? '' : editableMoney(b.limit));
+                          setLimitCurrency('NGN');
                           setRemoving(false);
                           setWriteError('');
                         }}
@@ -472,7 +477,7 @@ function OwnedBudgets({
               <Dialog.Description className="mt-2 text-sm text-slate-200">
                 {removing
                   ? 'Remove this month’s limit only. Transactions, savings and earned shards stay intact.'
-                  : 'Enter the monthly limit in NGN, even when viewing indicative USD. This does not reserve or move money.'}
+                  : 'Enter your monthly limit in naira or dollars. USD is converted to exact NGN when saved; display amounts change with the reference rate.'}
               </Dialog.Description>
               {editorContext && (
                 <p className="mt-2 text-sm text-slate-200">
@@ -482,7 +487,10 @@ function OwnedBudgets({
               <form onSubmit={save} className="mt-4 space-y-4">
                 {!removing && (
                   <label className="block text-sm">
-                    Monthly limit (NGN)
+                    Monthly limit
+                    <select aria-label="Budget input currency" value={limitCurrency} onChange={(e) => {setLimitCurrency(e.target.value as InputMoneyCurrency);setLimit('');}} className={inputClass + ' mt-2'}>
+                      <option value="NGN">₦ NGN</option><option value="USD">$ USD</option>
+                    </select>
                     <input
                       autoFocus
                       inputMode="decimal"
@@ -494,7 +502,8 @@ function OwnedBudgets({
                       aria-describedby="budget-limit-help"
                     />
                     <span id="budget-limit-help" className="mt-1 block text-xs text-slate-200">
-                      {manualMoneyHint} Applies to the whole month.
+                      {limitCurrency === 'NGN' ? manualMoneyHint : 'Enter dollars with up to two decimals. A current USD→NGN quote is required.'} Applies to the whole month.
+                      {limitCurrency === 'USD' && limit && <span className="block">Converted limit: {sourceAmountToNgn(limit, 'USD', rate?.usdNgn, rate?.stale)?.ngn ?? '—'} NGN, at the current quoted rate.</span>}
                     </span>
                   </label>
                 )}

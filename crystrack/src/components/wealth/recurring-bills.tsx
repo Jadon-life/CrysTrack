@@ -21,6 +21,7 @@ import { exactMoney } from '@/lib/budget-money';
 import { isRestrictedPreview } from '@/lib/preview/mode';
 import { latestDailyRead, nextDailyBoundary } from '@/lib/today-streak';
 import { moneyPresentation, editableMoney, manualMoneyHint } from '@/lib/money-presentation';
+import { sourceAmountToNgn, type InputMoneyCurrency } from '@/lib/wealth-input-currency';
 import type { ExchangeRateSnapshot } from '@/lib/wealth';
 const input =
   'mt-1 min-h-10 w-full [color-scheme:dark] rounded-xl border border-white/25 bg-slate-950/90 px-3 py-2 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200';
@@ -76,6 +77,8 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
       reminderEnabled: false,
     }),
     [actual, setActual] = useState(''),
+    [billCurrency, setBillCurrency] = useState<InputMoneyCurrency>('NGN'),
+    [paymentCurrency, setPaymentCurrency] = useState<InputMoneyCurrency>('NGN'),
     [uncertain, setUncertain] = useState<BillWrite | null>(null);
   const reads = useRef(latestDailyRead()),
     mounted = useRef(true),
@@ -172,6 +175,8 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
     if (!view) return;
     returnFocus.current = button;
     setWriteError('');
+    setBillCurrency('NGN');
+    setPaymentCurrency('NGN');
     setEditor({
       action,
       id: b?.id ?? crypto.randomUUID(),
@@ -278,19 +283,22 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
     if (!editor || !view) return;
     let values: BillWrite['fields'] = {};
     if (editor.action === 'create' || editor.action === 'edit') {
-      const parsed = billFieldsSchema.safeParse(fields);
-      if (!parsed.success) {
+      const converted = sourceAmountToNgn(fields.amount, billCurrency, rate?.usdNgn, rate?.stale);
+      const parsed = converted ? billFieldsSchema.safeParse({ ...fields, amount: converted.ngn }) : null;
+      if (!parsed?.success) {
         setWriteError(
-          'Check the title, category, calendar dates and positive NGN amount with at most two decimals.',
+          'Check the bill details and amount; USD requires a current reference rate.',
         );
         return;
       }
       values = parsed.data;
     } else if (editor.action === 'pay') {
+      const converted = sourceAmountToNgn(actual, paymentCurrency, rate?.usdNgn, rate?.stale);
+      if (!converted) {setWriteError('Use a valid amount and refresh the USD quote before confirming payment.');return;}
       values = {
         occurrenceId: editor.occurrence!.id,
         occurrenceRevision: editor.occurrence!.revision,
-        actualAmount: actual,
+        actualAmount: converted.ngn,
       };
     }
     const candidate = { ...editor, requestId: crypto.randomUUID(), fields: values };
@@ -662,7 +670,10 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
                       />
                     </label>
                     <label className="block text-sm">
-                      Expected amount (NGN)
+                      Expected amount
+                      <select aria-label="Bill amount currency" value={billCurrency} onChange={(e) => {setBillCurrency(e.target.value as InputMoneyCurrency);setFields(f=>({...f,amount:''}));}} className={input + ' mt-2'}>
+                        <option value="NGN">₦ NGN</option><option value="USD">$ USD</option>
+                      </select>
                       <input
                         required
                         inputMode="decimal"
@@ -672,7 +683,10 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
                         className={input + ' tabular-nums'}
                       />
                     </label>
-                    <p className="text-xs text-slate-200">{manualMoneyHint}</p>
+                    <p className="text-xs text-slate-200">
+                      {billCurrency === 'NGN' ? manualMoneyHint : 'USD plans are converted to exact NGN at the current reference rate when saved.'}
+                      {billCurrency === 'USD' && fields.amount ? ` ${sourceAmountToNgn(fields.amount, 'USD', rate?.usdNgn, rate?.stale)?.ngn ?? 'No current rate'} NGN` : ''}
+                    </p>
                     <label className="block text-sm">
                       Recurrence
                       <select
@@ -737,7 +751,10 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
                       {exactMoney(editor.occurrence!.expected)} NGN
                     </p>
                     <label className="block text-sm">
-                      Actual amount paid (NGN)
+                      Actual amount paid
+                      <select aria-label="Bill payment currency" value={paymentCurrency} onChange={(e) => {setPaymentCurrency(e.target.value as InputMoneyCurrency);setActual('');}} className={input + ' mt-2'}>
+                        <option value="NGN">₦ NGN</option><option value="USD">$ USD</option>
+                      </select>
                       <input
                         autoFocus
                         required
@@ -747,6 +764,7 @@ function OwnedBills({ currency, rate, ledgerRevision, onChange }: Props) {
                         className={input + ' tabular-nums'}
                       />
                     </label>
+                    <p className="text-xs text-slate-200">{paymentCurrency === 'USD' ? 'USD is converted to NGN at the reference rate before the paid expense is recorded.' : 'Recorded exactly in NGN.'}</p>
                     <label className="flex min-h-10 items-center gap-3 text-sm">
                       <input type="checkbox" required className="h-5 w-5" />I have actually paid
                       this bill
