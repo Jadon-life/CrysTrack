@@ -34,5 +34,5 @@ test('loading skeleton respects motion preferences and has readable status', () 
  assert.match(source,/Opening your workspace/);
  assert.match(source,/aria-busy="true"/);
  assert.match(source,/motion-safe:animate-pulse/);
- assert.doesNotMatch(source,/animate-pulse(?!.*motion-safe)/);
+ assert.doesNotMatch(source,/(?:^|\s)animate-pulse(?:\s|\")/);
 });
