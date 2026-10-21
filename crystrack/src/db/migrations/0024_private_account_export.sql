@@ -52,6 +52,12 @@ BEGIN
  FOR col IN SELECT jsonb_array_elements_text(d->'order') LOOP sorting:=sorting||CASE WHEN sorting='' THEN '' ELSE ',' END||format('t.%I',col);END LOOP;
  pred:=CASE WHEN d->>'parent' IS NOT NULL THEN 'EXISTS(SELECT 1 FROM public.recurring_tasks p WHERE p.id=t.task_id AND p.user_id=$1)' ELSE 't.user_id=$1' END;
  FOR link IN SELECT key,value FROM jsonb_each_text(d->'links') LOOP
+ IF link.value='wealth_bills' AND to_regclass('public.wealth_bills') IS NULL THEN
+  -- A fresh synthetic fixture does not include the older bill table.
+  EXECUTE 'SELECT EXISTS(SELECT 1 FROM public.money_entries WHERE user_id=$1 AND bill_id IS NOT NULL)' INTO bad USING u;
+  IF bad THEN RAISE EXCEPTION 'Legacy bill owner cannot be verified' USING ERRCODE='23514'; END IF;
+  CONTINUE;
+ END IF;
  EXECUTE format('SELECT EXISTS(SELECT 1 FROM public.%I t WHERE %s AND t.%I IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.%I p WHERE p.id=t.%I AND p.user_id=$1))',d->>'table',pred,link.key,link.value,link.key) INTO bad USING u;
  IF bad THEN RAISE EXCEPTION 'Ownership requires review' USING ERRCODE='23514'; END IF;
  END LOOP;
