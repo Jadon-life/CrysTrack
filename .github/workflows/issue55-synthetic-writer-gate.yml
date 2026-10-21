@@ -1,0 +1,63 @@
+name: Issue 55 synthetic all-domain release writer freeze
+
+on:
+  pull_request:
+    branches:
+      - feat/crystrack-premium-sep28
+    paths:
+      - ".github/workflows/issue18-synthetic-recovery.yml"
+      - "crystrack/release/all-domain-write-barrier/**"
+      - "crystrack/scripts/task-release-barrier.mjs"
+      - "crystrack/tests/task-release-barrier.integration.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-backup-restore:
+    # Never run this heavyweight local rehearsal for unrelated PRs.
+    if: github.event.pull_request.head.ref == 'feat/issue55-local-all-writer-barrier'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: crystrack
+    env:
+      # No live credentials or database target. The local scripts scrub inherited
+      # cloud token / URL / Docker connection settings before every subprocess.
+      NEXT_PUBLIC_SUPABASE_URL: ""
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+      SUPABASE_SECRET_KEY: ""
+      SUPABASE_SERVICE_ROLE_KEY: ""
+      DATABASE_URL: ""
+      SUPABASE_ACCESS_TOKEN: ""
+      OPENROUTER_API_KEY: ""
+      CRON_SECRET: ""
+      TELEGRAM_BOT_TOKEN: ""
+    steps:
+      - name: Checkout exact PR commit
+        uses: actions/checkout@v4
+      - name: Fetch pinned legacy test-only Git object (no checkout or merge)
+        working-directory: .
+        run: |
+          git fetch --no-tags --depth=1 origin cccdb56edb14463030a9ce9b2aed8fbcd07579a3
+          git cat-file -e 'cccdb56edb14463030a9ce9b2aed8fbcd07579a3:crystrack/src/app/api/tasks/route.ts'
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: crystrack/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install checksum-pinned local Supabase CLI
+        run: python3 scripts/install-local-supabase.py
+      - name: Start isolated loopback synthetic Supabase
+        run: npm run local:start
+      - name: Execute Issue 55 local all-domain write barrier and restore tests
+        env:
+          CRYSTRACK_RELEASE_REHEARSAL: ISSUE19-SYNTHETIC-ONLY
+        run: node --test tests/task-release-barrier.integration.mjs
+      - name: Stop local synthetic Supabase (no hosted calls)
+        if: always()
+        run: npm run local:stop || true
