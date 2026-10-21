@@ -219,6 +219,24 @@ test('failed 0013 and 0020 roll back; exact 0013–0024 sequence installs while 
  assert.equal(sql("SELECT has_function_privilege('authenticated','public.recover_daily_records(uuid,integer)','EXECUTE')"),'f');
  assert.equal(sql("SELECT has_function_privilege('service_role','public.recover_daily_records(uuid,integer)','EXECUTE')"),'t');
 });
+test('Issue #55 marker-guarded synthetic full-data maintenance freeze is reversible',()=>{
+ const dir='release/all-domain-write-barrier/';
+ const initial=digest(),catalog=metadata();
+ const install=fs.readFileSync(dir+'install.sql','utf8');
+ const enable=fs.readFileSync(dir+'enable.sql','utf8');
+ const disable=fs.readFileSync(dir+'disable.sql','utf8');
+ sql('BEGIN; SET LOCAL lock_timeout=\'2s\';\n'+install+'\n'+enable+'\nCOMMIT;');
+ assert.equal(sql('SELECT crystrack_full_release_gate.check_active()'),'t');
+ const denied=raw('INSERT INTO public.finance_targets DEFAULT VALUES',{allowFailure:true});
+ assert.notEqual(denied.status,0);
+ assert.match(denied.stderr,/PT503/);
+ sql('BEGIN; SET LOCAL lock_timeout=\'2s\';\n'+disable+'\nCOMMIT;');
+ assert.equal(sql('SELECT active FROM crystrack_full_release_gate.state'),'f');
+ assert.equal(action('check'),true);
+ assert.equal(digest(),initial);
+ assert.equal(metadata(),catalog);
+});
+
 test('actual local synthetic logical backup restores protected data and fails closed on a damaged dump',()=>{
   assert.equal(action('check'),true);
   const result=rehearseSyntheticRestore(CONFIRM_RESTORE);
