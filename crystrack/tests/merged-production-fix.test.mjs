@@ -6,9 +6,11 @@ const root = process.cwd(); const read = (path) => readFileSync(join(root, path)
 
 test('routine archive is a user-scoped soft archive', () => {
   const route = read('src/app/api/tasks/[taskId]/archive/route.ts');
-  assert.match(route, /supabase\.auth\.getUser/);
-  assert.match(route, /\.eq\('user_id', user\.id\)/);
-  assert.match(route, /active:\s*false/);
+  assert.match(route, /client\.auth\.getUser/);
+  assert.match(route, /rpc\('daily_retire_routine'/);
+  const sql = read('src/db/migrations/0013_daily_records.sql');
+  assert.match(sql, /id=p_routine AND user_id=u/);
+  assert.match(sql, /SET active=false,archived_at=/);
   assert.doesNotMatch(route, /\.from\('recurring_tasks'\)\s*\.delete/);
 });
 

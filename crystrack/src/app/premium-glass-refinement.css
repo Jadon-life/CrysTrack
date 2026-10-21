@@ -1,0 +1,197 @@
+/* Piece 1: reviewable September 28 glass refinement.
+   Original time-of-day themes, scenery, layout, and navigation are unchanged.
+   This refinement loads after the historic layered glass styles. */
+
+.crys-glass-card {
+  --crys-refined-glass-surface:
+    linear-gradient(
+      140deg,
+      rgba(255, 255, 255, 0.105) 0%,
+      rgba(255, 255, 255, 0.034) 22%,
+      rgba(3, 12, 23, 0.105) 60%,
+      rgba(2, 8, 17, 0.19) 100%
+    ),
+    color-mix(in srgb, var(--theme-glass-tint) 52%, transparent);
+  background: var(--crys-refined-glass-surface);
+  border-color: color-mix(in srgb, var(--theme-border) 73%, rgba(247, 252, 255, 0.32));
+  -webkit-backdrop-filter: blur(26px) saturate(162%);
+  backdrop-filter: blur(26px) saturate(162%);
+  box-shadow:
+    0 24px 66px rgba(0, 0, 0, 0.26),
+    0 6px 18px rgba(0, 0, 0, 0.11),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.19);
+}
+
+.crys-glass-card::before {
+  background:
+    linear-gradient(125deg, rgba(255, 255, 255, 0.12), transparent 17%, transparent 80%),
+    radial-gradient(ellipse at 12% -8%, rgba(255, 255, 255, 0.09), transparent 42%);
+  opacity: 0.56;
+}
+
+.crys-glass-card::after {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.065), transparent 23%, transparent 76%, rgba(255, 255, 255, 0.018)),
+    linear-gradient(180deg, transparent 60%, rgba(0, 0, 0, 0.10));
+}
+
+/* Keep denser calendar and number-heavy sheets more readable. */
+.crys-glass-card--substantial,
+.calendar-glass {
+  --crys-refined-glass-surface:
+    linear-gradient(
+      142deg,
+      rgba(255, 255, 255, 0.095),
+      rgba(255, 255, 255, 0.032) 19%,
+      rgba(2, 10, 20, 0.20) 58%,
+      rgba(2, 7, 15, 0.30)
+    ),
+    color-mix(in srgb, var(--theme-glass-tint) 73%, transparent);
+  background: var(--crys-refined-glass-surface);
+  -webkit-backdrop-filter: blur(28px) saturate(154%);
+  backdrop-filter: blur(28px) saturate(154%);
+}
+
+/* Phase 2 CSS freezes hover skin; respect that recipe when hovering. */
+.crys-glass-card.crys-glass-card--hover,
+.crys-glass-card.crys-glass-card--hover:hover {
+  background: var(--crys-refined-glass-surface);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .crys-glass-card.crys-glass-card--hover {
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .crys-glass-card.crys-glass-card--hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--theme-primary) 28%, rgba(241, 250, 255, 0.32));
+    box-shadow:
+      0 27px 70px rgba(0, 0, 0, 0.29),
+      0 0 22px color-mix(in srgb, var(--theme-glow) 18%, transparent),
+      inset 0 1.5px 0 rgba(255, 255, 255, 0.25);
+  }
+}
+
+.crys-glass-card:focus-within {
+  border-color: color-mix(in srgb, var(--theme-primary) 40%, var(--theme-border));
+}
+
+@media (max-width: 719px) {
+  .crys-glass-card,
+  .crys-glass-card--substantial,
+  .calendar-glass {
+    -webkit-backdrop-filter: blur(17px) saturate(133%);
+    backdrop-filter: blur(17px) saturate(133%);
+  }
+}
+
+/* Solid surfaces when transparency is unwanted or unsupported. */
+@media (prefers-reduced-transparency: reduce) {
+  .crys-glass-card,
+  .crys-glass-card--substantial,
+  .calendar-glass,
+  .crys-glass-card.crys-glass-card--hover,
+  .crys-glass-card.crys-glass-card--hover:hover {
+    background: rgba(5, 18, 33, 0.96);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .crys-glass-card,
+  .crys-glass-card--substantial,
+  .calendar-glass,
+  .crys-glass-card.crys-glass-card--hover,
+  .crys-glass-card.crys-glass-card--hover:hover {
+    background: rgba(5, 18, 33, 0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crys-glass-card.crys-glass-card--hover,
+  .crys-glass-card.crys-glass-card--hover:hover {
+    transform: none;
+    transition: none;
+  }
+}
+
+[data-crys-reduced-motion='true'] .crys-glass-card.crys-glass-card--hover,
+[data-crys-reduced-motion='true'] .crys-glass-card.crys-glass-card--hover:hover {
+  transform: none;
+  transition: none;
+}
+
+
+/* Piece 1 typography and keyboard accessibility. Use existing adaptive colours. */
+.topnav-link,
+.topnav-weather,
+.topnav-theme__button,
+.topnav-badge,
+.wealth-segmented button,
+.ceremony-clean-prompt__eyebrow,
+.ceremony-clean-prompt__copy,
+.ceremony-clean-prompt__actions button,
+.immersive-ceremony__signature {
+  font-size: 12px;
+}
+
+.topnav-badge {
+  min-width: 19px;
+  height: 19px;
+  top: -4px;
+  right: -4px;
+}
+
+.wealth-segmented button {
+  min-height: 40px;
+}
+
+.topnav-link {
+  min-height: 40px;
+}
+
+/* The compact narrow-screen theme toggle needs its existing width
+   to avoid pushing the navigation off the viewport. */
+:is(
+  .topnav-brand,
+  .topnav-link,
+  .topnav-icon-button,
+  .topnav-weather,
+  .topnav-theme__button,
+  .topnav-profile,
+  .topnav-menu-item,
+  .topnav-mobile-link,
+  .glass-button,
+  .wealth-segmented button
+):focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .topnav-link {
+    min-height: 38px;
+  }
+}
+
+
+/* Collapsible History, with native keyboard/assistive disclosure semantics. */
+.history-accordion > summary::-webkit-details-marker { display: none; }
+.history-accordion > summary { list-style: none; }
+.history-accordion > summary .history-chevron { transition: transform 180ms ease; }
+.history-accordion[open] > summary .history-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .history-accordion > summary .history-chevron { transition: none; }
+}
+
+
+/* Calendar day categories are native, collapsed disclosures. */
+.calendar-day-details > summary::-webkit-details-marker { display: none; }
+.calendar-day-details > summary { list-style: none; }
+.calendar-day-details > summary .calendar-group-chevron { transition: transform 180ms ease; }
+.calendar-day-details[open] > summary .calendar-group-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .calendar-day-details > summary .calendar-group-chevron { transition: none; }
+}

@@ -1,520 +1,492 @@
 'use client';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, GraduationCap } from 'lucide-react';
-import { AssignmentCard } from '@/components/assignments/assignment-card';
-import { AssignmentEditor } from '@/components/assignments/assignment-editor';
-import { AssignmentCalendar } from '@/components/assignments/assignment-calendar';
-import { GoalAtmosphere } from '@/components/goals/goal-atmosphere';
+import { Clock, Loader2, Plus, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
+import { GlassCard } from '@/components/shared/glass-card';
 import { DomainInsightCard } from '@/components/ai/domain-insight-card';
-import { useTheme } from '@/components/layout/theme-provider';
-import { goalThemeTokens } from '@/lib/theme';
-import { dateKeyForInstant } from '@/lib/reminders';
-import { localDateTimeValue, shiftAcademicDay } from '@/lib/assignments/time';
-import { del, fetcher, patch } from '@/lib/api';
-import type { AcademicAssignment } from '@/types/assignments';
+import { StatusBadge } from '@/components/shared/status-badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AssignmentEditor } from '@/components/assignments/assignment-editor';
+import { fetcher, patch } from '@/lib/api';
+import { AssignmentList, AssignmentRow, assignmentDate } from '@/lib/assignments';
+import { cn } from '@/lib/utils';
+
+const labels = {
+  overdue: 'Ready to pick back up',
+  due_today: 'Due today',
+  due_soon: 'Due soon',
+  upcoming: 'Upcoming',
+  completed_on_time: 'Completed on time',
+  finished_late: 'Finished Late',
+  completion_unknown: 'Finished · time unavailable',
+};
+const priorityColors = {
+  low: 'border-l-slate-400',
+  medium: 'border-l-cyan-400',
+  high: 'border-l-orange-300',
+  urgent: 'border-l-amber-300',
+};
+const filterClass =
+  '[color-scheme:dark] min-h-10 min-w-0 rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300';
 export default function AssignmentsPage() {
-  const search = useSearchParams(),
-    { environment, reducedMotion } = useTheme();
-  const [items, setItems] = useState<AcademicAssignment[]>([]),
-    [loading, setLoading] = useState(true),
-    [error, setError] = useState('');
-  const [timezone, setTimezone] = useState<string | null>(null),
-    [channels, setChannels] = useState<('push' | 'telegram')[]>(['push']);
-  const [editor, setEditor] = useState<{
-      item: AcademicAssignment | null;
-    } | null>(null),
-    [view, setView] = useState('list'),
-    [stage, setStage] = useState('open'),
-    [course, setCourse] = useState('all'),
-    [priority, setPriority] = useState('all'),
-    [sort, setSort] = useState('earliest');
-  const [week, setWeek] = useState(''),
-    [selected, setSelected] = useState(''),
-    [busy, setBusy] = useState<string | null>(null),
-    lock = useRef(false);
-  const [notice, setNotice] = useState(''),
-    [burst, setBurst] = useState(0);
-  const [undo, setUndo] = useState<{
-    id: string;
-    revision: number;
-    deadline?: string;
-    status?: 'active';
-  } | null>(null);
-  const loadSequence = useRef(0);
-  const load = useCallback(async () => {
-    const sequence = ++loadSequence.current;
-    try {
-      const [assignments, profile, prefs] = await Promise.all([
-        fetcher('/api/assignments?status=all'),
-        fetcher('/api/profile'),
-        fetcher('/api/preferences').catch(() => ({
-          default_reminder_channels: ['push'],
-        })),
-      ]);
-      if (sequence !== loadSequence.current) return;
-      const zone = profile.current_timezone || profile.timezone || 'UTC';
-      setTimezone(zone);
-      setWeek((current) => current || dateKeyForInstant(new Date(), zone));
-      setItems(assignments);
-      const saved = (prefs.default_reminder_channels || ['push']).filter(
-        (c: string) => c === 'push' || c === 'telegram',
-      );
-      setChannels(saved.length ? saved : ['push']);
-      setError('');
-    } catch (e) {
-      if (sequence === loadSequence.current)
-        setError(
-          e instanceof Error
-            ? e.message
-            : 'Your coursework could not load. Try again.',
-        );
-    } finally {
-      if (sequence === loadSequence.current) setLoading(false);
-    }
+  const searchParams = useSearchParams();
+  const [data, setData] = useState<AssignmentList | null>(null);
+  const [loading, setLoading] = useState(true),
+    [error, setError] = useState(''),
+    [notice, setNotice] = useState('');
+  const [editor, setEditor] = useState<AssignmentRow | 'new' | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [channels, setChannels] = useState<string[]>(['push']);
+  const [filters, setFilters] = useState({
+    search: '',
+    category: '',
+    priority: '',
+    state: 'active',
+    from: '',
+    to: '',
+    sort: 'asc',
+    page: 0,
+  });
+  const [refresh, setRefresh] = useState(0);
+  const reload = useCallback(async () => {
+    setRefresh((n) => n + 1);
+    window.dispatchEvent(new Event('crystrack-activity-updated'));
   }, []);
   useEffect(() => {
-    queueMicrotask(() => void load());
-    const refresh = () => {
-      if (!document.hidden) void load();
-    };
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', refresh);
-    window.addEventListener('crystrack-activity-updated', refresh);
-    const timer = setInterval(refresh, 60000);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const result = await fetcher(
+          '/api/assignments?' +
+            new URLSearchParams(
+              Object.fromEntries(Object.entries(filters).map(([key, value]) => [key, String(value)])),
+            ),
+          { signal: controller.signal },
+        );
+        if (!controller.signal.aborted) setData(result);
+      } catch (e) {
+        if (!controller.signal.aborted)
+          setError(e instanceof Error ? e.message : 'We could not load assignments.');
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 150);
     return () => {
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', refresh);
-      window.removeEventListener('crystrack-activity-updated', refresh);
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [filters, refresh]);
+  useEffect(() => {
+    fetcher('/api/preferences')
+      .then((prefs) => {
+        const valid = (prefs.default_reminder_channels || []).filter((c: string) =>
+          ['push', 'telegram'].includes(c),
+        );
+        if (valid.length) setChannels(valid);
+      })
+      .catch(() => null);
+    const update = () => setRefresh((n) => n + 1);
+    window.addEventListener('focus', update);
+    const timer = setInterval(update, 60000);
+    return () => {
+      window.removeEventListener('focus', update);
       clearInterval(timer);
     };
-  }, [load]);
+  }, []);
   useEffect(() => {
-    if (search.get('create') === 'assignment' && timezone)
-      queueMicrotask(() => setEditor({ item: null }));
-  }, [search, timezone]);
-  const courses = useMemo(
-    () =>
-      [
-        ...new Set(
-          items
-            .map((i) => i.course_code)
-            .filter((v): v is string => Boolean(v)),
-        ),
-      ].sort(),
-    [items],
-  );
-  const filtered = useMemo(
-    () =>
-      items
-        .filter(
-          (i) =>
-            (stage === 'open'
-              ? !['completed', 'dropped'].includes(i.status)
-              : i.status === stage) &&
-            (course === 'all' ||
-              (course === 'none'
-                ? !i.course_code
-                : i.course_code === course)) &&
-            (priority === 'all' || i.priority === priority),
-        )
-        .sort(
-          (a, b) =>
-            (sort === 'earliest' ? 1 : -1) *
-            (Date.parse(a.deadline) - Date.parse(b.deadline)),
-        ),
-    [items, stage, course, priority, sort],
-  );
-  const overdue = filtered.filter((i) => i.computed_status === 'overdue'),
-    activeOverdue = overdue.find((i) => i.id === selected) || overdue[0];
-  const publish = (item: AcademicAssignment) => {
-    setItems((current) => {
-      const found = current.some((i) => i.id === item.id);
-      return found
-        ? current.map((i) => (i.id === item.id ? item : i))
-        : [item, ...current];
-    });
-    window.dispatchEvent(
-      new CustomEvent('crystrack-activity-updated', {
-        detail: { source: 'assignments' },
-      }),
-    );
-  };
-  const run = async (
-    item: AcademicAssignment,
-    operation: () => Promise<AcademicAssignment>,
-    message: string,
-    celebrate = false,
-    undoData?: { deadline?: string; status?: 'active' },
-  ) => {
-    if (lock.current) return;
-    lock.current = true;
-    setBusy(item.id);
+    if (searchParams.get('create') === 'assignment') queueMicrotask(() => setEditor('new'));
+  }, [searchParams]);
+  const change = (key: string, value: string) => {
     setError('');
-    setUndo(null);
+    setFilters((old) => ({ ...old, [key]: value, page: 0 }));
+  };
+  const complete = async (assignment: AssignmentRow) => {
+    setBusy(assignment.id);
+    setError('');
+    setNotice('');
     try {
-      const result = await operation();
-      publish(result);
-      setNotice(message);
-      if (celebrate) setBurst((v) => v + 1);
-      if (undoData)
-        setUndo({ id: item.id, revision: result.revision, ...undoData });
+      await patch(`/api/assignments/${assignment.id}/complete`, { revision: assignment.revision });
+      setNotice(
+        'Finished and recorded. Your effort counts, whenever you finish. Find it in Finished history.',
+      );
+      await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Please try again.');
-      void load();
+      setError(e instanceof Error ? e.message : 'Completion was not confirmed. Refresh before trying again.');
+      await reload();
     } finally {
-      lock.current = false;
       setBusy(null);
     }
   };
-  const finish = (item: AcademicAssignment) =>
-    run(
-      item,
-      () => patch(`/api/assignments/${item.id}/complete`, {}),
-      item.computed_status === 'overdue'
-        ? 'Finished Late. Your effort still counts.'
-        : 'Finished. A little more room in your week.',
-      true,
-    );
-  const drop = (item: AcademicAssignment) =>
-    run(
-      item,
-      () =>
-        patch(`/api/assignments/${item.id}`, {
-          expectedRevision: item.revision,
-          status: 'dropped',
-        }),
-      'Item dropped. You can restore it whenever you’re ready.',
-      false,
-      { status: 'active' },
-    );
-  const reschedule = (item: AcademicAssignment) => {
-    if (!timezone) return;
-    const local = localDateTimeValue(item.deadline, timezone),
-      tomorrow = shiftAcademicDay(dateKeyForInstant(new Date(), timezone), 1);
-    void run(
-      item,
-      () =>
-        patch(`/api/assignments/${item.id}`, {
-          expectedRevision: item.revision,
-          deadline: `${tomorrow}T${local.slice(11)}`,
-        }),
-      'Moved to tomorrow at the same local time. Edit it to choose another slot.',
-      false,
-      { deadline: item.deadline },
-    );
-  };
-  const deleteItem = async (item: AcademicAssignment) => {
+  const remove = async (assignment: AssignmentRow) => {
     if (
-      lock.current ||
       !window.confirm(
-        `Delete "${item.title}" permanently? This cannot be undone.`,
+        `Delete "${assignment.title}" permanently? This removes its assignment history and reminders and reverses any earned 30 shards. This cannot be undone.`,
       )
     )
       return;
-    lock.current = true;
-    setBusy(item.id);
+    setBusy(assignment.id);
     setError('');
     try {
-      await del(`/api/assignments/${item.id}`);
-      setItems((current) => current.filter((i) => i.id !== item.id));
-      setNotice('Assignment deleted.');
-      setUndo(null);
-      window.dispatchEvent(new Event('crystrack-activity-updated'));
+      await fetcher(`/api/assignments/${assignment.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ revision: assignment.revision }),
+      });
+      setNotice('Assignment removed, with its reminders, activity and any earned shards reconciled.');
+      await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Please try again.');
+      setError(e instanceof Error ? e.message : 'Deletion was not confirmed. Refresh before trying again.');
+      await reload();
     } finally {
-      lock.current = false;
       setBusy(null);
     }
   };
-  const undoAction = async () => {
-    if (!undo || lock.current) return;
-    const item = items.find((i) => i.id === undo.id);
-    if (!item) return;
-    await run(
-      item,
-      () =>
-        patch(`/api/assignments/${undo.id}`, {
-          expectedRevision: undo.revision,
-          ...(undo.deadline ? { deadline: undo.deadline } : {}),
-          ...(undo.status ? { status: undo.status } : {}),
-        }),
-      'Change undone.',
-    );
-  };
+  const zone = data?.timezone;
   return (
-    <div
-      className="goal-workspace academic-workspace"
-      style={goalThemeTokens as React.CSSProperties}
-    >
-      <header className="academic-page-header">
+    <div className="space-y-6">
+      <div className="scenic-readable-copy flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <p className="academic-eyebrow">Plan · Your next chapter</p>
-          <h1>Assignments</h1>
-          <p>Small steps, clear deadlines, and room to begin again.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">
+            Plan · Deadlines
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-white">Assignments</h1>
+          <p className="mt-1 text-sm text-white/90">Make room for learning, one deadline at a time.</p>
         </div>
-        <button
-          className="goal-primary"
-          disabled={!timezone}
-          onClick={() => setEditor({ item: null })}
-        >
-          <Plus size={18} aria-hidden="true" />
+        <Button variant="primary" disabled={!zone} onClick={() => setEditor('new')}>
+          <Plus className="mr-1.5 h-4 w-4" />
           New assignment
-        </button>
-      </header>
+        </Button>
+      </div>
       {error && (
-        <div className="academic-error" role="alert">
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-300/30 bg-slate-950/70 px-4 py-3 text-sm text-amber-100"
+        >
           {error}
-          <button onClick={() => void load()}>Refresh</button>
+          <button
+            className="ml-2 min-h-10 underline"
+            onClick={() => {
+              setError('');
+              void reload();
+            }}
+          >
+            Refresh assignments
+          </button>
         </div>
       )}
       {notice && (
-        <div className="goal-notice" role="status">
-          <span>{notice}</span>
-          {undo && (
-            <button onClick={() => void undoAction()} disabled={Boolean(busy)}>
-              Undo
-            </button>
-          )}
-          <button
-            aria-label="Dismiss notification"
-            onClick={() => {
-              setNotice('');
-              setUndo(null);
-            }}
-          >
-            ×
-          </button>
-        </div>
+        <p
+          role="status"
+          className="rounded-xl border border-cyan-300/20 bg-slate-950/60 px-4 py-3 text-sm text-cyan-100"
+        >
+          {notice}
+        </p>
       )}
       <DomainInsightCard domain="assignments" />
-      <div className="academic-toolbar">
-        <div role="group" aria-label="Assignment lifecycle">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {(['overdue', 'due_today', 'due_soon', 'upcoming'] as const).map((state) => (
+          <GlassCard key={state} padding="sm" className="text-center">
+            <div className="text-2xl font-bold tabular-nums text-cyan-200">
+              {data ? data.counts[state] || 0 : '—'}
+            </div>
+            <div className="mt-1 text-xs font-medium text-slate-200">
+              {state === 'overdue' ? 'Open past deadline' : labels[state]}
+            </div>
+          </GlassCard>
+        ))}
+      </div>
+      <GlassCard padding="md">
+        <h2 className="text-base font-semibold text-white">Next seven days</h2>
+        <p className="mt-1 text-sm text-slate-200">
+          {data
+            ? `${data.week.reduce((sum, day) => sum + day.count, 0)} upcoming deadlines`
+            : 'Loading deadlines…'}{' '}
+          · {zone || 'Saved timezone loading'}. Counts are assignments, not estimated hours.
+        </p>
+        <ol className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-7" aria-label="Seven-day academic deadlines">
+          {data?.week.map((day) => (
+            <li key={day.day} className="rounded-lg border border-white/10 bg-black/20 p-2 text-center">
+              <span className="block text-xs text-slate-200">
+                {new Intl.DateTimeFormat('en-GB', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  timeZone: 'UTC',
+                }).format(new Date(day.day + 'T12:00:00Z'))}
+              </span>
+              <span className="text-lg font-semibold tabular-nums text-cyan-200">{day.count}</span>
+            </li>
+          ))}
+        </ol>
+      </GlassCard>
+      <GlassCard padding="md">
+        <div className="flex flex-wrap gap-2" aria-label="Assignment views">
           {[
-            ['open', 'In motion'],
-            ['completed', 'Finished'],
-            ['dropped', 'Dropped'],
-          ].map(([key, label]) => (
-            <button
-              key={key}
-              aria-pressed={stage === key}
-              onClick={() => setStage(key)}
+            ['active', 'Open assignments'],
+            ['overdue', 'Past deadline'],
+            ['completed', 'Finished history'],
+            ['all', 'All assignments'],
+          ].map(([state, label]) => (
+            <Button
+              key={state}
+              variant={filters.state === state ? 'primary' : 'ghost'}
+              aria-pressed={filters.state === state}
+              onClick={() => change('state', state)}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
-        <div role="group" aria-label="Assignment view">
-          <button
-            aria-pressed={view === 'list'}
-            onClick={() => setView('list')}
-          >
-            List
-          </button>
-          <button
-            aria-pressed={view === 'calendar'}
-            onClick={() => setView('calendar')}
-          >
-            Timeboxed calendar
-          </button>
-        </div>
-      </div>
-      <div className="academic-filters">
-        <label>
-          Course
-          <select
-            aria-label="Course"
-            value={course}
-            onChange={(e) => setCourse(e.target.value)}
-          >
-            <option value="all">All courses</option>
-            <option value="none">No course yet</option>
-            {courses.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Priority
-          <select
-            aria-label="Priority"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-          >
-            <option value="all">All priorities</option>
-            {['low', 'medium', 'high', 'urgent'].map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Sort by deadline
-          <select
-            aria-label="Sort by deadline"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-          >
-            <option value="earliest">Earliest first</option>
-            <option value="latest">Latest first</option>
-          </select>
-        </label>
-        <p>
-          {filtered.length} item{filtered.length === 1 ? '' : 's'} ·{' '}
-          {timezone || 'Loading saved timezone…'}
-        </p>
-      </div>
-      {loading && (
-        <p role="status" className="academic-skeleton">
-          Gathering your coursework…
-        </p>
-      )}
-      {!loading && !filtered.length && (
-        <div className="academic-empty">
-          <GraduationCap aria-hidden="true" />
-          <h2>A little room to breathe</h2>
-          <p>
-            {items.length
-              ? 'No items match these filters.'
-              : 'Your coursework will appear here. Start with one small thing.'}
-          </p>
-        </div>
-      )}
-      {view === 'calendar' && timezone && week ? (
-        <AssignmentCalendar
-          items={filtered}
-          timezone={timezone}
-          startDay={week}
-          onMove={(days) =>
-            setWeek(
-              days
-                ? shiftAcademicDay(week, days)
-                : dateKeyForInstant(new Date(), timezone),
-            )
-          }
-          onEdit={(item) => setEditor({ item })}
-        />
-      ) : (
-        <div className="academic-card-grid">
-          {filtered.map((item) => (
-            <AssignmentCard
-              key={item.id}
-              item={item}
-              busy={Boolean(busy)}
-              onFinish={() => void finish(item)}
-              onEdit={() => setEditor({ item })}
-              onDelete={() => void deleteItem(item)}
-              onRestore={() =>
-                void run(
-                  item,
-                  () =>
-                    patch(`/api/assignments/${item.id}`, {
-                      expectedRevision: item.revision,
-                      status: 'active',
-                    }),
-                  'Ready to pick this back up.',
-                )
-              }
-              onStep={(id) =>
-                void run(
-                  item,
-                  () =>
-                    patch(`/api/assignments/${item.id}`, {
-                      expectedRevision: item.revision,
-                      subtasks: item.subtasks.map((s) =>
-                        s.id === id ? { ...s, completed: !s.completed } : s,
-                      ),
-                    }),
-                  'Step updated. One thing at a time.',
-                  !item.subtasks.find((s) => s.id === id)?.completed,
-                )
-              }
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-xs text-slate-200">
+            Search
+            <input
+              aria-label="Search assignments"
+              type="search"
+              maxLength={200}
+              value={filters.search}
+              onChange={(e) => change('search', e.target.value)}
+              className={cn(filterClass, 'mt-1 w-full')}
             />
-          ))}
+          </label>
+          <label className="text-xs text-slate-200">
+            Subject / category
+            <input
+              maxLength={100}
+              value={filters.category}
+              onChange={(e) => change('category', e.target.value)}
+              className={cn(filterClass, 'mt-1 w-full')}
+            />
+          </label>
+          <label className="text-xs text-slate-200">
+            Priority
+            <select
+              value={filters.priority}
+              onChange={(e) => change('priority', e.target.value)}
+              className={cn(filterClass, 'mt-1 w-full')}
+            >
+              <option value="">All priorities</option>
+              {['low', 'medium', 'high', 'urgent'].map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-slate-200">
+            State
+            <select
+              value={filters.state}
+              onChange={(e) => change('state', e.target.value)}
+              className={cn(filterClass, 'mt-1 w-full')}
+            >
+              <option value="active">Open</option>
+              <option value="completed">Finished</option>
+              <option value="all">All</option>
+              {Object.entries(labels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-slate-200">
+            Deadline from
+            <input
+              type="date"
+              value={filters.from}
+              onChange={(e) => change('from', e.target.value)}
+              className={cn(filterClass, 'mt-1 w-full')}
+            />
+          </label>
+          <label className="text-xs text-slate-200">
+            Deadline through
+            <input
+              type="date"
+              value={filters.to}
+              onChange={(e) => change('to', e.target.value)}
+              className={cn(filterClass, 'mt-1 w-full')}
+            />
+          </label>
+          <label className="text-xs text-slate-200">
+            Deadline order
+            <select
+              value={filters.sort}
+              onChange={(e) => change('sort', e.target.value)}
+              className={cn(filterClass, 'mt-1 w-full')}
+            >
+              <option value="asc">Earliest first</option>
+              <option value="desc">Latest first</option>
+            </select>
+          </label>
+          <Button
+            variant="ghost"
+            onClick={() =>
+              setFilters({
+                search: '',
+                category: '',
+                priority: '',
+                state: 'active',
+                from: '',
+                to: '',
+                sort: 'asc',
+                page: 0,
+              })
+            }
+          >
+            Clear filters
+          </Button>
         </div>
+      </GlassCard>
+      {loading && (
+        <p role="status" className="flex justify-center gap-2 py-4 text-sm text-white">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Updating assignments…
+        </p>
       )}
-      {activeOverdue && (
-        <aside
-          className="academic-resolution-dock"
-          aria-label="Overdue resolution"
+      <div className="space-y-3" aria-busy={loading}>
+        {data?.items.map((assignment) => {
+          const overdue = assignment.computed_status === 'overdue';
+          const finished = assignment.status === 'completed';
+          return (
+            <GlassCard
+              key={assignment.id}
+              padding="md"
+              className={cn('border-l-4', priorityColors[assignment.priority])}
+            >
+              <article aria-label={assignment.title} className="flex flex-wrap items-start gap-3">
+                {!finished && !overdue && (
+                  <Checkbox
+                    aria-label={`Complete ${assignment.title}`}
+                    disabled={Boolean(busy)}
+                    onCheckedChange={() => void complete(assignment)}
+                    className="mt-1 h-10 w-10 shrink-0 border-white/40"
+                  />
+                )}
+                {finished && (
+                  <CheckCircle2 className="h-8 w-8 shrink-0 text-emerald-300" aria-hidden="true" />
+                )}
+                <div className="min-w-0 flex-1 basis-[200px]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="break-words text-base font-semibold text-white">{assignment.title}</h2>
+                    <span
+                      className={cn(
+                        'rounded-full border px-2 py-1 text-xs font-semibold',
+                        overdue
+                          ? 'border-amber-300/30 bg-black/30 text-amber-100'
+                          : finished
+                            ? 'border-emerald-300/30 bg-black/30 text-emerald-100'
+                            : 'border-cyan-300/20 bg-black/30 text-cyan-100',
+                      )}
+                    >
+                      {labels[assignment.computed_status]}
+                    </span>
+                    <StatusBadge status={assignment.priority} className="bg-slate-950/60 text-slate-100" />
+                  </div>
+                  {assignment.description && (
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">
+                      {assignment.description}
+                    </p>
+                  )}
+                  <p className="mt-3 text-xs leading-relaxed text-slate-200">
+                    <Clock className="mr-1 inline h-3.5 w-3.5" />
+                    Deadline:{' '}
+                    <time dateTime={assignment.deadline}>
+                      {assignmentDate(assignment.deadline, zone!)}
+                    </time> · {zone}
+                  </p>
+                  {assignment.completed_at && (
+                    <p className="mt-1 text-xs text-emerald-100">
+                      Finished:{' '}
+                      <time dateTime={assignment.completed_at}>
+                        {assignmentDate(assignment.completed_at, zone!)}
+                      </time>{' '}
+                      · {zone}
+                    </p>
+                  )}
+                  {overdue && (
+                    <p className="mt-2 text-sm text-amber-100">
+                      Ready to finish when you are. Your effort still counts.
+                    </p>
+                  )}
+                  {assignment.category && (
+                    <span className="mt-2 inline-block max-w-full break-words rounded-full border border-white/15 bg-black/20 px-2 py-1 text-xs text-slate-200">
+                      {assignment.category}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {overdue && (
+                    <Button
+                      variant="primary"
+                      disabled={Boolean(busy)}
+                      onClick={() => void complete(assignment)}
+                      aria-label={`Finish Late: ${assignment.title}`}
+                    >
+                      Finish Late
+                    </Button>
+                  )}
+                  {!finished && (
+                    <Button
+                      variant="ghost"
+                      disabled={Boolean(busy)}
+                      aria-label={`Edit ${assignment.title}`}
+                      onClick={() => setEditor(assignment)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span className="ml-1.5">Edit</span>
+                    </Button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={Boolean(busy)}
+                    onClick={() => void remove(assignment)}
+                    aria-label={`Delete ${assignment.title} permanently`}
+                    title="Delete assignment permanently"
+                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg border border-white/15 bg-black/20 px-3 text-sm text-slate-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </article>
+            </GlassCard>
+          );
+        })}
+        {!loading && data?.items.length === 0 && (
+          <GlassCard padding="lg" className="text-center">
+            <h2 className="text-base font-semibold text-white">No assignments in this view.</h2>
+            <p className="mt-2 text-sm text-slate-200">Try another filter, or add what is coming next.</p>
+          </GlassCard>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-3 scenic-readable-copy">
+        <Button
+          variant="ghost"
+          disabled={loading || filters.page === 0}
+          onClick={() => setFilters((old) => ({ ...old, page: old.page - 1 }))}
         >
-          <div>
-            <label>
-              Ready to pick this back up?
-              <select
-                aria-label="Overdue item"
-                value={activeOverdue.id}
-                onChange={(e) => setSelected(e.target.value)}
-              >
-                {overdue.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.course_code ? `${i.course_code} · ` : ''}
-                    {i.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p>
-              Reschedule moves it to tomorrow at{' '}
-              {timezone
-                ? localDateTimeValue(activeOverdue.deadline, timezone).slice(11)
-                : 'the same time'}
-              .
-            </p>
-          </div>
-          <div className="academic-resolution-actions">
-            <button
-              disabled={Boolean(busy)}
-              onClick={() => reschedule(activeOverdue)}
-            >
-              Reschedule
-            </button>
-            <button
-              className="goal-primary"
-              disabled={Boolean(busy)}
-              onClick={() => void finish(activeOverdue)}
-            >
-              Finish Late
-            </button>
-            <button
-              disabled={Boolean(busy)}
-              onClick={() => void drop(activeOverdue)}
-            >
-              Drop
-            </button>
-          </div>
-        </aside>
-      )}
-      {editor && timezone && (
+          Previous
+        </Button>
+        <span className="text-sm text-white">Page {filters.page + 1}</span>
+        <Button
+          variant="ghost"
+          disabled={loading || !data?.hasMore}
+          onClick={() => setFilters((old) => ({ ...old, page: old.page + 1 }))}
+        >
+          Next
+        </Button>
+      </div>
+      {editor && zone && (
         <AssignmentEditor
-          assignment={editor.item}
-          timezone={timezone}
+          assignment={editor === 'new' ? null : editor}
+          timezone={zone}
           defaultChannels={channels}
-          onClose={() => {
-            setEditor(null);
-            void load();
-          }}
-          onSaved={(item) => {
-            publish(item);
-            setNotice(
-              editor.item ? 'Assignment updated.' : 'Your next step is ready.',
-            );
-            setUndo(null);
+          onClose={() => setEditor(null)}
+          onSaved={async () => {
+            setError('');
+            await reload();
           }}
         />
-      )}
-      {burst > 0 && !reducedMotion && (
-        <div key={burst} className="goal-particles" aria-hidden="true">
-          {Array.from({ length: 12 }, (_, i) => (
-            <i key={i} style={{ '--particle': i } as React.CSSProperties} />
-          ))}
-        </div>
       )}
     </div>
   );

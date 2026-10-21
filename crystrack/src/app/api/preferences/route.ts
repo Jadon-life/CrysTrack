@@ -1,11 +1,9 @@
-import { invalidateToday } from '@/lib/rhythm/cache';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 const DEFAULTS = {
   theme_preference: 'adaptive',
   reduced_motion: false,
-  hide_gamification: false,
   weather_enabled: true,
   dnd_enabled: false,
   dnd_start_time: '22:00',
@@ -27,7 +25,7 @@ export async function GET() {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if(error){console.error('Preference operation failed:',error);return NextResponse.json({error:'Your preferences could not be saved. Please try again.'},{status:500});}
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data || { ...DEFAULTS, user_id: user.id });
 }
 
@@ -36,12 +34,10 @@ export async function PUT(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await request.json().catch(()=>null);
-  if(!body||typeof body!=='object'||Array.isArray(body)||(Object.hasOwn(body,'hideGamification')&&typeof body.hideGamification!=='boolean'))return NextResponse.json({error:'Check your preference and try again.'},{status:400});
+  const body = await request.json();
   const updates: Record<string, unknown> = { user_id: user.id };
 
   if (['adaptive', 'light', 'dark'].includes(body.themePreference)) updates.theme_preference = body.themePreference;
-  if(typeof body.hideGamification==='boolean')updates.hide_gamification=body.hideGamification;
   if (typeof body.reducedMotion === 'boolean') updates.reduced_motion = body.reducedMotion;
   if (typeof body.weatherEnabled === 'boolean') updates.weather_enabled = body.weatherEnabled;
   if (typeof body.locationEnabled === 'boolean') updates.location_enabled = body.locationEnabled;
@@ -61,7 +57,6 @@ export async function PUT(request: Request) {
     .select()
     .single();
 
-  if(error){console.error('Preference operation failed:',error);return NextResponse.json({error:'Your preferences could not be saved. Please try again.'},{status:500});}
-  invalidateToday(user.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }

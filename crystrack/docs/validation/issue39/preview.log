@@ -1,0 +1,114 @@
+
+> crystrack@1.0.0 test:preview
+> node scripts/test-preview.mjs
+
+▲ Next.js 16.3.5 (Turbopack)
+✓ Running next.config.js took 18ms
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.3s
+  Running TypeScript ...
+  Finished TypeScript in 4.3s ...
+  Collecting page data using 4 workers ...
+  Generating static pages using 4 workers (0/48) ...
+  Generating static pages using 4 workers (12/48)
+  Generating static pages using 4 workers (24/48)
+  Generating static pages using 4 workers (36/48)
+✓ Generating static pages using 4 workers (48/48) in 547ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /ai
+├ ƒ /api/ai/chat
+├ ƒ /api/ai/conversations
+├ ƒ /api/ai/conversations/[id]
+├ ƒ /api/ai/domain/[domain]
+├ ƒ /api/assignments
+├ ƒ /api/assignments/[id]
+├ ƒ /api/assignments/[id]/complete
+├ ƒ /api/auth/callback
+├ ƒ /api/crystals
+├ ƒ /api/crystals/moment
+├ ƒ /api/daily-notes/[date]
+├ ƒ /api/daily-records
+├ ƒ /api/daily-records/context
+├ ƒ /api/daily-records/timezone
+├ ƒ /api/exchange-rate
+├ ƒ /api/finance
+├ ƒ /api/finance/entries
+├ ƒ /api/finance/targets
+├ ƒ /api/goals
+├ ƒ /api/goals/[id]
+├ ƒ /api/goals/[id]/analyze
+├ ƒ /api/goals/[id]/checkins
+├ ƒ /api/history
+├ ƒ /api/insights
+├ ƒ /api/preferences
+├ ƒ /api/profile
+├ ƒ /api/profile/avatar
+├ ƒ /api/push/subscribe
+├ ƒ /api/reminders
+├ ƒ /api/reminders/dispatch
+├ ƒ /api/tasks
+├ ƒ /api/tasks/[taskId]
+├ ƒ /api/tasks/[taskId]/archive
+├ ƒ /api/tasks/[taskId]/occurrences/[date]/skip
+├ ƒ /api/tasks/[taskId]/occurrences/[date]/toggle
+├ ƒ /api/tasks/week
+├ ƒ /api/telegram/connect
+├ ƒ /api/telegram/setup
+├ ƒ /api/telegram/status
+├ ƒ /api/telegram/webhook
+├ ƒ /api/wealth
+├ ƒ /api/wealth/bills
+├ ƒ /api/wealth/budgets
+├ ƒ /api/wealth/csv/context
+├ ƒ /api/wealth/csv/export
+├ ƒ /api/wealth/csv/imports
+├ ƒ /api/wealth/csv/review
+├ ƒ /api/wealth/debts
+├ ƒ /api/wealth/expected
+├ ƒ /api/wealth/insight
+├ ○ /assignments
+├ ○ /auth
+├ ○ /calendar
+├ ○ /finance
+├ ○ /goals
+├ ○ /history
+├ ○ /insights
+├ ○ /manifest.webmanifest
+├ ○ /plan
+├ ○ /settings
+└ ○ /tasks
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+PASS: real Preview client artifacts contain no hosted credential/URL markers.
+PASS: every inventoried API writer, auth callback and unknown integration is denied by the running Preview server.
+Browser route: /
+Browser route: /plan
+Browser route: /tasks
+Browser route: /goals
+Browser route: /assignments
+Browser route: /calendar
+Browser route: /finance
+Browser route: /insights
+Browser route: /history
+Browser route: /ai
+Browser route: /settings
+Browser route: /auth
+PASS: Chromium navigation across 12 routes, switch interaction and upload probe made zero external requests, no geolocation/push/session transport, and no runtime errors.
+PASS: missing runtime demo flag fails closed, including API, callback and static assets.
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

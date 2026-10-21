@@ -1,5 +1,7 @@
 'use client';
 
+import { isRestrictedPreview, assertRealServicesAllowed } from '@/lib/preview/mode';
+
 export type PushSetupStatus =
   | 'unsupported'
   | 'permission-required'
@@ -36,6 +38,7 @@ function pushSupported() {
 }
 
 export async function registerCrysTrackServiceWorker() {
+  assertRealServicesAllowed();
   if (!('serviceWorker' in navigator)) throw new Error('Service workers are not supported by this browser');
   return navigator.serviceWorker.register('/sw.js', { scope: '/' });
 }
@@ -57,6 +60,7 @@ async function serverHasSubscription(endpoint: string) {
 }
 
 export async function getPushSetupStatus(): Promise<PushSetupResult> {
+  if (isRestrictedPreview()) return {ok:false,permission:'unsupported',status:'unsupported',error:'Push is disabled in the synthetic demo.'};
   if (!pushSupported()) {
     return { ok: false, permission: 'unsupported', status: 'unsupported', error: 'Push notifications are not supported on this browser.' };
   }
@@ -100,6 +104,7 @@ export async function getPushSetupStatus(): Promise<PushSetupResult> {
 }
 
 export async function enablePushNotifications(): Promise<PushSetupResult> {
+  if (isRestrictedPreview()) return {ok:false,permission:'unsupported',status:'unsupported',error:'Push is disabled in the synthetic demo.'};
   if (!pushSupported()) {
     return { ok: false, permission: 'unsupported', status: 'unsupported', error: 'Push notifications are not supported on this browser.' };
   }
@@ -139,6 +144,7 @@ export async function enablePushNotifications(): Promise<PushSetupResult> {
 }
 
 export async function disablePushNotifications() {
+  if (isRestrictedPreview()) return;
   if (!('serviceWorker' in navigator)) return;
   const registration = await navigator.serviceWorker.ready;
   const subscription = await registration.pushManager.getSubscription();

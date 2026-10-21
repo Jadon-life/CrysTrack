@@ -1,17 +1,16 @@
-import { sql } from 'drizzle-orm';
 import { 
   pgTable, uuid, varchar, text, timestamp, boolean, 
-  integer, decimal, jsonb, pgEnum, index, check, date, primaryKey, pgView, bigint, uniqueIndex, unique, type AnyPgColumn
+  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex, foreignKey, pgSchema, type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 
 // Enums
-export const taskStatusEnum = pgEnum('task_status', ['pending', 'completed', 'missed', 'not_scheduled']);
-export const assignmentStatusEnum = pgEnum('assignment_status', ['upcoming', 'due_soon', 'due_today', 'overdue', 'completed', 'dropped']);
+export const taskStatusEnum = pgEnum('task_status', ['pending', 'completed', 'skipped', 'missed', 'not_scheduled']);
+export const assignmentStatusEnum = pgEnum('assignment_status', ['upcoming', 'due_soon', 'due_today', 'overdue', 'completed']);
 export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high', 'urgent']);
 export const moneyTypeEnum = pgEnum('money_type', ['income', 'expense', 'saving', 'transfer']);
 export const reminderChannelEnum = pgEnum('reminder_channel', ['push', 'email']);
 export const reminderStatusEnum = pgEnum('reminder_status', ['pending', 'sent', 'snoozed', 'cancelled']);
-export const activityTypeEnum = pgEnum('activity_type', ['task_completed', 'task_missed', 'goal_checkin', 'assignment_completed', 'finance_entry', 'reminder_sent', 'focus_completed']);
+export const activityTypeEnum = pgEnum('activity_type', ['task_completed', 'task_skipped', 'task_missed', 'goal_checkin', 'assignment_completed', 'finance_entry', 'reminder_sent']);
 
 // Users (extends Supabase Auth)
 export const profiles = pgTable('profiles', {
@@ -19,6 +18,8 @@ export const profiles = pgTable('profiles', {
   userId: uuid('user_id').notNull().unique(),
   displayName: varchar('display_name', { length: 255 }),
   timezone: varchar('timezone', { length: 100 }).default('UTC'),
+  currentTimezone: varchar('current_timezone', { length: 100 }),
+  schedulingTimezone: varchar('scheduling_timezone', { length: 100 }),
   locale: varchar('locale', { length: 10 }).default('en-US'),
   avatarUrl: text('avatar_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -30,7 +31,6 @@ export const userPreferences = pgTable('user_preferences', {
   userId: uuid('user_id').notNull().unique(),
   themePreference: varchar('theme_preference', { length: 50 }).default('adaptive'),
   reducedMotion: boolean('reduced_motion').default(false),
-  hideGamification:boolean('hide_gamification').notNull().default(false),
   weatherEnabled: boolean('weather_enabled').default(true),
   dndEnabled: boolean('dnd_enabled').default(false),
   dndStartTime: varchar('dnd_start_time', { length: 5 }),
@@ -74,8 +74,6 @@ export const taskOccurrences = pgTable('task_occurrences', {
   taskDateIdx: index('occurrence_task_date_idx').on(table.taskId, table.date),
 }));
 
-import type { GoalMilestone, GoalLifecycle, GoalProgressSource } from '@/types/goals';
-
 // Goals
 export const goals = pgTable('goals', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -86,30 +84,12 @@ export const goals = pgTable('goals', {
   measurable: boolean('measurable').default(false),
   targetValue: decimal('target_value', { precision: 10, scale: 2 }),
   progressValue: decimal('progress_value', { precision: 10, scale: 2 }),
-  status: varchar('status', { length: 50 }).$type<GoalLifecycle | 'completed' | 'abandoned'>().default('active'),
-  whyMatters: text('why_matters'),
-  badge: varchar('badge', { length: 30 }).notNull().default('target'),
-  reflection: text('reflection'),
-  milestones: jsonb('milestones').$type<GoalMilestone[]>().notNull().default([]),
-  taskIds: uuid('task_ids').array().notNull().default([]),
-  linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow(),
-  routineTarget: integer('routine_target').notNull().default(10),
-  financeTargetId: uuid('finance_target_id').references(() => financeTargets.id, { onDelete: 'set null' }),
-  revision: integer('revision').notNull().default(0),
-  progressSource: varchar('progress_source', { length: 30 }).$type<GoalProgressSource>().notNull().default('manual'),
-  startingValue: decimal('starting_value', { precision: 12, scale: 2 }),
-  progressMode: varchar('progress_mode', { length: 20 }).default('percentage'),
-  progressUnit: varchar('progress_unit', { length: 50 }),
-  aiCoaching: boolean('ai_coaching').default(false),
-  checkinConfig: jsonb('checkin_config'),
-  deadlineReminderConfig: jsonb('deadline_reminder_config'),
+  status: varchar('status', { length: 50 }).default('active'),
   category: varchar('category', { length: 100 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   completedAt: timestamp('completed_at', { withTimezone: true }),
 }, (table) => ({
   userIdIdx: index('goal_user_id_idx').on(table.userId),
-  routineTargetCheck: check('goals_routine_target_check', sql`${table.routineTarget} BETWEEN 1 AND 100000`),
-  progressSourceCheck: check('goals_progress_source_check', sql`${table.progressSource} IN ('manual', 'milestones', 'tasks')`),
 }));
 
 export const goalCheckIns = pgTable('goal_checkins', {
@@ -121,12 +101,6 @@ export const goalCheckIns = pgTable('goal_checkins', {
   responseText: text('response_text'),
   learnedText: text('learned_text'),
   blockers: text('blockers'),
-  progressValue: decimal('progress_value', { precision: 12, scale: 2 }),
-  progressPercent: decimal('progress_percent', { precision: 5, scale: 2 }),
-  aiAnalysis: jsonb('ai_analysis'),
-  occurrenceKey: text('occurrence_key'),
-  occurrenceStartDate: date('occurrence_start_date'),
-  occurrenceEndDate: date('occurrence_end_date'),
 });
 
 export const goalInsights = pgTable('goal_insights', {
@@ -140,8 +114,6 @@ export const goalInsights = pgTable('goal_insights', {
   modelVersion: varchar('model_version', { length: 50 }),
 });
 
-import type { AssignmentSubtask, AcademicKind } from '@/types/assignments';
-
 // Assignments
 export const assignments = pgTable('assignments', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -151,48 +123,23 @@ export const assignments = pgTable('assignments', {
   deadline: timestamp('deadline', { withTimezone: true }).notNull(),
   priority: priorityEnum('priority').default('medium'),
   status: assignmentStatusEnum('status').default('upcoming'),
-  courseCode: varchar('course_code', { length: 30 }),
-  academicKind: varchar('academic_kind', { length: 20 }).$type<AcademicKind>().notNull().default('Assignment'),
-  pointWeight: decimal('point_weight', { precision: 5, scale: 2 }),
-  estimatedMinutes: integer('estimated_minutes'),
-  workStartAt: timestamp('work_start_at', { withTimezone: true }),
-  subtasks: jsonb('subtasks').$type<AssignmentSubtask[]>().notNull().default([]),
-  finishedLate: boolean('finished_late').notNull().default(false),
-  revision: integer('revision').notNull().default(0),
-  reminderConfig: jsonb('reminder_config'),
   category: varchar('category', { length: 100 }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  revision: integer('revision').notNull().default(1),
+  reminderVersion: integer('reminder_version').notNull().default(1),
+  reminderConfig: jsonb('reminder_config').$type<{ enabled: boolean; channels: string[]; offsetMinutes: number[] }>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
   userIdIdx: index('assignment_user_id_idx').on(table.userId),
   deadlineIdx: index('assignment_deadline_idx').on(table.deadline),
-  academicKindCheck: check('assignment_academic_kind_check', sql`${table.academicKind} IN ('Assignment','Test','Lab','Project')`),
-  pointWeightCheck: check('assignment_point_weight_check', sql`${table.pointWeight} BETWEEN 0 AND 100`),
-  estimatedMinutesCheck: check('assignment_estimated_minutes_check', sql`${table.estimatedMinutes} BETWEEN 0 AND 60000`),
-  subtaskArrayCheck: check('assignment_subtasks_array_check', sql`jsonb_typeof(${table.subtasks}) = 'array' AND jsonb_array_length(${table.subtasks}) <= 50`),
+  ownerDeadlineIdx: index('assignment_owner_deadline_id_idx').on(table.userId, table.deadline, table.id),
 }));
 
-// Finance: all stored amounts are NGN DECIMAL(12,2), including USD wallet valuations.
-export const wealthAccounts = pgTable('wealth_accounts', {
- id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), name: varchar('name',{length:100}).notNull(), kind: varchar('kind',{length:20}).notNull(), openingBalance: decimal('opening_balance',{precision:12,scale:2}).notNull().default('0'),createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
-}, (t)=>({userIdx:index('wealth_accounts_user_idx').on(t.userId),nameCheck:check('wealth_accounts_name_check',sql`length(btrim(${t.name}))>0`),kindCheck:check('wealth_accounts_kind_check',sql`${t.kind} IN ('cash','bank','savings','usd_wallet')`)}));
-export const wealthBudgetCaps = pgTable('wealth_budget_caps', {
- id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),month:date('month').notNull(),category:varchar('category',{length:100}).notNull(),cap:decimal('cap',{precision:12,scale:2}).notNull(),
-}, (t)=>({monthCheck:check('wealth_budget_caps_month_check',sql`extract(day from ${t.month})=1`),categoryCheck:check('wealth_budget_caps_category_check',sql`length(btrim(${t.category}))>0`),capCheck:check('wealth_budget_caps_cap_check',sql`${t.cap}>=0`),ownerCategory:unique('wealth_budget_caps_user_id_month_category_key').on(t.userId,t.month,t.category)}));
-export const wealthBills = pgTable('wealth_bills', {
- id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),title:varchar('title',{length:150}).notNull(),amount:decimal('amount',{precision:12,scale:2}).notNull(),nextDue:date('next_due').notNull(),frequency:varchar('frequency',{length:20}).notNull(),category:varchar('category',{length:100}).notNull().default('Bills'),active:boolean('active').notNull().default(true),lastPaidOn:date('last_paid_on'),createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
-}, (t)=>({titleCheck:check('wealth_bills_title_check',sql`length(btrim(${t.title}))>0`),amountCheck:check('wealth_bills_amount_check',sql`${t.amount}>0`),frequencyCheck:check('wealth_bills_frequency_check',sql`${t.frequency} IN ('weekly','monthly','quarterly','yearly')`)}));
-export const wealthCircles = pgTable('wealth_circles', {
- id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),title:varchar('title',{length:150}).notNull(),contribution:decimal('contribution',{precision:12,scale:2}).notNull(),startsOn:date('starts_on').notNull(),intervalDays:integer('interval_days').notNull(),members:jsonb('members').$type<string[]>().notNull(),createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
-}, (t)=>({titleCheck:check('wealth_circles_title_check',sql`length(btrim(${t.title}))>0`),amountCheck:check('wealth_circles_contribution_check',sql`${t.contribution}>0`),daysCheck:check('wealth_circles_interval_days_check',sql`${t.intervalDays} BETWEEN 1 AND 366`),membersCheck:check('wealth_circles_members_check',sql`jsonb_typeof(${t.members})='array' AND jsonb_array_length(${t.members}) BETWEEN 2 AND 50`)}));
-export const wealthCircleContributions = pgTable('wealth_circle_contributions', {
- id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),circleId:uuid('circle_id').notNull().references(()=>wealthCircles.id,{onDelete:'cascade'}),memberIndex:integer('member_index').notNull(),round:integer('round').notNull(),amount:decimal('amount',{precision:12,scale:2}).notNull(),paidOn:date('paid_on').notNull(),
-}, (t)=>({memberCheck:check('wealth_circle_contributions_member_index_check',sql`${t.memberIndex}>=0`),roundCheck:check('wealth_circle_contributions_round_check',sql`${t.round}>=1`),amountCheck:check('wealth_circle_contributions_amount_check',sql`${t.amount}>0`),memberTurn:unique('wealth_circle_contributions_circle_id_member_index_round_key').on(t.circleId,t.memberIndex,t.round)}));
+// Finance
 export const financeTargets = pgTable('finance_targets', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
   title: varchar('title', { length: 255 }).notNull(),
-  lockedUntil: date('locked_until'),
   targetAmount: decimal('target_amount', { precision: 12, scale: 2 }).notNull(),
   currentAmount: decimal('current_amount', { precision: 12, scale: 2 }).default('0'),
   deadline: timestamp('deadline', { withTimezone: true }),
@@ -209,19 +156,16 @@ export const moneyEntries = pgTable('money_entries', {
   type: moneyTypeEnum('type').notNull(),
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   date: timestamp('date', { withTimezone: true }).defaultNow(),
+  importBatchId: uuid('import_batch_id').references(() => wealthCsvBatches.id),
+  importRowId: uuid('import_row_id').references(() => wealthCsvRows.id),
+  billId: uuid('bill_id').references(()=>wealthRecurringBills.id),
+  billOccurrenceId: uuid('bill_occurrence_id').references(()=>wealthBillOccurrences.id),
   source: varchar('source', { length: 255 }),
   category: varchar('category', { length: 100 }),
   note: text('note'),
   targetId: uuid('target_id').references(() => financeTargets.id, { onDelete: 'set null' }),
-  billId:uuid('bill_id').references(()=>wealthBills.id,{onDelete:'restrict'}),billDueOn:date('bill_due_on'),
-  flowKind: varchar('flow_kind',{length:40}), debtId:uuid('debt_id'), expectedFlowId:uuid('expected_flow_id'),
-  accountId:uuid('account_id').references(()=>wealthAccounts.id,{onDelete:'restrict'}),destinationAccountId:uuid('destination_account_id').references(()=>wealthAccounts.id,{onDelete:'restrict'}),parentEntryId:uuid('parent_entry_id').references(():AnyPgColumn=>moneyEntries.id,{onDelete:'restrict'}),importKey:varchar('import_key',{length:200}),deletedAt:timestamp('deleted_at',{withTimezone:true}),revision:integer('revision').notNull().default(1),savingsBps:integer('savings_bps').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
-  importUnique:uniqueIndex('money_import_unique').on(table.userId,table.accountId,table.importKey).where(sql`${table.importKey} IS NOT NULL`),
-  childUnique:uniqueIndex('money_child_unique').on(table.parentEntryId).where(sql`${table.parentEntryId} IS NOT NULL`),
-  billUnique:uniqueIndex('money_bill_unique').on(table.billId,table.billDueOn).where(sql`${table.billId} IS NOT NULL AND ${table.deletedAt} IS NULL`),
-  savingsRateCheck:check('money_entries_savings_bps_check',sql`${table.savingsBps} BETWEEN 0 AND 10000`),
   userIdIdx: index('money_entry_user_id_idx').on(table.userId),
 }));
 
@@ -275,25 +219,174 @@ export type MoneyEntry = typeof moneyEntries.$inferSelect;
 export type GoalCheckIn = typeof goalCheckIns.$inferSelect;
 export type ActivityEvent = typeof activityEvents.$inferSelect;
 
-// Daily rhythm: each table is owner-scoped by migration 0008.
-import type { RitualRef } from '@/types/rhythm';
-export const dailyRituals = pgTable('daily_rituals', {
- userId:uuid('user_id').notNull(),day:date('day').notNull(),topThree:jsonb('top_three').$type<RitualRef[]>().notNull().default([]),deferred:jsonb('deferred').$type<RitualRef[]>().notNull().default([]),deferredTo:date('deferred_to'),capacityMinutes:integer('capacity_minutes').notNull().default(480),wins:text('wins').notNull().default(''),reflection:text('reflection').notNull().default(''),weeklyReflection:text('weekly_reflection').notNull().default(''),nextFocus:uuid('next_focus').array().notNull().default([]),morningAt:timestamp('morning_at',{withTimezone:true}),eveningAt:timestamp('evening_at',{withTimezone:true}),reviewAt:timestamp('review_at',{withTimezone:true}),revision:integer('revision').notNull().default(0)
-},t=>({pk:primaryKey({columns:[t.userId,t.day]})}));
-export const taskTimeboxes=pgTable('task_timeboxes',{id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),taskId:uuid('task_id').notNull().references(()=>recurringTasks.id,{onDelete:'cascade'}),occurrenceDay:date('occurrence_day').notNull(),startsAt:timestamp('starts_at',{withTimezone:true}).notNull(),endsAt:timestamp('ends_at',{withTimezone:true}).notNull()},t=>({taskDay:uniqueIndex('task_timeboxes_user_id_task_id_occurrence_day_key').on(t.userId,t.taskId,t.occurrenceDay)}));
-export const taskFocusSessions=pgTable('task_focus_sessions',{id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),taskId:uuid('task_id').notNull().references(()=>recurringTasks.id,{onDelete:'cascade'}),plannedMinutes:integer('planned_minutes').notNull(),elapsedSeconds:integer('elapsed_seconds').notNull().default(0),status:varchar('status',{length:20}).$type<'running'|'paused'|'completed'|'cancelled'>().notNull().default('running'),startedAt:timestamp('started_at',{withTimezone:true}).notNull().default(sql`clock_timestamp()`),resumedAt:timestamp('resumed_at',{withTimezone:true}).default(sql`clock_timestamp()`),completedAt:timestamp('completed_at',{withTimezone:true})},t=>({oneActive:uniqueIndex('one_active_focus_per_user').on(t.userId).where(sql`${t.status} IN ('running','paused')`),ownerCompleted:index('focus_owner_completed').on(t.userId,t.completedAt)}));
-export type DailyRitualRow=typeof dailyRituals.$inferSelect;
-export type TaskTimeboxRow=typeof taskTimeboxes.$inferSelect;
-export type TaskFocusRow=typeof taskFocusSessions.$inferSelect;
+// Durable daily records: routine_key deliberately has no FK to recurring_tasks.
+export const dailyTrackingStates = pgTable('daily_tracking_states', {
+ userId: uuid('user_id').primaryKey(), initialTimezone: text('initial_timezone').notNull(),
+ schedulingTimezone: text('scheduling_timezone').notNull(), activatedAt: timestamp('activated_at', {withTimezone:true}).notNull(),
+ activationDay: date('activation_day').notNull(), captureStartsOn: date('capture_starts_on').notNull(),
+ recoveryCursor: date('recovery_cursor').notNull(), revision: integer('revision').notNull().default(1),
+ dataRevision: bigint('data_revision', {mode:'number'}).notNull().default(1),
+});
+export const dailyTimezoneTransitions = pgTable('daily_timezone_transitions', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), fromTimezone: text('from_timezone').notNull(),
+ toTimezone: text('to_timezone').notNull(), previousDay: date('previous_day').notNull(), firstDay: date('first_day').notNull(),
+ requestedAt: timestamp('requested_at',{withTimezone:true}).notNull(), effectiveAt: timestamp('effective_at',{withTimezone:true}).notNull(),
+ status: text('status').$type<'pending'|'applied'>().notNull().default('pending'), revision: integer('revision').notNull().default(1),
+});
+export const routineScheduleVersions = pgTable('routine_schedule_versions', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), routineKey: uuid('routine_key').notNull(),
+ version: integer('version').notNull(), effectiveFrom: date('effective_from').notNull(), enabled: boolean('enabled').notNull(),
+ title: text('title').notNull(), description: text('description'), preferredTime: text('preferred_time'), category: text('category'),
+ schedule: jsonb('schedule').$type<{weekday:number;start:string|null;end:string|null}[]>().notNull(),
+ createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+}, t=>({versionUnique:uniqueIndex('routine_schedule_versions_user_id_routine_key_version_key').on(t.userId,t.routineKey,t.version)}));
+export const dailyRecords = pgTable('daily_records', {
+ id: uuid('id').notNull().unique().defaultRandom(), userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(),
+ timezone: text('timezone').notNull(), policyVersion: integer('policy_version').notNull().default(1),
+ evidence: text('evidence').$type<'verified'|'incomplete'>().notNull(), evidenceReason: text('evidence_reason'), expectedCount: integer('expected_count').notNull(),
+ closeStatus: text('close_status').$type<'open'|'closed'>().notNull().default('open'),
+ opensAt: timestamp('opens_at',{withTimezone:true}).notNull(), closesAt: timestamp('closes_at',{withTimezone:true}).notNull(),
+ materializedAt: timestamp('materialized_at',{withTimezone:true}).notNull(), closedAt: timestamp('closed_at',{withTimezone:true}),
+ revision: integer('revision').notNull().default(1),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey]})}));
+export const dailyRoutineRecords = pgTable('daily_routine_records', {
+ id: uuid('id').notNull().unique().defaultRandom(), userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(), routineKey: uuid('routine_key').notNull(),
+ scheduleVersionId: uuid('schedule_version_id').notNull().references(()=>routineScheduleVersions.id),
+ title: text('title').notNull(), description: text('description'), preferredTime: text('preferred_time'), category: text('category'),
+ status: text('status').$type<'pending'|'completed'|'skipped'|'missed'>().notNull().default('pending'),
+ completedAt: timestamp('completed_at',{withTimezone:true}), revision: integer('revision').notNull().default(1),
+ compatibilityOccurrenceId: uuid('compatibility_occurrence_id'), activityEventId: uuid('activity_event_id').notNull().defaultRandom(),
+ legacyConflict: boolean('legacy_conflict').notNull().default(false),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey,t.routineKey]})}));
+export const dailyMutationRequests = pgTable('daily_mutation_requests', {
+ userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(), payload: jsonb('payload').notNull(), result: jsonb('result').notNull(),
+ revision: integer('revision').notNull().default(1), createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export const dailyNotes = pgTable('daily_notes', {
+ userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(), body: text('body').notNull(), revision: integer('revision').notNull(),
+ updatedAt: timestamp('updated_at',{withTimezone:true}).notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey]})}));
+export type DailyRecord = typeof dailyRecords.$inferSelect;
+export type DailyRoutineRecord = typeof dailyRoutineRecords.$inferSelect;
+export type RoutineScheduleVersion = typeof routineScheduleVersions.$inferSelect;
+export type DailyMutationRequest = typeof dailyMutationRequests.$inferSelect;
+export type DailyNote = typeof dailyNotes.$inferSelect;
+export type DailyTrackingState = typeof dailyTrackingStates.$inferSelect;
+export type DailyTimezoneTransition = typeof dailyTimezoneTransitions.$inferSelect;
 
-export const taskFocusTotals=pgView('task_focus_totals',{userId:uuid('user_id'),taskId:uuid('task_id'),minutes:bigint('minutes',{mode:'number'})}).existing();
-export type TaskFocusTotal=typeof taskFocusTotals.$inferSelect;
+// September crystal ledger; separate from all legacy hosted gamification objects.
+export const sep28CrystalPreferences = pgTable('sep28_crystal_preferences', {
+ userId: uuid('user_id').primaryKey(), enabled: boolean('enabled').notNull().default(true),
+ activatedAt: timestamp('activated_at',{withTimezone:true}).notNull(), enabledSince: timestamp('enabled_since',{withTimezone:true}).notNull(),
+ revision: integer('revision').notNull().default(1),
+});
+export type CrystalAwardKind = 'task'|'day'|'goal'|'assignment'|'spending';
+export const sep28CrystalAwards = pgTable('sep28_crystal_awards', {
+ userId: uuid('user_id').notNull().references(()=>sep28CrystalPreferences.userId,{onDelete:'cascade'}),
+ kind: text('kind').$type<CrystalAwardKind>().notNull(), sourceKey: text('source_key').notNull(),
+ eligible: boolean('eligible').notNull(), allowedSource: boolean('allowed_source').notNull().default(true),
+ balance: integer('balance').notNull(), revision: integer('revision').notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.kind,t.sourceKey]})}));
+export const sep28CrystalEvents = pgTable('sep28_crystal_events', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), kind: text('kind').$type<CrystalAwardKind>().notNull(),
+ sourceKey: text('source_key').notNull(), revision: integer('revision').notNull(), delta: integer('delta').notNull(),
+ createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({eventUnique:uniqueIndex('sep28_crystal_events_user_id_kind_source_key_revision_key').on(t.userId,t.kind,t.sourceKey,t.revision), ownerIdx:index('sep28_crystal_events_owner').on(t.userId), sourceFk:foreignKey({columns:[t.userId,t.kind,t.sourceKey],foreignColumns:[sep28CrystalAwards.userId,sep28CrystalAwards.kind,sep28CrystalAwards.sourceKey]}).onDelete('cascade')}));
+export const sep28CrystalMoments = pgTable('sep28_crystal_moments', {
+ userId: uuid('user_id').notNull().references(()=>sep28CrystalPreferences.userId,{onDelete:'cascade'}),
+ level: integer('level').notNull(), reachedAt: timestamp('reached_at',{withTimezone:true}).notNull(), claimedAt: timestamp('claimed_at',{withTimezone:true}),
+},t=>({pk:primaryKey({columns:[t.userId,t.level]})}));
+export type Sep28CrystalPreference = typeof sep28CrystalPreferences.$inferSelect;
+export type Sep28CrystalAward = typeof sep28CrystalAwards.$inferSelect;
+export type Sep28CrystalEvent = typeof sep28CrystalEvents.$inferSelect;
+export type Sep28CrystalMoment = typeof sep28CrystalMoments.$inferSelect;
 
-export const wealthSettings = pgTable('wealth_settings', {
- userId:uuid('user_id').primaryKey(),spendSaveBps:integer('spend_save_bps').notNull().default(0),targetId:uuid('target_id').references(()=>financeTargets.id,{onDelete:'restrict'}),lowBalance:decimal('low_balance',{precision:12,scale:2}).notNull().default('0'),
-}, (t)=>({rateCheck:check('wealth_settings_spend_save_bps_check',sql`${t.spendSaveBps} BETWEEN 0 AND 10000`),lowCheck:check('wealth_settings_low_balance_check',sql`${t.lowBalance}>=0`)}));
+// Private owner-bound assignment identity tombstones: no application-role access.
+export const assignmentIdentities = pgSchema('crystrack_assignments').table('identities', {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id').notNull(),
+});
+export type AssignmentIdentity = typeof assignmentIdentities.$inferSelect;
 
-// Protected reward ledger. RLS SELECT only; trigger writes are defined in migration 0010.
-export const gamificationEvents=pgTable('gamification_events',{
- id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),actionKey:text('action_key').notNull(),kind:varchar('kind',{length:20}).notNull(),sourceId:text('source_id').notNull(),day:date('day').notNull(),area:varchar('area',{length:100}),active:boolean('active').notNull().default(true),onTime:boolean('on_time').notNull().default(false),createdAt:timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
-},t=>({ownerAction:unique('gamification_events_user_id_action_key_key').on(t.userId,t.actionKey),ownerDay:index('gamification_owner_day').on(t.userId,t.day),kindCheck:check('gamification_events_kind_check',sql`${t.kind} IN ('task','goal','expense','morning','evening','weekly','assignment')`)}));
+// Piece 6A local-only candidate: canonical NGN limits, owner SELECT/RPC writes.
+export const wealthMonthlyBudgets = pgTable('wealth_monthly_budgets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  month: date('month').notNull(),
+  category: text('category').notNull(),
+  currency: text('currency').notNull().default('NGN'),
+  limitAmount: decimal('limit_amount', { precision: 12, scale: 2 }).notNull(),
+  active: boolean('active').notNull().default(true),
+  revision: integer('revision').notNull().default(1),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  removedAt: timestamp('removed_at', { withTimezone: true }),
+}, t => ({ ownerMonthCategory: uniqueIndex('wealth_budget_owner_month_category_idx').on(t.userId,t.month,t.category) }));
+export const wealthBudgetRequests = pgSchema('crystrack_budgets').table('requests', {
+  userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(),
+  payload: jsonb('payload').notNull(), result: jsonb('result').notNull(),
+  createdAt: timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
+}, t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export type WealthMonthlyBudget = typeof wealthMonthlyBudgets.$inferSelect;
+export type WealthBudgetRequest = typeof wealthBudgetRequests.$inferSelect;
+
+
+// Piece 6B local-only bill plans, immutable occurrence/payment proof and private authority.
+export const wealthRecurringBills = pgTable('wealth_recurring_bills', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),title:text('title').notNull(),category:text('category').notNull(),merchant:text('merchant'),
+ amount:decimal('amount',{precision:12,scale:2}).notNull(),frequency:text('frequency').notNull(),firstDue:date('first_due').notNull(),endDate:date('end_date'),
+ status:text('status').notNull().default('active'),reminderEnabled:boolean('reminder_enabled').notNull().default(false),revision:integer('revision').notNull().default(1),
+ createdAt:timestamp('created_at',{withTimezone:true}).notNull(),updatedAt:timestamp('updated_at',{withTimezone:true}).notNull(),
+},t=>({owner:index('bill_owner_idx').on(t.userId,t.id),ownerIdentity:uniqueIndex('bill_owner_identity').on(t.id,t.userId)}));
+export const wealthBillOccurrences=pgTable('wealth_bill_occurrences',{
+ id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),billId:uuid('bill_id').notNull(),dueDay:date('due_day').notNull(),timezone:text('timezone').notNull(),
+ title:text('title').notNull(),category:text('category').notNull(),merchant:text('merchant'),expectedAmount:decimal('expected_amount',{precision:12,scale:2}).notNull(),
+ status:text('status').notNull().default('pending'),revision:integer('revision').notNull().default(1),paidAt:timestamp('paid_at',{withTimezone:true}),actualAmount:decimal('actual_amount',{precision:12,scale:2}),entryId:uuid('entry_id').unique().references((): AnyPgColumn=>moneyEntries.id),
+},t=>({due:uniqueIndex('bill_due_unique').on(t.billId,t.dueDay),ownerDay:index('bill_occurrence_owner_day_idx').on(t.userId,t.dueDay,t.id),
+ owner:foreignKey({columns:[t.billId,t.userId],foreignColumns:[wealthRecurringBills.id,wealthRecurringBills.userId]})}));
+const billPrivate=pgSchema('crystrack_bills');
+export const billOwnerStates=billPrivate.table('states',{userId:uuid('user_id').primaryKey(),revision:bigint('revision',{mode:'bigint'}).notNull().default(BigInt(1))});
+export const billRequests=billPrivate.table('requests',{userId:uuid('user_id').notNull(),requestId:uuid('request_id').notNull(),payload:jsonb('payload').notNull(),result:jsonb('result').notNull()},t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export const billEntryPermits=billPrivate.table('entry_permits',{entryId:uuid('entry_id').primaryKey(),userId:uuid('user_id').notNull(),billId:uuid('bill_id').notNull(),occurrenceId:uuid('occurrence_id').notNull().unique()});
+export type WealthRecurringBill=typeof wealthRecurringBills.$inferSelect;
+export type WealthBillOccurrence=typeof wealthBillOccurrences.$inferSelect;
+export type BillOwnerState=typeof billOwnerStates.$inferSelect;
+export type BillMutationRequest=typeof billRequests.$inferSelect;
+export type BillEntryPermit=typeof billEntryPermits.$inferSelect;
+
+// Piece 6C local-only immutable statement batches, selected normalized rows and private permits.
+export const wealthCsvBatches = pgTable('wealth_csv_batches', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),sourceKey:text('source_key').notNull(),fileHash:text('file_hash').notNull(),payloadHash:text('payload_hash').notNull(),timezone:text('timezone').notNull(),rowCount:integer('row_count').notNull(),incomeTotal:decimal('income_total').notNull(),expenseTotal:decimal('expense_total').notNull(),createdAt:timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({owner:uniqueIndex('csv_batch_owner_identity').on(t.id,t.userId),ownerIndex:index('csv_batch_owner_idx').on(t.userId,t.id)}));
+export const wealthCsvRows = pgTable('wealth_csv_rows', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),batchId:uuid('batch_id').notNull(),sourceKey:text('source_key').notNull(),fileHash:text('file_hash').notNull(),rowNumber:integer('row_number').notNull(),referenceKey:text('reference_key'),entryId:uuid('entry_id').notNull().unique().references(():AnyPgColumn=>moneyEntries.id),reviewedRow:jsonb('reviewed_row').notNull(),
+},t=>({owner:foreignKey({columns:[t.batchId,t.userId],foreignColumns:[wealthCsvBatches.id,wealthCsvBatches.userId]}),identity:uniqueIndex('csv_file_row_unique').on(t.userId,t.sourceKey,t.fileHash,t.rowNumber),ownerIndex:index('csv_rows_owner_idx').on(t.userId,t.batchId)}));
+export const csvEntryPermits=pgSchema('crystrack_csv').table('permits',{entryId:uuid('entry_id').primaryKey(),userId:uuid('user_id').notNull(),batchId:uuid('batch_id').notNull(),rowId:uuid('row_id').notNull()});
+export type WealthCsvBatch=typeof wealthCsvBatches.$inferSelect;
+export type WealthCsvRow=typeof wealthCsvRows.$inferSelect;
+export type CsvEntryPermit=typeof csvEntryPermits.$inferSelect;
+
+// Issue #41 local-only consent authority; absent preferences mean AI OFF.
+export const aiPrivacyPreferences = pgTable('ai_privacy_preferences', {
+  userId: uuid('user_id').primaryKey(),
+  enabled: boolean('enabled').notNull().default(false),
+  wealthEnabled: boolean('wealth_enabled').notNull().default(false),
+  revision: integer('revision').notNull().default(0),
+  acceptedPolicy: text('accepted_policy'),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+const aiPrivacySchema = pgSchema('crystrack_ai');
+export const aiPrivacyMutations = aiPrivacySchema.table('mutations', {
+  userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(),
+  payload: jsonb('payload').notNull(), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => ({ pk: primaryKey({ columns: [table.userId, table.requestId] }) }));
+export const aiPrivacyRequests = aiPrivacySchema.table('requests', {
+  id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(),
+  revision: integer('revision').notNull(), domain: text('domain').notNull(),
+  wealthEnabled: boolean('wealth_enabled').notNull(), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  stored: boolean('stored').notNull().default(false), refs: jsonb('refs'),
+}, table => ({ ownerTime: index('ai_request_owner_time').on(table.userId, table.createdAt) }));
+export type AiPrivacyPreference = typeof aiPrivacyPreferences.$inferSelect;
+export type AiPrivacyMutation = typeof aiPrivacyMutations.$inferSelect;
+export type AiPrivacyRequest = typeof aiPrivacyRequests.$inferSelect;

@@ -1,0 +1,1992 @@
+[
+  {
+    "table": "mutations",
+    "schema": "crystrack_ai",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "request_id"
+      },
+      {
+        "type": "jsonb",
+        "column": "payload"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "requests",
+    "schema": "crystrack_ai",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "text",
+        "column": "domain"
+      },
+      {
+        "type": "boolean",
+        "column": "wealth_enabled"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "boolean",
+        "column": "stored"
+      },
+      {
+        "type": "jsonb",
+        "column": "refs"
+      }
+    ]
+  },
+  {
+    "table": "identities",
+    "schema": "crystrack_assignments",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      }
+    ]
+  },
+  {
+    "table": "entry_permits",
+    "schema": "crystrack_bills",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "entry_id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "bill_id"
+      },
+      {
+        "type": "uuid",
+        "column": "occurrence_id"
+      }
+    ]
+  },
+  {
+    "table": "requests",
+    "schema": "crystrack_bills",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "request_id"
+      },
+      {
+        "type": "jsonb",
+        "column": "payload"
+      },
+      {
+        "type": "jsonb",
+        "column": "result"
+      }
+    ]
+  },
+  {
+    "table": "states",
+    "schema": "crystrack_bills",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "bigint",
+        "column": "revision"
+      }
+    ]
+  },
+  {
+    "table": "requests",
+    "schema": "crystrack_budgets",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "request_id"
+      },
+      {
+        "type": "jsonb",
+        "column": "payload"
+      },
+      {
+        "type": "jsonb",
+        "column": "result"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "permits",
+    "schema": "crystrack_csv",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "entry_id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "batch_id"
+      },
+      {
+        "type": "uuid",
+        "column": "row_id"
+      }
+    ]
+  },
+  {
+    "table": "activity_events",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "USER-DEFINED",
+        "column": "type"
+      },
+      {
+        "type": "character varying",
+        "column": "entity_type"
+      },
+      {
+        "type": "uuid",
+        "column": "entity_id"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "jsonb",
+        "column": "metadata_json"
+      }
+    ]
+  },
+  {
+    "table": "ai_conversations",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "title"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      }
+    ]
+  },
+  {
+    "table": "ai_domain_insights",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "domain"
+      },
+      {
+        "type": "text",
+        "column": "data_fingerprint"
+      },
+      {
+        "type": "jsonb",
+        "column": "insight"
+      },
+      {
+        "type": "character varying",
+        "column": "model"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "generated_at"
+      }
+    ]
+  },
+  {
+    "table": "ai_messages",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "conversation_id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "role"
+      },
+      {
+        "type": "text",
+        "column": "content"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "ai_privacy_preferences",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "boolean",
+        "column": "enabled"
+      },
+      {
+        "type": "boolean",
+        "column": "wealth_enabled"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "text",
+        "column": "accepted_policy"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "accepted_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      }
+    ]
+  },
+  {
+    "table": "assignments",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "title"
+      },
+      {
+        "type": "text",
+        "column": "description"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "deadline"
+      },
+      {
+        "type": "USER-DEFINED",
+        "column": "priority"
+      },
+      {
+        "type": "USER-DEFINED",
+        "column": "status"
+      },
+      {
+        "type": "character varying",
+        "column": "category"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "completed_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "jsonb",
+        "column": "reminder_config"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "integer",
+        "column": "reminder_version"
+      }
+    ]
+  },
+  {
+    "table": "daily_mutation_requests",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "request_id"
+      },
+      {
+        "type": "jsonb",
+        "column": "payload"
+      },
+      {
+        "type": "jsonb",
+        "column": "result"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "daily_notes",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "date",
+        "column": "day_key"
+      },
+      {
+        "type": "text",
+        "column": "body"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      }
+    ]
+  },
+  {
+    "table": "daily_records",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "date",
+        "column": "day_key"
+      },
+      {
+        "type": "text",
+        "column": "timezone"
+      },
+      {
+        "type": "integer",
+        "column": "policy_version"
+      },
+      {
+        "type": "text",
+        "column": "evidence"
+      },
+      {
+        "type": "text",
+        "column": "evidence_reason"
+      },
+      {
+        "type": "integer",
+        "column": "expected_count"
+      },
+      {
+        "type": "text",
+        "column": "close_status"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "opens_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "closes_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "materialized_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "closed_at"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      }
+    ]
+  },
+  {
+    "table": "daily_routine_records",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "date",
+        "column": "day_key"
+      },
+      {
+        "type": "uuid",
+        "column": "routine_key"
+      },
+      {
+        "type": "uuid",
+        "column": "schedule_version_id"
+      },
+      {
+        "type": "text",
+        "column": "title"
+      },
+      {
+        "type": "text",
+        "column": "description"
+      },
+      {
+        "type": "text",
+        "column": "preferred_time"
+      },
+      {
+        "type": "text",
+        "column": "category"
+      },
+      {
+        "type": "text",
+        "column": "status"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "completed_at"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "uuid",
+        "column": "compatibility_occurrence_id"
+      },
+      {
+        "type": "uuid",
+        "column": "activity_event_id"
+      },
+      {
+        "type": "boolean",
+        "column": "legacy_conflict"
+      }
+    ]
+  },
+  {
+    "table": "daily_timezone_transitions",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "from_timezone"
+      },
+      {
+        "type": "text",
+        "column": "to_timezone"
+      },
+      {
+        "type": "date",
+        "column": "previous_day"
+      },
+      {
+        "type": "date",
+        "column": "first_day"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "requested_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "effective_at"
+      },
+      {
+        "type": "text",
+        "column": "status"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      }
+    ]
+  },
+  {
+    "table": "daily_tracking_states",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "initial_timezone"
+      },
+      {
+        "type": "text",
+        "column": "scheduling_timezone"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "activated_at"
+      },
+      {
+        "type": "date",
+        "column": "activation_day"
+      },
+      {
+        "type": "date",
+        "column": "capture_starts_on"
+      },
+      {
+        "type": "date",
+        "column": "recovery_cursor"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "bigint",
+        "column": "data_revision"
+      }
+    ]
+  },
+  {
+    "table": "finance_targets",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "title"
+      },
+      {
+        "type": "numeric",
+        "column": "target_amount"
+      },
+      {
+        "type": "numeric",
+        "column": "current_amount"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "deadline"
+      },
+      {
+        "type": "text",
+        "column": "description"
+      },
+      {
+        "type": "character varying",
+        "column": "status"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "goal_checkins",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "goal_id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "integer",
+        "column": "duration_minutes"
+      },
+      {
+        "type": "text",
+        "column": "response_text"
+      },
+      {
+        "type": "text",
+        "column": "learned_text"
+      },
+      {
+        "type": "text",
+        "column": "blockers"
+      },
+      {
+        "type": "numeric",
+        "column": "progress_percent"
+      },
+      {
+        "type": "numeric",
+        "column": "progress_value"
+      },
+      {
+        "type": "jsonb",
+        "column": "ai_analysis"
+      },
+      {
+        "type": "text",
+        "column": "occurrence_key"
+      },
+      {
+        "type": "date",
+        "column": "occurrence_start_date"
+      },
+      {
+        "type": "date",
+        "column": "occurrence_end_date"
+      }
+    ]
+  },
+  {
+    "table": "goal_insights",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "goal_id"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "generated_at"
+      },
+      {
+        "type": "text",
+        "column": "summary"
+      },
+      {
+        "type": "character varying",
+        "column": "risk_level"
+      },
+      {
+        "type": "text",
+        "column": "estimate_text"
+      },
+      {
+        "type": "text",
+        "column": "recommendations"
+      },
+      {
+        "type": "character varying",
+        "column": "model_version"
+      }
+    ]
+  },
+  {
+    "table": "goals",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "title"
+      },
+      {
+        "type": "text",
+        "column": "description"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "deadline"
+      },
+      {
+        "type": "boolean",
+        "column": "measurable"
+      },
+      {
+        "type": "numeric",
+        "column": "target_value"
+      },
+      {
+        "type": "numeric",
+        "column": "progress_value"
+      },
+      {
+        "type": "character varying",
+        "column": "status"
+      },
+      {
+        "type": "character varying",
+        "column": "category"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "completed_at"
+      },
+      {
+        "type": "character varying",
+        "column": "progress_mode"
+      },
+      {
+        "type": "numeric",
+        "column": "starting_value"
+      },
+      {
+        "type": "character varying",
+        "column": "progress_unit"
+      },
+      {
+        "type": "boolean",
+        "column": "ai_coaching"
+      },
+      {
+        "type": "jsonb",
+        "column": "checkin_config"
+      },
+      {
+        "type": "jsonb",
+        "column": "deadline_reminder_config"
+      }
+    ]
+  },
+  {
+    "table": "money_entries",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "USER-DEFINED",
+        "column": "type"
+      },
+      {
+        "type": "numeric",
+        "column": "amount"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "date"
+      },
+      {
+        "type": "character varying",
+        "column": "source"
+      },
+      {
+        "type": "character varying",
+        "column": "category"
+      },
+      {
+        "type": "text",
+        "column": "note"
+      },
+      {
+        "type": "uuid",
+        "column": "target_id"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "character varying",
+        "column": "flow_kind"
+      },
+      {
+        "type": "uuid",
+        "column": "debt_id"
+      },
+      {
+        "type": "uuid",
+        "column": "expected_flow_id"
+      },
+      {
+        "type": "uuid",
+        "column": "bill_id"
+      },
+      {
+        "type": "uuid",
+        "column": "bill_occurrence_id"
+      },
+      {
+        "type": "uuid",
+        "column": "import_batch_id"
+      },
+      {
+        "type": "uuid",
+        "column": "import_row_id"
+      }
+    ]
+  },
+  {
+    "table": "profiles",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "display_name"
+      },
+      {
+        "type": "character varying",
+        "column": "timezone"
+      },
+      {
+        "type": "character varying",
+        "column": "locale"
+      },
+      {
+        "type": "text",
+        "column": "avatar_url"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      },
+      {
+        "type": "character varying",
+        "column": "current_timezone"
+      },
+      {
+        "type": "character varying",
+        "column": "current_city"
+      },
+      {
+        "type": "character varying",
+        "column": "current_country_code"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "current_location_updated_at"
+      },
+      {
+        "type": "character varying",
+        "column": "scheduling_timezone"
+      }
+    ]
+  },
+  {
+    "table": "push_subscriptions",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "endpoint"
+      },
+      {
+        "type": "text",
+        "column": "keys_p256dh"
+      },
+      {
+        "type": "text",
+        "column": "keys_auth"
+      },
+      {
+        "type": "character varying",
+        "column": "device_label"
+      },
+      {
+        "type": "boolean",
+        "column": "is_active"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "last_seen_at"
+      }
+    ]
+  },
+  {
+    "table": "recurring_tasks",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "title"
+      },
+      {
+        "type": "text",
+        "column": "description"
+      },
+      {
+        "type": "boolean",
+        "column": "active"
+      },
+      {
+        "type": "character varying",
+        "column": "preferred_time"
+      },
+      {
+        "type": "character varying",
+        "column": "category"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "archived_at"
+      },
+      {
+        "type": "jsonb",
+        "column": "reminder_config"
+      }
+    ]
+  },
+  {
+    "table": "reminder_deliveries",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "entity_type"
+      },
+      {
+        "type": "uuid",
+        "column": "entity_id"
+      },
+      {
+        "type": "text",
+        "column": "delivery_key"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "scheduled_for"
+      },
+      {
+        "type": "ARRAY",
+        "column": "channels"
+      },
+      {
+        "type": "ARRAY",
+        "column": "sent_channels"
+      },
+      {
+        "type": "ARRAY",
+        "column": "failed_channels"
+      },
+      {
+        "type": "jsonb",
+        "column": "payload"
+      },
+      {
+        "type": "character varying",
+        "column": "status"
+      },
+      {
+        "type": "integer",
+        "column": "attempt_count"
+      },
+      {
+        "type": "text",
+        "column": "last_error"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      }
+    ]
+  },
+  {
+    "table": "reminders",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "entity_type"
+      },
+      {
+        "type": "uuid",
+        "column": "entity_id"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "scheduled_for"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "sent_at"
+      },
+      {
+        "type": "USER-DEFINED",
+        "column": "channel"
+      },
+      {
+        "type": "USER-DEFINED",
+        "column": "status"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "snoozed_until"
+      },
+      {
+        "type": "boolean",
+        "column": "dnd_respected"
+      },
+      {
+        "type": "character varying",
+        "column": "title"
+      },
+      {
+        "type": "character varying",
+        "column": "kind"
+      },
+      {
+        "type": "ARRAY",
+        "column": "channels"
+      },
+      {
+        "type": "text",
+        "column": "delivery_key"
+      },
+      {
+        "type": "jsonb",
+        "column": "metadata_json"
+      },
+      {
+        "type": "text",
+        "column": "last_error"
+      },
+      {
+        "type": "integer",
+        "column": "attempt_count"
+      }
+    ]
+  },
+  {
+    "table": "routine_schedule_versions",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "routine_key"
+      },
+      {
+        "type": "integer",
+        "column": "version"
+      },
+      {
+        "type": "date",
+        "column": "effective_from"
+      },
+      {
+        "type": "boolean",
+        "column": "enabled"
+      },
+      {
+        "type": "text",
+        "column": "title"
+      },
+      {
+        "type": "text",
+        "column": "description"
+      },
+      {
+        "type": "text",
+        "column": "preferred_time"
+      },
+      {
+        "type": "text",
+        "column": "category"
+      },
+      {
+        "type": "jsonb",
+        "column": "schedule"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "sep28_crystal_awards",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "kind"
+      },
+      {
+        "type": "text",
+        "column": "source_key"
+      },
+      {
+        "type": "boolean",
+        "column": "eligible"
+      },
+      {
+        "type": "boolean",
+        "column": "allowed_source"
+      },
+      {
+        "type": "integer",
+        "column": "balance"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      }
+    ]
+  },
+  {
+    "table": "sep28_crystal_events",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "kind"
+      },
+      {
+        "type": "text",
+        "column": "source_key"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "integer",
+        "column": "delta"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "sep28_crystal_moments",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "integer",
+        "column": "level"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "reached_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "claimed_at"
+      }
+    ]
+  },
+  {
+    "table": "sep28_crystal_preferences",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "boolean",
+        "column": "enabled"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "activated_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "enabled_since"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      }
+    ]
+  },
+  {
+    "table": "task_occurrences",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "task_id"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "date"
+      },
+      {
+        "type": "USER-DEFINED",
+        "column": "status"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "completed_at"
+      },
+      {
+        "type": "text",
+        "column": "note"
+      }
+    ]
+  },
+  {
+    "table": "task_schedules",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "task_id"
+      },
+      {
+        "type": "integer",
+        "column": "weekday"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "start_date"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "end_date"
+      }
+    ]
+  },
+  {
+    "table": "telegram_connections",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "chat_id"
+      },
+      {
+        "type": "character varying",
+        "column": "username"
+      },
+      {
+        "type": "character varying",
+        "column": "first_name"
+      },
+      {
+        "type": "boolean",
+        "column": "is_active"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "connected_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      }
+    ]
+  },
+  {
+    "table": "telegram_link_tokens",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "token"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "expires_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "consumed_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "user_preferences",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "theme_preference"
+      },
+      {
+        "type": "boolean",
+        "column": "reduced_motion"
+      },
+      {
+        "type": "boolean",
+        "column": "weather_enabled"
+      },
+      {
+        "type": "boolean",
+        "column": "dnd_enabled"
+      },
+      {
+        "type": "character varying",
+        "column": "dnd_start_time"
+      },
+      {
+        "type": "character varying",
+        "column": "dnd_end_time"
+      },
+      {
+        "type": "jsonb",
+        "column": "reminder_defaults"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      },
+      {
+        "type": "ARRAY",
+        "column": "default_reminder_channels"
+      },
+      {
+        "type": "character varying",
+        "column": "untimed_task_reminder_time"
+      },
+      {
+        "type": "character varying",
+        "column": "incomplete_task_reminder_time"
+      },
+      {
+        "type": "boolean",
+        "column": "location_enabled"
+      }
+    ]
+  },
+  {
+    "table": "wealth_bill_occurrences",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "bill_id"
+      },
+      {
+        "type": "date",
+        "column": "due_day"
+      },
+      {
+        "type": "text",
+        "column": "timezone"
+      },
+      {
+        "type": "text",
+        "column": "title"
+      },
+      {
+        "type": "text",
+        "column": "category"
+      },
+      {
+        "type": "text",
+        "column": "merchant"
+      },
+      {
+        "type": "numeric",
+        "column": "expected_amount"
+      },
+      {
+        "type": "text",
+        "column": "status"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "paid_at"
+      },
+      {
+        "type": "numeric",
+        "column": "actual_amount"
+      },
+      {
+        "type": "uuid",
+        "column": "entry_id"
+      }
+    ]
+  },
+  {
+    "table": "wealth_csv_batches",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "source_key"
+      },
+      {
+        "type": "text",
+        "column": "file_hash"
+      },
+      {
+        "type": "text",
+        "column": "payload_hash"
+      },
+      {
+        "type": "text",
+        "column": "timezone"
+      },
+      {
+        "type": "integer",
+        "column": "row_count"
+      },
+      {
+        "type": "numeric",
+        "column": "income_total"
+      },
+      {
+        "type": "numeric",
+        "column": "expense_total"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      }
+    ]
+  },
+  {
+    "table": "wealth_csv_rows",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "uuid",
+        "column": "batch_id"
+      },
+      {
+        "type": "text",
+        "column": "source_key"
+      },
+      {
+        "type": "text",
+        "column": "file_hash"
+      },
+      {
+        "type": "integer",
+        "column": "row_number"
+      },
+      {
+        "type": "text",
+        "column": "reference_key"
+      },
+      {
+        "type": "uuid",
+        "column": "entry_id"
+      },
+      {
+        "type": "jsonb",
+        "column": "reviewed_row"
+      }
+    ]
+  },
+  {
+    "table": "wealth_debts",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "kind"
+      },
+      {
+        "type": "character varying",
+        "column": "counterparty"
+      },
+      {
+        "type": "numeric",
+        "column": "original_amount"
+      },
+      {
+        "type": "numeric",
+        "column": "outstanding_amount"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "due_date"
+      },
+      {
+        "type": "text",
+        "column": "note"
+      },
+      {
+        "type": "character varying",
+        "column": "status"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      }
+    ]
+  },
+  {
+    "table": "wealth_expected_flows",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "character varying",
+        "column": "direction"
+      },
+      {
+        "type": "character varying",
+        "column": "title"
+      },
+      {
+        "type": "character varying",
+        "column": "category"
+      },
+      {
+        "type": "numeric",
+        "column": "amount_min"
+      },
+      {
+        "type": "numeric",
+        "column": "amount_max"
+      },
+      {
+        "type": "character varying",
+        "column": "frequency"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "expected_on"
+      },
+      {
+        "type": "character varying",
+        "column": "timing_hint"
+      },
+      {
+        "type": "character varying",
+        "column": "status"
+      },
+      {
+        "type": "numeric",
+        "column": "last_actual_amount"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "last_confirmed_at"
+      },
+      {
+        "type": "text",
+        "column": "note"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      }
+    ]
+  },
+  {
+    "table": "wealth_monthly_budgets",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "date",
+        "column": "month"
+      },
+      {
+        "type": "text",
+        "column": "category"
+      },
+      {
+        "type": "text",
+        "column": "currency"
+      },
+      {
+        "type": "numeric",
+        "column": "limit_amount"
+      },
+      {
+        "type": "boolean",
+        "column": "active"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "removed_at"
+      }
+    ]
+  },
+  {
+    "table": "wealth_recurring_bills",
+    "schema": "public",
+    "columns": [
+      {
+        "type": "uuid",
+        "column": "id"
+      },
+      {
+        "type": "uuid",
+        "column": "user_id"
+      },
+      {
+        "type": "text",
+        "column": "title"
+      },
+      {
+        "type": "text",
+        "column": "category"
+      },
+      {
+        "type": "text",
+        "column": "merchant"
+      },
+      {
+        "type": "numeric",
+        "column": "amount"
+      },
+      {
+        "type": "text",
+        "column": "frequency"
+      },
+      {
+        "type": "date",
+        "column": "first_due"
+      },
+      {
+        "type": "date",
+        "column": "end_date"
+      },
+      {
+        "type": "text",
+        "column": "status"
+      },
+      {
+        "type": "boolean",
+        "column": "reminder_enabled"
+      },
+      {
+        "type": "integer",
+        "column": "revision"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "created_at"
+      },
+      {
+        "type": "timestamp with time zone",
+        "column": "updated_at"
+      }
+    ]
+  }
+]

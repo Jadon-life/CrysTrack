@@ -1,0 +1,78 @@
+{
+  "checks": [
+    "Saved Lagos month despite New York browser; exact create/edit/over-limit/near-limit and precision validation; no budget is distinct from zero",
+    "Indicative USD uses existing currency control/provider quote; editor and persisted limits remain canonical NGN",
+    "Five widths: no document overflow, >=40px controls, semantic meters/date/labels, scoped axe zero violations, keyboard modal containment/Escape/focus return, physical switch and bright scenic photo preserved",
+    "Committed-but-lost budget create response explicitly replays exact intent: one source, revision, receipt; no duplicate limit or shards",
+    "Racing editor gets 409 and refreshes competing value; remove/recreate retains one revision identity; mass assignment rejected; ledger/targets/debts/expected flows/Wealth forecasts/crystals/daily facts unchanged byte-for-byte",
+    "Existing Money entry UI still records a real expense above the limit; Budgets refreshes its complete aggregate after the parent ledger reload",
+    "Past month stays read-only without backfill; failed read removes stale totals; tab focus discovers actual category edits; saved-zone midnight opens next month without carrying targets and an old editor cannot retarget the new month",
+    "Real local sign-out denies budget API; second owner sees no first-owner limits or spending"
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ],
+      "ariaReview": []
+    },
+    {
+      "width": 430,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ],
+      "ariaReview": []
+    },
+    {
+      "width": 768,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ],
+      "ariaReview": []
+    },
+    {
+      "width": 1280,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ],
+      "ariaReview": []
+    },
+    {
+      "width": 1440,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ],
+      "ariaReview": []
+    }
+  ],
+  "externalRequestsBlocked": 10,
+  "browserErrors": [],
+  "rate": "Synthetic indicative quote: 1600 NGN/USD",
+  "brightContrast": [
+    {
+      "selector": "h2",
+      "ratio": 11.679978616039618
+    },
+    {
+      "selector": "p",
+      "ratio": 10.661611395292335
+    },
+    {
+      "selector": "button",
+      "ratio": 4.5553003392738765
+    }
+  ]
+}

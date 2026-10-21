@@ -1,0 +1,28 @@
+✔ offline replay uses one exact receipt, compatibility row, activity and +5; undo/recomplete and +50 remain authoritative (6573.161563ms)
+✔ full immutable metadata and mode bind requestId; legacy online cannot spoof offline and vice versa (11472.979587ms)
+✔ offline rejects archive after snapshot without touching existing online semantics (2692.821774ms)
+✔ offline rejects delete after snapshot without touching existing online semantics (2244.751327ms)
+✔ offline rejects inactive after snapshot without touching existing online semantics (2095.153411ms)
+✔ offline rejects reactivated after snapshot without touching existing online semantics (2057.717363ms)
+✔ offline rejects definition after snapshot without touching existing online semantics (1976.499738ms)
+✔ offline rejects schedule after snapshot without touching existing online semantics (1982.763818ms)
+✔ changed frozen revision/context/snapshot, foreign routine and incomplete or legacy evidence fail closed (5122.234266ms)
+✔ incomplete assembly and installation-day evidence cannot authorize offline replay (3277.817456ms)
+✔ saved-zone transitions, closure and DST midnight reject new writes, retain read-only historical receipts (4742.269036ms)
+✔ failure during canonical activity write rolls back outcome, compatibility, enriched receipt and shards (2162.898991ms)
+✔ deterministic concurrent archive: removal obtains serialization first (1726.431423ms)
+✔ deterministic concurrent archive: replay obtains serialization first (1916.706336ms)
+✔ deterministic concurrent delete: removal obtains serialization first (1729.484965ms)
+✔ deterministic concurrent delete: replay obtains serialization first (1832.453872ms)
+✔ two concurrent identical offline deliveries commit exactly once (1809.3527ms)
+✔ real local Auth/REST denies anonymous, foreign owner, forged JWT and direct receipt writes; service has no execution grant (2151.925294ms)
+✔ SQL validation rejects unknown owner/reward fields, missing mode, bad scalars and oversized input (3630.128793ms)
+✔ release-only DB freeze rejects new offline writes; receipt lookup is read-only and safe (2462.516938ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63892.219711

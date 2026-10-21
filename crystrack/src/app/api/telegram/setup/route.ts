@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
   if (!botToken || !webhookSecret) return NextResponse.json({ error: 'Telegram environment variables are incomplete' }, { status: 503 });
 
   const webhookUrl = `${origin.replace(/\/$/, '')}/api/telegram/webhook`;
+  assertRealServicesAllowed();
   const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

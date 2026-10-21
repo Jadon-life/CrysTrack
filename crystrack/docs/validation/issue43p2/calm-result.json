@@ -1,0 +1,1599 @@
+{
+  "checks": [
+    {
+      "width": 375,
+      "theme": "dark",
+      "todayFirstTaskY": 609.59375
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "wealthHeight": 2082,
+      "count": 2009
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "todayFirstTaskY": 609.59375
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "wealthHeight": 2082,
+      "count": 2009
+    },
+    {
+      "width": 430,
+      "theme": "dark",
+      "todayFirstTaskY": 589.59375
+    },
+    {
+      "width": 430,
+      "theme": "dark",
+      "wealthHeight": 2026,
+      "count": 2009
+    },
+    {
+      "width": 430,
+      "theme": "light",
+      "todayFirstTaskY": 589.59375
+    },
+    {
+      "width": 430,
+      "theme": "light",
+      "wealthHeight": 2026,
+      "count": 2009
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "todayFirstTaskY": 609.59375
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "wealthHeight": 1871,
+      "count": 2009
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "todayFirstTaskY": 609.59375
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "wealthHeight": 1871,
+      "count": 2009
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "todayFirstTaskY": 553
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "wealthHeight": 1552,
+      "count": 2009
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "todayFirstTaskY": 553
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "wealthHeight": 1552,
+      "count": 2009
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "todayFirstTaskY": 553
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "wealthHeight": 1552,
+      "count": 2009
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "todayFirstTaskY": 553
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "wealthHeight": 1552,
+      "count": 2009
+    },
+    "375px combined journey: late-preferred task complete/undo/skip/undo → Tasks Week grid → Assignments → Wealth exact keyboard dialog → over-limit Budgets → explicit paid bill consent → CSV mapping/correction/review/confirm → exact five-row export → Today; no write without consent and no CSV shards"
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "theme": "dark Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 64,
+          "width": 351,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 87,
+          "width": 315,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "dark expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "light Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 64,
+          "width": 351,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 87,
+          "width": 315,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "light expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 349,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 87,
+          "width": 349,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "theme": "dark Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 44,
+          "width": 406,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 67.5,
+          "width": 370,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "theme": "dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 87,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "theme": "dark expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 87,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "theme": "light Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 44,
+          "width": 406,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 67.5,
+          "width": 370,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "theme": "light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 87,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "theme": "light expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 87,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 404,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 44,
+          "width": 728,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 67.5,
+          "width": 684,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "dark expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 44,
+          "width": 728,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 67.5,
+          "width": 684,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "theme": "light expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 726,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "dark Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 44,
+          "width": 1208,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 87,
+          "width": 288,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 288,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 390,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 67.5,
+          "width": 348,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 594,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 594,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "dark expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 594,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 594,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "light Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 44,
+          "width": 1208,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 87,
+          "width": 288,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 288,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 390,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 67.5,
+          "width": 348,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 594,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 594,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "theme": "light expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 594,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 594,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 1206,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 44,
+          "width": 1368,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 87,
+          "width": 328,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 328,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 443.34375,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 67.5,
+          "width": 401.34375,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 674,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 674,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.4077331065924925
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 674,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 674,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light Today",
+      "violations": [],
+      "controls": [
+        {
+          "name": "2 assignments need attention · View deadlines",
+          "height": 44,
+          "width": 1368,
+          "contrast": 10.500843247679011
+        },
+        {
+          "name": "Calendar previewAssignment dates · separate from the task Week grid",
+          "height": 87,
+          "width": 328,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Daily reminder",
+          "height": 56,
+          "width": 328,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Goal check-ins0 goals · check-ins and progress",
+          "height": 67.5,
+          "width": 443.34375,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Wealth detailsSafe to spend, net position and spending patterns",
+          "height": 67.5,
+          "width": 401.34375,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Day overviewTask, goal, assignment and savings summaries",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Recent activityYour recorded activity and full history",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 674,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 674,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light expanded",
+      "violations": [],
+      "controls": [
+        {
+          "name": "₦ NGN",
+          "height": 40,
+          "width": 60,
+          "contrast": 6.837117751389963
+        },
+        {
+          "name": "$ USD",
+          "height": 40,
+          "width": 60,
+          "contrast": 9.15777014233759
+        },
+        {
+          "name": "Balance detailsSaved, safe to spend and net position",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Spending insights & forecastCashflow, category patterns, projections and existing AI commentary",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Expected moneyManage unconfirmed income and expense plans",
+          "height": 67.5,
+          "width": 674,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Savings goalsView targets or add a goal",
+          "height": 67.5,
+          "width": 674,
+          "contrast": 8.009739836813406
+        },
+        {
+          "name": "Currency & reporting helpNGN source amounts, reference rate and saved timezone",
+          "height": 67.5,
+          "width": 1366,
+          "contrast": 8.009739836813406
+        }
+      ]
+    }
+  ],
+  "exports": [],
+  "browserErrors": [],
+  "externalRequestsBlocked": 176,
+  "sourceHash": "a2b8bbd4aa4a23b199992df302853d9c3690d2ec8c656bb1d921b80ba13afd8c",
+  "sourceHashAfter": "a2b8bbd4aa4a23b199992df302853d9c3690d2ec8c656bb1d921b80ba13afd8c"
+}

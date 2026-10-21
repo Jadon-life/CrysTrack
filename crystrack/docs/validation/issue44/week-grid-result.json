@@ -1,0 +1,59 @@
+{
+  "day": "2026-10-22",
+  "timezone": "Africa/Lagos",
+  "checks": [
+    "Seven saved-zone columns: completed/skipped/missed/pending, partial unverified, planned future; deleted routine retains recorded name",
+    "Keyboard complete and multiple Today actions: +5 each; all done today adds no +50; focus restored after authoritative refresh",
+    "Undo/skip/unskip and commit-then-network-failure retry preserve exact requestId/revision; one ledger award and one receipt",
+    "Competing write returns 409; UI refreshes actual Skipped result and never blindly retries stale intent",
+    "Past/future writes denied; unavailable endpoint removes stale outcome claims and recovers on refresh",
+    "Previous week unknown history, active/history filters, 34 routine paging and stale schedule cursor reset verified",
+    "Saved-zone midnight/timezone transition moves Today without rewriting old Lagos columns; finance rows unchanged"
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "externalRequestsBlocked": 7,
+  "browserErrors": [],
+  "accessibility": [
+    {
+      "width": 375,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 430,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 768,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 1280,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 1440,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    }
+  ]
+}

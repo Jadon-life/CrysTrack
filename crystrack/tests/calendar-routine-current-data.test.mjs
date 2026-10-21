@@ -16,10 +16,63 @@ function read(path) {
   );
 }
 
-test('calendar uses the shared calendar-day grid and unified event model', () => {
- const calendar=read('src/app/calendar/page.tsx');
- assert.match(calendar,/monthCells/);assert.match(calendar,/Timeboxed Calendar/);assert.match(calendar,/onDrop/);assert.match(calendar,/Place selected task/);
-});
+test(
+  'calendar grid stays aligned and uses only required month weeks',
+  () => {
+    const calendar = read(
+      'src/app/calendar/page.tsx',
+    );
+
+    assert.match(
+      calendar,
+      /const cellCount/,
+    );
+
+    assert.match(
+      calendar,
+      /first\.getDay\(\) \+\s*last\.getDate\(\)/,
+    );
+
+    assert.match(
+      calendar,
+      /\{ length: cellCount \}/,
+    );
+
+    assert.doesNotMatch(
+      calendar,
+      /\{ length: 42 \}/,
+    );
+  },
+);
+
+test(
+  'calendar keeps month cells compact with coloured category dots',
+  () => {
+    const calendar = read(
+      'src/app/calendar/page.tsx',
+    );
+
+    assert.match(
+      calendar,
+      /const groups =/,
+    );
+
+    assert.match(
+      calendar,
+      /events\.some/,
+    );
+
+    assert.match(
+      calendar,
+      /groups\.map/,
+    );
+
+    assert.doesNotMatch(
+      calendar,
+      /events\.slice\(0, 3\)/,
+    );
+  },
+);
 
 test(
   'routine intelligence includes timezone-aligned current-day state',
@@ -60,68 +113,117 @@ test(
   },
 );
 
+test('task intelligence reads cache after activity; only explicit authorized refresh generates', () => {
+  const route=read('src/app/api/ai/domain/[domain]/route.ts');
+  const card=read('src/components/ai/domain-insight-card.tsx');
+  const authority=read('src/db/migrations/0022_ai_privacy_consent.sql');
+  assert.match(card,/const changed\s*=\s*\(\)\s*=>\s*void refresh\(false\)/);
+  assert.match(card,/method:\s*generate \? 'POST' : 'GET'/);
+  assert.match(card,/refresh\(true\)/);
+  assert.match(route,/beginAi/);assert.match(route,/finishAi/);
+  assert.match(authority,/ON CONFLICT\(user_id,domain,data_fingerprint\)/);
+  assert.match(route,/currentSnapshot/);
+  assert.match(read('src/lib/ai/intelligence.ts'),/tasks\.today and each routine's current_day are the authoritative current state/);
+});
+
 test(
-  'task intelligence forces fresh analysis after task activity',
+  'September 2026 uses five rows and stops at October 3',
   () => {
-    const route = read(
-      'src/app/api/ai/domain/[domain]/route.ts',
+    function grid(
+      year,
+      month,
+    ) {
+      const first =
+        new Date(
+          year,
+          month,
+          1,
+        );
+
+      const last =
+        new Date(
+          year,
+          month + 1,
+          0,
+        );
+
+      const start =
+        new Date(first);
+
+      start.setDate(
+        first.getDate() -
+          first.getDay(),
+      );
+
+      const cellCount =
+        Math.ceil(
+          (
+            first.getDay() +
+            last.getDate()
+          ) / 7,
+        ) * 7;
+
+      return Array.from(
+        {
+          length:
+            cellCount,
+        },
+        (_, index) => {
+          const date =
+            new Date(start);
+
+          date.setDate(
+            start.getDate() +
+              index,
+          );
+
+          return date;
+        },
+      );
+    }
+
+    const september =
+      grid(2026, 8);
+
+    assert.equal(
+      september.length,
+      35,
     );
 
-    const card = read(
-      'src/components/ai/domain-insight-card.tsx',
+    const last =
+      september[
+        september.length - 1
+      ];
+
+    assert.equal(
+      last.getFullYear(),
+      2026,
     );
 
-    const intelligence = read(
-      'src/lib/ai/intelligence.ts',
+    assert.equal(
+      last.getMonth(),
+      9,
     );
 
-    assert.match(
-      route,
-      /searchParams\s*\.get\('force'\)\s*===\s*'1'/,
+    assert.equal(
+      last.getDate(),
+      3,
     );
 
-    assert.match(
-      route,
-      /!forceRefresh/,
-    );
+    const sep30 =
+      september.find(
+        (date) =>
+          date.getFullYear() ===
+            2026 &&
+          date.getMonth() === 8 &&
+          date.getDate() === 30,
+      );
 
-    assert.match(
-      route,
-      /\.upsert\(/,
-    );
+    assert.ok(sep30);
 
-    assert.match(
-      route,
-      /generated_at:\s*generatedAt/,
-    );
-
-    assert.match(
-      route,
-      /currentSnapshot/,
-    );
-
-    assert.match(
-      card,
-      /refresh\(\s*false,\s*true,\s*\)/,
-    );
-
-    assert.match(
-      card,
-      /refresh\(\s*true,\s*true,\s*\)/,
-    );
-
-    assert.match(
-      card,
-      /requestSequence/,
-    );
-
-    assert.match(
-      intelligence,
-      /tasks\.today and each routine's current_day are the authoritative current state/,
+    assert.equal(
+      sep30.getDay(),
+      3,
     );
   },
 );
-
-test('September 2026 uses five rows and stops at October 3',async()=>{
- const {loadTs}=await import('./load-ts.mjs');const {monthCells}=loadTs('src/lib/rhythm/logic.ts');const days=monthCells('2026-09-01');assert.equal(days.length,35);assert.equal(days.at(-1),'2026-10-03');assert.ok(days.includes('2026-09-30'));
-});

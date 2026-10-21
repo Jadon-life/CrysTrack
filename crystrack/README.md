@@ -2,6 +2,11 @@
 
 Your personal progress companion. Track tasks, goals, assignments, and finances in one beautiful, immersive dashboard.
 
+For the current zero-billing development workflow, use the
+[local-only Supabase guide](docs/local-supabase-free.md) and
+[Preview safety audit](docs/preview-write-safety.md). The legacy deployment steps
+below are not authorization to deploy or test against a hosted database.
+
 ## Quick Start
 
 1. **Install dependencies**

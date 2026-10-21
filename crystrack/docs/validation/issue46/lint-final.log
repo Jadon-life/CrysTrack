@@ -1,0 +1,20 @@
+
+> crystrack@1.0.0 lint
+> eslint .
+
+
+/workspace/CrysTrack/crystrack/src/components/layout/environment-background.tsx
+  34:6  warning  React Hook React.useEffect has a missing dependency: 'environment'. Either include it or remove the dependency array                                                                                                                                                                     react-hooks/exhaustive-deps
+  38:5  warning  React Hook React.useMemo has a missing dependency: 'environment'. Either include it or remove the dependency array                                                                                                                                                                       react-hooks/exhaustive-deps
+  50:7  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/workspace/CrysTrack/crystrack/src/components/navigation/physical-theme-switch.tsx
+  57:5  warning  The attribute aria-description is not supported by the role switch  jsx-a11y/role-supports-aria-props
+
+✖ 4 problems (0 errors, 4 warnings)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

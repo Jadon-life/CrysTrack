@@ -1,6 +1,8 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { createClient } from '@supabase/supabase-js';
 
 export function createAdminClient() {
+  assertRealServicesAllowed();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error('SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY) is required for scheduled reminder delivery');

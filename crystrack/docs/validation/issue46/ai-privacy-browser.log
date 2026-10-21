@@ -1,0 +1,4571 @@
+PASS: AI privacy flows, both themes, owner isolation and source invariants at 375px
+PASS: AI privacy flows, both themes, owner isolation and source invariants at 430px
+PASS: AI privacy flows, both themes, owner isolation and source invariants at 768px
+PASS: AI privacy flows, both themes, owner isolation and source invariants at 1280px
+PASS: AI privacy flows, both themes, owner isolation and source invariants at 1440px
+{
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "checks": [
+    "Real local HTTP: all domain/goal/Wealth adapters, OFF/ON explicit third-owner check-ins, cross-tab in-flight revocation and no late chat storage",
+    "All model HTTP intercepted by guarded Node preload; no real provider call. Separate unconfigured process stays offline."
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "label": "off dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "disclosure dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "consent dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "minimal dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "clear dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "off light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "disclosure light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "consent light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "minimal light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "clear light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "backend unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "label": "backend unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "off dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "disclosure dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "consent dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "minimal dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "clear dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "off light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "disclosure light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "consent light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "minimal light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "clear light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "backend unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 430,
+      "label": "backend unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "off dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "disclosure dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "consent dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "minimal dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "clear dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "off light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "disclosure light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "consent light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "minimal light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "clear light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "backend unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "label": "backend unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "off dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "disclosure dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "consent dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "minimal dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "clear dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "off light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "disclosure light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "consent light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "minimal light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "clear light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "backend unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "label": "backend unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "off dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "disclosure dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "consent dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "minimal dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "clear dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "off light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "disclosure light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "consent light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "minimal light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.521598391443199
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "clear light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Cancel",
+          "width": 77.796875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 18.413990730203857
+        },
+        {
+          "tag": "LABEL",
+          "contrast": 18.413990730203857
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "backend unconfigured dark",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "label": "backend unconfigured light",
+      "violations": [],
+      "controls": [
+        {
+          "name": "Use external AI",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Include my Wealth data",
+          "width": 64,
+          "height": 40
+        },
+        {
+          "name": "Review what AI receives",
+          "width": 190.09375,
+          "height": 40
+        },
+        {
+          "name": "Clear local AI history",
+          "width": 166.671875,
+          "height": 40
+        }
+      ],
+      "contrasts": [
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 11.370916431216052
+        },
+        {
+          "tag": "BUTTON",
+          "contrast": 12.521598391443199
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        },
+        {
+          "tag": "P",
+          "contrast": 12.588772848874413
+        },
+        {
+          "tag": "P",
+          "contrast": 12.795650344908301
+        }
+      ]
+    }
+  ],
+  "hashes": [
+    {
+      "width": 375,
+      "before": "659e5173a7c5c752151119ca67449d61c0a5117ed687e8cab6a7944964b23d32",
+      "after": "659e5173a7c5c752151119ca67449d61c0a5117ed687e8cab6a7944964b23d32",
+      "ledgerRows": 3,
+      "availableNGN": "33749.75"
+    },
+    {
+      "width": 430,
+      "before": "cd4967ce4c3d34bfbfd3c3bcce06de1b6cde4353e20d2fec83eedb485a11ff47",
+      "after": "cd4967ce4c3d34bfbfd3c3bcce06de1b6cde4353e20d2fec83eedb485a11ff47",
+      "ledgerRows": 3,
+      "availableNGN": "33749.75"
+    },
+    {
+      "width": 768,
+      "before": "d3620c99f4c20f9f8ce174b0c60ae324cec44c8558f65b799a639ac115578996",
+      "after": "d3620c99f4c20f9f8ce174b0c60ae324cec44c8558f65b799a639ac115578996",
+      "ledgerRows": 3,
+      "availableNGN": "33749.75"
+    },
+    {
+      "width": 1280,
+      "before": "c5765e027b59cf887465b363ee532dc420efe2f813b6ed8514964f332a83ea40",
+      "after": "c5765e027b59cf887465b363ee532dc420efe2f813b6ed8514964f332a83ea40",
+      "ledgerRows": 3,
+      "availableNGN": "33749.75"
+    },
+    {
+      "width": 1440,
+      "before": "5b5f0767caa695302da822bed8956b896ebb21a236ff62c73785cf236ef89cc2",
+      "after": "5b5f0767caa695302da822bed8956b896ebb21a236ff62c73785cf236ef89cc2",
+      "ledgerRows": 3,
+      "availableNGN": "33749.75"
+    }
+  ],
+  "modelCalls": 29,
+  "realProviderCalls": 0,
+  "browserErrors": [],
+  "externalRequestsBlocked": 296
+}

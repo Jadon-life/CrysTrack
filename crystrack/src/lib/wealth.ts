@@ -1,23 +1,8 @@
-import type { WealthDisplayCurrency } from "@/config/experience";
-import {
-  toKobo,
-  signedKobo,
-  fromKobo,
-  divideMoney,
-  ratioPercent,
-  usdCents,
-  formatMinor,
-} from "@/lib/money";
-import { dateKeyForInstant } from "@/lib/reminders";
-import {
-  availableImpact,
-  cashForecast,
-  merchantCategory,
-} from "@/lib/finance/logic";
+import type { WealthDisplayCurrency } from '@/config/experience';
+
 export interface MoneyEntryLike {
   id?: string;
   type: string;
-  deleted_at?: string | null;
   flow_kind?: string | null;
   amount: number | string;
   date: string;
@@ -29,22 +14,21 @@ export interface MoneyEntryLike {
 
 export interface WealthDebtLike {
   id: string;
-  kind: "receivable" | "liability";
+  kind: 'receivable' | 'liability';
   original_amount: number | string;
   outstanding_amount: number | string;
   due_date?: string | null;
-  status: "open" | "settled";
+  status: 'open' | 'settled';
 }
 
 export interface ExpectedFlowLike {
   id: string;
-  direction: "income" | "expense";
+  direction: 'income' | 'expense';
   amount_min: number | string;
   amount_max?: number | string | null;
-  frequency:
-    "one_off" | "weekly" | "monthly" | "quarterly" | "yearly" | "irregular";
+  frequency: 'one_off' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'irregular';
   expected_on?: string | null;
-  status: "active" | "paused" | "completed";
+  status: 'active' | 'paused' | 'completed';
   last_confirmed_at?: string | null;
 }
 
@@ -67,7 +51,6 @@ export interface CategoryPattern {
 }
 
 export interface WealthSummary {
-  exact: Record<string, string>;
   availableBalance: number;
   savedBalance: number;
   receivables: number;
@@ -87,246 +70,335 @@ export interface WealthSummary {
   projectedMonthEndHigh: number;
   dataMonths: number;
   categoryPatterns: CategoryPattern[];
-  spendingVelocity: "low" | "normal" | "elevated" | "insufficient";
+  spendingVelocity: 'low' | 'normal' | 'elevated' | 'insufficient';
   deterministicRemark: string;
 }
 
-const z = BigInt(0),
-  positive = (n: bigint) => (n > z ? n : z);
-// Legacy numeric DTOs are display/AI boundaries only. Every calculation above that boundary is integer kobo.
-const display = (n: bigint) => Number(fromKobo(n));
-export function summarizeWealth(
-  entries: MoneyEntryLike[],
-  debts: WealthDebtLike[] = [],
-  flows: ExpectedFlowLike[] = [],
-  now = new Date(),
-  timezone = "UTC",
-): WealthSummary {
-  const day = dateKeyForInstant(now, timezone),
-    month = day.slice(0, 7),
-    elapsed = Number(day.slice(8));
-  const end = new Date(`${month}-01T00:00:00Z`);
-  end.setUTCMonth(end.getUTCMonth() + 1);
-  end.setUTCDate(0);
-  const days = end.getUTCDate(),
-    prev = new Date(`${month}-01T00:00:00Z`);
-  prev.setUTCMonth(prev.getUTCMonth() - 1);
-  const prior = prev.toISOString().slice(0, 7);
-  let available = z,
-    saved = z,
-    income = z,
-    expenses = z,
-    allocated = z,
-    priorExpenses = z;
-  const months = new Set<string>(),
-    totals = new Map<string, Map<string, bigint>>();
-  for (const e of entries) {
-    if (e.deleted_at) continue;
-    const key = dateKeyForInstant(new Date(e.date), timezone).slice(0, 7);
-    if (key > month) continue;
-    const amount = toKobo(e.amount),
-      kind = e.flow_kind || e.type;
-    months.add(key);
-    available += availableImpact(e);
-    if (kind === "saving") saved += amount;
-    if (kind === "savings_release") saved -= amount;
-    if (key === month) {
-      if (kind === "income") income += amount;
-      if (kind === "expense") expenses += amount;
-      if (kind === "saving") allocated += amount;
-      if (kind === "savings_release") allocated -= amount;
-    }
-    if (kind === "expense") {
-      if (key === prior) priorExpenses += amount;
-      const category = e.category || "Other",
-        map = totals.get(category) || new Map<string, bigint>();
-      map.set(key, (map.get(key) || z) + amount);
-      totals.set(category, map);
+const amountOf = (value: number | string | null | undefined) => {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+};
+
+const flowKind = (entry: MoneyEntryLike) => String(entry.flow_kind || entry.type || '').toLowerCase();
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function endOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function sameMonth(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+function previousMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() - 1, 1);
+}
+
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function affectsAvailable(kind: string, amount: number) {
+  switch (kind) {
+    case 'income':
+    case 'borrow':
+    case 'receivable_repayment':
+    case 'savings_release':
+      return amount;
+    case 'expense':
+    case 'saving':
+    case 'lend':
+    case 'liability_repayment':
+      return -amount;
+    default:
+      return 0;
+  }
+}
+
+function affectsSavings(kind: string, amount: number) {
+  if (kind === 'saving') return amount;
+  if (kind === 'savings_release') return -amount;
+  return 0;
+}
+
+function isConfirmedThisMonth(flow: ExpectedFlowLike, now: Date) {
+  if (!flow.last_confirmed_at) return false;
+  return sameMonth(new Date(flow.last_confirmed_at), now);
+}
+
+function expectedFlowCount(flow: ExpectedFlowLike, now: Date) {
+  if (flow.status !== 'active' || isConfirmedThisMonth(flow, now)) return 0;
+
+  if (flow.frequency === 'one_off') {
+    if (!flow.expected_on) return 1;
+    const expected = new Date(flow.expected_on);
+    return sameMonth(expected, now) ? 1 : 0;
+  }
+
+  if (flow.frequency === 'weekly') {
+    const daysInMonth = endOfMonth(now).getDate();
+    const remainingDays = Math.max(0, daysInMonth - now.getDate() + 1);
+    return Math.max(1, Math.ceil(remainingDays / 7));
+  }
+
+  if (flow.frequency === 'monthly' || flow.frequency === 'irregular') return 1;
+
+  if (flow.frequency === 'quarterly' || flow.frequency === 'yearly') {
+    if (!flow.expected_on) return 0;
+    return sameMonth(new Date(flow.expected_on), now) ? 1 : 0;
+  }
+
+  return 0;
+}
+
+function expectedRange(flows: ExpectedFlowLike[], now: Date) {
+  let incomeMin = 0;
+  let incomeMax = 0;
+  let expenseMin = 0;
+  let expenseMax = 0;
+
+  for (const flow of flows) {
+    const count = expectedFlowCount(flow, now);
+    if (!count) continue;
+    const min = amountOf(flow.amount_min) * count;
+    const max = amountOf(flow.amount_max ?? flow.amount_min) * count;
+    if (flow.direction === 'income') {
+      incomeMin += min;
+      incomeMax += max;
+    } else {
+      expenseMin += min;
+      expenseMax += max;
     }
   }
-  const projection = divideMoney(expenses * BigInt(days), BigInt(elapsed)),
-    change =
-      priorExpenses > z
-        ? ratioPercent(projection - priorExpenses, priorExpenses)
+
+  return { incomeMin, incomeMax, expenseMin, expenseMax };
+}
+
+function dueLiabilities(debts: WealthDebtLike[], now: Date) {
+  const monthEnd = endOfMonth(now).getTime();
+  return debts
+    .filter((debt) => debt.kind === 'liability' && debt.status === 'open')
+    .filter((debt) => !debt.due_date || new Date(debt.due_date).getTime() <= monthEnd)
+    .reduce((sum, debt) => sum + amountOf(debt.outstanding_amount), 0);
+}
+
+function buildCategoryPatterns(entries: MoneyEntryLike[], now: Date): CategoryPattern[] {
+  const currentMonth = monthKey(now);
+  const priorMonths = new Set<string>();
+  const categoryMonthTotals = new Map<string, Map<string, number>>();
+
+  for (const entry of entries) {
+    if (flowKind(entry) !== 'expense') continue;
+    const date = new Date(entry.date);
+    if (Number.isNaN(date.getTime())) continue;
+    const key = monthKey(date);
+    if (key !== currentMonth) priorMonths.add(key);
+    const category = String(entry.category || 'Other').trim() || 'Other';
+    const monthMap = categoryMonthTotals.get(category) || new Map<string, number>();
+    monthMap.set(key, (monthMap.get(key) || 0) + amountOf(entry.amount));
+    categoryMonthTotals.set(category, monthMap);
+  }
+
+  const baselineKeys = Array.from(priorMonths).sort().slice(-3);
+  const daysInMonth = endOfMonth(now).getDate();
+  const elapsed = Math.max(1, now.getDate());
+  const projectionFactor = daysInMonth / elapsed;
+  const currentTotal = Array.from(categoryMonthTotals.values())
+    .reduce((sum, monthMap) => sum + (monthMap.get(currentMonth) || 0), 0);
+
+  return Array.from(categoryMonthTotals.entries())
+    .map(([category, monthMap]) => {
+      const current = monthMap.get(currentMonth) || 0;
+      const baselineValues = baselineKeys.map((key) => monthMap.get(key) || 0);
+      const baseline = baselineValues.length
+        ? baselineValues.reduce((sum, value) => sum + value, 0) / baselineValues.length
         : null;
-  const baselineKeys = Array.from(months)
-    .filter((m) => m < month)
-    .sort()
-    .slice(-3);
-  const categoryPatterns = Array.from(totals.entries())
-    .map(([category, map]) => {
-      const current = map.get(month) || z,
-        baseline = baselineKeys.length
-          ? divideMoney(
-              baselineKeys.reduce((n, k) => n + (map.get(k) || z), z),
-              BigInt(baselineKeys.length),
-            )
-          : null,
-        projected = divideMoney(current * BigInt(days), BigInt(elapsed));
+      const projected = current * projectionFactor;
+      const vsBaselinePct = baseline && baseline > 0 ? ((projected - baseline) / baseline) * 100 : null;
       return {
         category,
-        current: display(current),
-        baseline: baseline === null ? null : display(baseline),
-        projected: display(projected),
-        vsBaselinePct:
-          baseline && baseline > z
-            ? ratioPercent(projected - baseline, baseline)
-            : null,
-        sharePct: ratioPercent(current, expenses),
+        current,
+        baseline,
+        projected,
+        vsBaselinePct,
+        sharePct: currentTotal > 0 ? (current / currentTotal) * 100 : 0,
       };
     })
     .sort((a, b) => b.current - a.current);
+}
+
+function remarkFromSummary(input: Omit<WealthSummary, 'deterministicRemark'>) {
+  if (input.dataMonths < 2) {
+    return 'Keep recording consistently. CrysTrack needs more history before it can judge your normal spending pattern reliably.';
+  }
+
+  const anomaly = input.categoryPatterns.find((item) => (item.vsBaselinePct ?? 0) >= 25);
+  if (input.netSpendableFlow < 0) {
+    return anomaly
+      ? `Your spendable cashflow is negative this month, with ${anomaly.category.toLowerCase()} running materially above its recent baseline.`
+      : 'Your spendable cashflow is negative this month. Review the categories driving the largest outflow before adding new commitments.';
+  }
+
+  if (input.spendingVelocity === 'elevated') {
+    return anomaly
+      ? `${anomaly.category} is the clearest spending deviation right now. Cashflow is still positive, but your current spending pace is above your recent pattern.`
+      : 'Cashflow is positive, but spending is running faster than your recent monthly pattern.';
+  }
+
+  if ((input.savingsRatePct ?? 0) >= 20) {
+    return 'Your current cashflow is positive and your savings allocation is holding up well against your recorded income.';
+  }
+
+  return 'Your cashflow is currently positive. Keep recording consistently so CrysTrack can distinguish normal variation from a genuine change in spending behaviour.';
+}
+
+export function summarizeWealth(
+  entries: MoneyEntryLike[],
+  debts: WealthDebtLike[] = [],
+  expectedFlows: ExpectedFlowLike[] = [],
+  now = new Date(),
+): WealthSummary {
+  let availableBalance = 0;
+  let savedBalance = 0;
+  let monthIncome = 0;
+  let monthExpenses = 0;
+  let monthSaved = 0;
+  const months = new Set<string>();
+
+  for (const entry of entries) {
+    const amount = amountOf(entry.amount);
+    const kind = flowKind(entry);
+    const date = new Date(entry.date);
+    if (!Number.isNaN(date.getTime())) months.add(monthKey(date));
+
+    availableBalance += affectsAvailable(kind, amount);
+    savedBalance += affectsSavings(kind, amount);
+
+    if (!Number.isNaN(date.getTime()) && sameMonth(date, now)) {
+      if (kind === 'income') monthIncome += amount;
+      if (kind === 'expense') monthExpenses += amount;
+      if (kind === 'saving') monthSaved += amount;
+      if (kind === 'savings_release') monthSaved -= amount;
+    }
+  }
+
+  savedBalance = Math.max(0, savedBalance);
+
   const receivables = debts
-      .filter((d) => d.kind === "receivable" && d.status === "open")
-      .reduce((n, d) => n + toKobo(d.outstanding_amount), z),
-    liabilities = debts
-      .filter((d) => d.kind === "liability" && d.status === "open")
-      .reduce((n, d) => n + toKobo(d.outstanding_amount), z);
-  const horizon = cashForecast(
-      fromKobo(available),
-      [],
-      flows,
-      day,
-      30,
-      timezone,
-    ).filter((p) => p.day.slice(0, 7) === month),
-    last = horizon[horizon.length - 1];
-  const dueDebt = debts
-    .filter(
-      (d) =>
-        d.kind === "liability" &&
-        d.status === "open" &&
-        (!d.due_date ||
-          dateKeyForInstant(new Date(d.due_date), timezone) <=
-            end.toISOString().slice(0, 10)),
-    )
-    .reduce((n, d) => n + toKobo(d.outstanding_amount), z);
-  const low = (last ? signedKobo(last.low) : available) - dueDebt,
-    high = (last ? signedKobo(last.high) : available) - dueDebt;
-  const expensesOnly = cashForecast(
-    fromKobo(available),
-    [],
-    flows.filter((f) => f.direction === "expense"),
-    day,
-    30,
-    timezone,
-  )
-    .filter((p) => p.day.slice(0, 7) === month)
-    .at(-1);
-  const reserved =
-    available -
-    (expensesOnly ? signedKobo(expensesOnly.low) : available) +
-    dueDebt;
-  const amounts = {
-    availableBalance: available,
-    savedBalance: positive(saved),
+    .filter((debt) => debt.kind === 'receivable' && debt.status === 'open')
+    .reduce((sum, debt) => sum + amountOf(debt.outstanding_amount), 0);
+
+  const liabilities = debts
+    .filter((debt) => debt.kind === 'liability' && debt.status === 'open')
+    .reduce((sum, debt) => sum + amountOf(debt.outstanding_amount), 0);
+
+  const netPosition = availableBalance + savedBalance + receivables - liabilities;
+  const netSpendableFlow = monthIncome - monthExpenses - Math.max(0, monthSaved);
+  const savingsRatePct = monthIncome > 0 ? (Math.max(0, monthSaved) / monthIncome) * 100 : null;
+  const averageDailySpend = monthExpenses / Math.max(1, now.getDate());
+  const projectedMonthExpenses = averageDailySpend * endOfMonth(now).getDate();
+
+  const prior = previousMonth(now);
+  const priorMonthExpenses = entries
+    .filter((entry) => flowKind(entry) === 'expense' && sameMonth(new Date(entry.date), prior))
+    .reduce((sum, entry) => sum + amountOf(entry.amount), 0);
+
+  const projectedExpenseChangePct = priorMonthExpenses > 0
+    ? ((projectedMonthExpenses - priorMonthExpenses) / priorMonthExpenses) * 100
+    : null;
+
+  const range = expectedRange(expectedFlows, now);
+  const dueDebt = dueLiabilities(debts, now);
+  const safeToSpend = Math.max(0, availableBalance - range.expenseMax - dueDebt);
+  const projectedMonthEndLow = availableBalance + range.incomeMin - range.expenseMax - dueDebt;
+  const projectedMonthEndHigh = availableBalance + range.incomeMax - range.expenseMin - dueDebt;
+  const categoryPatterns = buildCategoryPatterns(entries, now);
+
+  const spendingVelocity: WealthSummary['spendingVelocity'] =
+    projectedExpenseChangePct == null
+      ? 'insufficient'
+      : projectedExpenseChangePct >= 15
+        ? 'elevated'
+        : projectedExpenseChangePct <= -15
+          ? 'low'
+          : 'normal';
+
+  const partial = {
+    availableBalance,
+    savedBalance,
     receivables,
     liabilities,
-    netPosition: available + positive(saved) + receivables - liabilities,
-    monthIncome: income,
-    monthExpenses: expenses,
-    monthSaved: positive(allocated),
-    netSpendableFlow: income - expenses - positive(allocated),
-    averageDailySpend: divideMoney(expenses, BigInt(elapsed)),
-    projectedMonthExpenses: projection,
-    priorMonthExpenses: priorExpenses,
-    safeToSpend: positive(available - reserved),
-    projectedMonthEndLow: low,
-    projectedMonthEndHigh: high,
-    reservedOutflows: reserved,
-  };
-  return {
-    exact: Object.fromEntries(
-      Object.entries(amounts).map(([key, n]) => [key, fromKobo(n)]),
-    ),
-    availableBalance: display(available),
-    savedBalance: display(positive(saved)),
-    receivables: display(receivables),
-    liabilities: display(liabilities),
-    netPosition: display(
-      available + positive(saved) + receivables - liabilities,
-    ),
-    monthIncome: display(income),
-    monthExpenses: display(expenses),
-    monthSaved: display(positive(allocated)),
-    netSpendableFlow: display(income - expenses - positive(allocated)),
-    savingsRatePct:
-      income > z ? ratioPercent(positive(allocated), income) : null,
-    averageDailySpend: display(divideMoney(expenses, BigInt(elapsed))),
-    projectedMonthExpenses: display(projection),
-    priorMonthExpenses: display(priorExpenses),
-    projectedExpenseChangePct: change,
-    safeToSpend: display(positive(available - reserved)),
-    projectedMonthEndLow: display(low),
-    projectedMonthEndHigh: display(high),
+    netPosition,
+    monthIncome,
+    monthExpenses,
+    monthSaved: Math.max(0, monthSaved),
+    netSpendableFlow,
+    savingsRatePct,
+    averageDailySpend,
+    projectedMonthExpenses,
+    priorMonthExpenses,
+    projectedExpenseChangePct,
+    safeToSpend,
+    projectedMonthEndLow,
+    projectedMonthEndHigh,
     dataMonths: months.size,
     categoryPatterns,
-    spendingVelocity:
-      change === null
-        ? "insufficient"
-        : change >= 15
-          ? "elevated"
-          : change <= -15
-            ? "low"
-            : "normal",
-    deterministicRemark:
-      months.size < 2
-        ? "Keep recording at your own pace. More history will help reveal your patterns."
-        : income - expenses - positive(allocated) < z
-          ? "A quick review of your largest categories can help make room for what matters."
-          : "Your recorded cashflow is positive. Keep a little space for unexpected needs.",
+    spendingVelocity,
+  };
+
+  return {
+    ...partial,
+    deterministicRemark: remarkFromSummary(partial),
   };
 }
-export function convertFromNgn(
-  amountNgn: number | string,
-  currency: WealthDisplayCurrency,
-  rate: number | null | undefined,
-) {
-  if (currency === "NGN") return Number(fromKobo(signedKobo(amountNgn)));
-  if (!rate || !Number.isFinite(rate) || rate <= 0) return null;
-  return Number(fromKobo(usdCents(signedKobo(amountNgn), rate)));
+
+export function convertFromNgn(amountNgn: number, currency: WealthDisplayCurrency, usdNgn: number | null | undefined) {
+  if (currency === 'NGN') return amountNgn;
+  if (!usdNgn || !Number.isFinite(usdNgn) || usdNgn <= 0) return null;
+  return amountNgn / usdNgn;
 }
+
 export function formatWealthMoney(
-  amountNgn: number | string,
-  currency: WealthDisplayCurrency = "NGN",
-  rate?: number | null,
+  amountNgn: number,
+  currency: WealthDisplayCurrency = 'NGN',
+  usdNgn?: number | null,
   options: { compact?: boolean; sign?: boolean } = {},
 ) {
-  let n = signedKobo(amountNgn);
-  if (currency === "USD") {
-    if (!rate || !Number.isFinite(rate) || rate <= 0) return "—";
-    n = usdCents(n, rate);
-  }
-  return (
-    (options.sign && n > z ? "+" : "") +
-    formatMinor(n, currency === "USD" ? "$" : "₦")
-  );
+  const converted = convertFromNgn(amountNgn, currency, usdNgn);
+  if (converted == null) return '—';
+
+  const prefix = options.sign && converted > 0 ? '+' : '';
+  const locale = currency === 'NGN' ? 'en-NG' : 'en-US';
+  const maximumFractionDigits = currency === 'NGN' ? 0 : 2;
+
+  return prefix + new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    notation: options.compact ? 'compact' : 'standard',
+    maximumFractionDigits,
+  }).format(converted);
 }
+
 export function suggestCategory(source: string, entries: MoneyEntryLike[]) {
-  const needle = source.trim().toLowerCase().replace(/\s+/g, " ");
+  const needle = source.trim().toLowerCase().replace(/\s+/g, ' ');
   if (!needle) return null;
-  const matched = merchantCategory(source);
-  if (matched) return matched;
 
   const scores = new Map<string, number>();
   for (const entry of entries) {
-    const entrySource = String(entry.source || "")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, " ");
-    const category = String(entry.category || "").trim();
+    const entrySource = String(entry.source || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const category = String(entry.category || '').trim();
     if (!entrySource || !category) continue;
 
-    if (entrySource === needle)
-      scores.set(category, (scores.get(category) || 0) + 5);
+    if (entrySource === needle) scores.set(category, (scores.get(category) || 0) + 5);
     else if (entrySource.includes(needle) || needle.includes(entrySource)) {
       scores.set(category, (scores.get(category) || 0) + 2);
     }
   }
 
-  return (
-    Array.from(scores.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || null
-  );
+  return Array.from(scores.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 }
 
 export function sanitizedWealthMetrics(summary: WealthSummary) {
@@ -340,31 +412,13 @@ export function sanitizedWealthMetrics(summary: WealthSummary) {
 
   return {
     data_months: summary.dataMonths,
-    cashflow:
-      summary.netSpendableFlow > 0
-        ? "positive"
-        : summary.netSpendableFlow < 0
-          ? "negative"
-          : "neutral",
-    savings_rate_pct:
-      summary.savingsRatePct == null
-        ? null
-        : Math.round(summary.savingsRatePct),
-    projected_expense_change_pct:
-      summary.projectedExpenseChangePct == null
-        ? null
-        : Math.round(summary.projectedExpenseChangePct),
+    cashflow: summary.netSpendableFlow > 0 ? 'positive' : summary.netSpendableFlow < 0 ? 'negative' : 'neutral',
+    savings_rate_pct: summary.savingsRatePct == null ? null : Math.round(summary.savingsRatePct),
+    projected_expense_change_pct: summary.projectedExpenseChangePct == null ? null : Math.round(summary.projectedExpenseChangePct),
     spending_velocity: summary.spendingVelocity,
-    largest_category_share_pct: summary.categoryPatterns[0]
-      ? Math.round(summary.categoryPatterns[0].sharePct)
-      : null,
+    largest_category_share_pct: summary.categoryPatterns[0] ? Math.round(summary.categoryPatterns[0].sharePct) : null,
     category_anomalies: anomalies,
-    debt_position:
-      summary.liabilities === 0
-        ? "none"
-        : summary.netPosition > summary.liabilities
-          ? "contained"
-          : "material",
-    receivable_position: summary.receivables === 0 ? "none" : "present",
+    debt_position: summary.liabilities === 0 ? 'none' : summary.netPosition > summary.liabilities ? 'contained' : 'material',
+    receivable_position: summary.receivables === 0 ? 'none' : 'present',
   };
 }

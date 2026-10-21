@@ -1,0 +1,74 @@
+{
+  "base": "e35a0f36b7813ac913df7a8075281467588d1e72",
+  "protectedFilesCompared": 207,
+  "mismatches": [],
+  "migrations": [
+    {
+      "file": "src/db/migrations/0000_initial.sql",
+      "sha256": "353cc52ba5bfa0b315362f257086c7b52f47682653a233487e100f07724b51ab"
+    },
+    {
+      "file": "src/db/migrations/0001_product_integrity.sql",
+      "sha256": "d466c63ee24b97c5503b3464b6a9978410149b260f589e6a542be2ee3a795f0f"
+    },
+    {
+      "file": "src/db/migrations/0002_adaptive_experience.sql",
+      "sha256": "92a968d389ab6c41526841e1320c22b3d05b85d2aeb3b0d9bd724b6dfe791bcf"
+    },
+    {
+      "file": "src/db/migrations/0003_wealth_intelligence.sql",
+      "sha256": "c24d7350171decc9721d7fa6f6b7c5c9c90558733c9fe22fe6be9443566ef6e8"
+    },
+    {
+      "file": "src/db/migrations/0004_profile_avatar_storage.sql",
+      "sha256": "9f91047c5331feaec2c5961273ac0e1db828035177ba3bc98022cbfde3ef767e"
+    },
+    {
+      "file": "src/db/migrations/0005_intelligence_layer.sql",
+      "sha256": "cd92fe748cf08e5d50d16f193fb2005e950c7ae5a0c46e5e3637c4291f361f60"
+    },
+    {
+      "file": "src/db/migrations/0013_daily_records.sql",
+      "sha256": "23e1066ba1a8f506cba35901dd3c6794321b9b8531c45154ae4dbdac82aba5d1"
+    },
+    {
+      "file": "src/db/migrations/0014_daily_http_conflicts.sql",
+      "sha256": "533e37e0a4371928462f9110f63ee5d3da91411696036b6ef066f4e5006ffa5d"
+    },
+    {
+      "file": "src/db/migrations/0015_sep28_crystal_shards.sql",
+      "sha256": "1b882c2bcd54b316c9d55d9e595b017152e9d2c049331fb720cd18e90c547b50"
+    },
+    {
+      "file": "src/db/migrations/0016_assignment_lifecycle.sql",
+      "sha256": "8cd6d07b79056d0f594716a540159fc2c7ae3342599e99a0b36cc81e78ec5a97"
+    },
+    {
+      "file": "src/db/migrations/0017_task_week_grid.sql",
+      "sha256": "c69321e6f99ff9260b65d6a093871c7965b3fc40cf7b29be223ab8724085b4b5"
+    },
+    {
+      "file": "src/db/migrations/0018_wealth_monthly_budgets.sql",
+      "sha256": "fd8cc05eb7b8c2231365f85b3f2c81067ed060cb2d25615f7e554c4c401ab14c"
+    },
+    {
+      "file": "src/db/migrations/0019_wealth_recurring_bills.sql",
+      "sha256": "032edf162a9a8e89f93708510f7b9a647ab9fd6673c69a04b4837d44d205f859"
+    },
+    {
+      "file": "src/db/migrations/0020_wealth_csv_statements.sql",
+      "sha256": "5e63dabb2c006c614952226313e154c40bd03745d3f86a42efb40e81f2048014"
+    },
+    {
+      "file": "src/db/migrations/0021_wealth_overview_read.sql",
+      "sha256": "01ec3ad4f4ca1b0d509fb34229c2c3b38d8c00e42050151617e798f63ec4b937"
+    },
+    {
+      "file": "src/db/migrations/0022_ai_privacy_consent.sql",
+      "sha256": "6f1ab2d3a6f9dc3a6fe324fcf04a2bb30997115a979ceb3237dcf6faf014cdc3"
+    }
+  ],
+  "applicationAndPublicAssetsUnchanged": true,
+  "offlineQueueImplemented": false,
+  "hostedOperationsPerformed": false
+}

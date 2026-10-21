@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { NextResponse } from 'next/server';
 import { EXPERIENCE_CONFIG } from '@/config/experience';
 
@@ -11,9 +12,9 @@ export async function GET() {
     : EXPERIENCE_CONFIG.wealth.exchangeRate.openEndpoint;
 
   try {
+    assertRealServicesAllowed();
     const response = await fetch(endpoint, {
-      next: {revalidate:3600},
-      signal: AbortSignal.timeout(8000),
+      cache: 'no-store',
       headers: { Accept: 'application/json' },
     });
 
@@ -41,8 +42,7 @@ export async function GET() {
       provider: EXPERIENCE_CONFIG.wealth.exchangeRate.provider,
       openAccess: !apiKey,
     });
-  } catch {
-    console.error('Exchange-rate lookup failed');
-    return NextResponse.json({ error: 'The reference rate is temporarily unavailable. Your NGN ledger is safe.' }, { status: 502 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Exchange-rate lookup failed' }, { status: 502 });
   }
 }

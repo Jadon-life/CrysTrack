@@ -1,323 +1,294 @@
 'use client';
-import { useState } from 'react';
-import { GoalDialog } from '@/components/goals/goal-dialog';
-import { localDateTimeValue } from '@/lib/assignments/time';
-import { assignmentFields } from '@/lib/assignments/validation';
+import React, { useRef, useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { X, Loader2 } from 'lucide-react';
+import { GlassCard } from '@/components/shared/glass-card';
+import { Button } from '@/components/ui/button';
 import { patch, post } from '@/lib/api';
-import type {
-  AcademicAssignment,
-  AssignmentSubtask,
-} from '@/types/assignments';
-const reminderChoices = [10080, 4320, 2880, 1440, 360, 120, 60, 0];
+import { AssignmentRow, localInput, resolveLocalDeadline } from '@/lib/assignments';
+
+const fieldClass =
+  '[color-scheme:dark] min-h-10 w-full rounded-lg border border-white/20 bg-slate-950/40 px-3 py-2 text-sm text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300';
 export function AssignmentEditor({
   assignment,
   timezone,
-  defaultChannels,
   onClose,
   onSaved,
+  defaultChannels = ['push'],
 }: {
-  assignment: AcademicAssignment | null;
+  assignment: AssignmentRow | null;
   timezone: string;
-  defaultChannels: ('push' | 'telegram')[];
   onClose: () => void;
-  onSaved: (value: AcademicAssignment) => void;
+  onSaved: () => Promise<void>;
+  defaultChannels?: string[];
 }) {
-  const [draft, setDraft] = useState(() => ({
-    title: assignment?.title || '',
-    description: assignment?.description || '',
-    deadline: assignment
-      ? localDateTimeValue(assignment.deadline, timezone)
-      : '',
-    priority: assignment?.priority || 'medium',
-    category: assignment?.category || '',
-    courseCode: assignment?.course_code || '',
-    academicKind: assignment?.academic_kind || 'Assignment',
-    pointWeight: assignment?.point_weight ?? '',
-    estimatedHours:
-      assignment?.estimated_minutes == null
-        ? ''
-        : String(assignment.estimated_minutes / 60),
-    workStartAt: assignment?.work_start_at
-      ? localDateTimeValue(assignment.work_start_at, timezone)
-      : '',
-    subtasks: assignment?.subtasks || ([] as AssignmentSubtask[]),
-    remindersEnabled: assignment?.reminder_config?.enabled ?? true,
-    channels: assignment?.reminder_config?.channels || defaultChannels,
-    offsets: assignment?.reminder_config?.offsetMinutes || [1440, 120, 0],
-  }));
-  const set = (name: string, value: unknown) =>
-    setDraft((current) => ({ ...current, [name]: value }));
-  const save = async () => {
-    const minutes =
-      draft.estimatedHours === ''
-        ? null
-        : Math.round(Number(draft.estimatedHours) * 60);
-    const payload = {
-      title: draft.title,
-      description: draft.description || null,
-      deadline:
-        assignment &&
-        draft.deadline === localDateTimeValue(assignment.deadline, timezone)
-          ? assignment.deadline
-          : draft.deadline,
-      priority: draft.priority,
-      category: draft.category || null,
-      courseCode: draft.courseCode || null,
-      academicKind: draft.academicKind,
-      pointWeight: draft.pointWeight === '' ? null : Number(draft.pointWeight),
-      estimatedMinutes: minutes,
-      workStartAt: !draft.workStartAt
-        ? null
-        : assignment?.work_start_at &&
-            draft.workStartAt ===
-              localDateTimeValue(assignment.work_start_at, timezone)
-          ? assignment.work_start_at
-          : draft.workStartAt,
-      subtasks: draft.subtasks,
-      reminderConfig: {
-        enabled: draft.remindersEnabled,
-        channels: draft.channels,
-        offsetMinutes: draft.offsets,
-      },
-    };
-    const parsed = assignmentFields.safeParse(payload);
-    if (!parsed.success)
-      throw new Error(
-        'Check your title, deadline, hours, weighting, and step titles.',
-      );
-    const saved = assignment
-      ? await patch(`/api/assignments/${assignment.id}`, {
-          ...parsed.data,
-          expectedRevision: assignment.revision,
-        })
-      : await post('/api/assignments', parsed.data);
-    onSaved(saved);
+  const [title, setTitle] = useState(assignment?.title || '');
+  const [description, setDescription] = useState(assignment?.description || '');
+  const [deadline, setDeadline] = useState(assignment ? localInput(assignment.deadline, timezone) : '');
+  const [priority, setPriority] = useState(assignment?.priority || 'medium');
+  const [category, setCategory] = useState(assignment?.category || '');
+  const [enabled, setEnabled] = useState(assignment?.reminder_config?.enabled !== false);
+  const [channels, setChannels] = useState<string[]>(
+    assignment?.reminder_config?.channels || defaultChannels,
+  );
+  const [offsets, setOffsets] = useState<number[]>(
+    assignment?.reminder_config?.offsetMinutes || [1440, 120, 0],
+  );
+  const [custom, setCustom] = useState('');
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const intent = useRef<string | null>(null);
+  const returnFocus = useRef<HTMLElement | null>(
+    typeof document === 'undefined' ? null : (document.activeElement as HTMLElement),
+  );
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      if (!title.trim()) throw new Error('Give this assignment a title.');
+      if (!channels.length) throw new Error('Choose at least one reminder channel.');
+      const unchanged = assignment && deadline === localInput(assignment.deadline, timezone);
+      if (!unchanged) resolveLocalDeadline(deadline, timezone);
+      const body = {
+        title,
+        description,
+        priority,
+        category,
+        ...(unchanged ? { deadline: assignment.deadline } : { localDeadline: deadline, timezone }),
+        reminderConfig: { enabled, channels, offsetMinutes: offsets },
+      };
+      if (assignment)
+        await patch(`/api/assignments/${assignment.id}`, { ...body, revision: assignment.revision });
+      else {
+        intent.current ||= crypto.randomUUID();
+        await post('/api/assignments', { ...body, id: intent.current });
+      }
+      await onSaved();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'We could not confirm the save. Refresh before retrying.');
+    } finally {
+      setBusy(false);
+    }
   };
+  const choices = [...new Set([2880, 1440, 360, 120, 60, 0, ...offsets])].sort((a, b) => b - a);
   return (
-    <GoalDialog
-      isOpen
-      onClose={onClose}
-      title={assignment ? 'Edit assignment' : 'New assignment'}
-      onSubmit={save}
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open && !busy) onClose();
+      }}
     >
-      <p className="academic-help">
-        Dates and times use your saved timezone: {timezone}.
-      </p>
-      <label className="goal-field">
-        Title
-        <input
-          required
-          maxLength={255}
-          value={draft.title}
-          onChange={(e) => set('title', e.target.value)}
-          placeholder="e.g. Explore motion and forces"
-        />
-      </label>
-      <label className="goal-field">
-        Description
-        <textarea
-          value={draft.description}
-          maxLength={10000}
-          onChange={(e) => set('description', e.target.value)}
-        />
-      </label>
-      <div className="academic-form-grid">
-        <label className="goal-field">
-          Course code
-          <input
-            value={draft.courseCode}
-            maxLength={30}
-            onChange={(e) => set('courseCode', e.target.value)}
-            placeholder="PHY 101"
-          />
-        </label>
-        <label className="goal-field">
-          Item type
-          <select
-            aria-label="Item type"
-            value={draft.academicKind}
-            onChange={(e) => set('academicKind', e.target.value)}
-          >
-            {['Assignment', 'Test', 'Lab', 'Project'].map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="academic-form-grid">
-        <label className="goal-field">
-          Deadline
-          <input
-            type="datetime-local"
-            required
-            value={draft.deadline}
-            onChange={(e) => set('deadline', e.target.value)}
-          />
-        </label>
-        <label className="goal-field">
-          Priority
-          <select
-            aria-label="Priority"
-            value={draft.priority}
-            onChange={(e) => set('priority', e.target.value)}
-          >
-            {['low', 'medium', 'high', 'urgent'].map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="academic-form-grid">
-        <label className="goal-field">
-          Point weighting (%)
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            value={draft.pointWeight}
-            onChange={(e) => set('pointWeight', e.target.value)}
-            placeholder="Optional"
-          />
-        </label>
-        <label className="goal-field">
-          Estimated duration (hours)
-          <input
-            type="number"
-            min="0"
-            max="1000"
-            step="any"
-            value={draft.estimatedHours}
-            onChange={(e) => set('estimatedHours', e.target.value)}
-            placeholder="e.g. 2.5"
-          />
-        </label>
-      </div>
-      <label className="goal-field">
-        Category / topic
-        <input
-          maxLength={100}
-          value={draft.category}
-          onChange={(e) => set('category', e.target.value)}
-          placeholder="e.g. Mechanics"
-        />
-      </label>
-      <label className="goal-field">
-        Timebox start (optional)
-        <input
-          type="datetime-local"
-          value={draft.workStartAt}
-          onChange={(e) => set('workStartAt', e.target.value)}
-        />
-        <span className="academic-help">
-          Your estimated duration defines the work block. Leave blank to plan it
-          later.
-        </span>
-      </label>
-      <section className="goal-editor-section">
-        <h3>Small steps</h3>
-        {draft.subtasks.map((step, index) => (
-          <div key={step.id} className="academic-step-editor">
-            <label className="goal-field">
-              Step {index + 1}
-              <input
-                required
-                maxLength={255}
-                value={step.title}
-                onChange={(e) =>
-                  set(
-                    'subtasks',
-                    draft.subtasks.map((s) =>
-                      s.id === step.id ? { ...s, title: e.target.value } : s,
-                    ),
-                  )
-                }
-              />
-            </label>
-            <button
-              type="button"
-              aria-label={`Remove step ${index + 1}`}
-              onClick={() =>
-                set(
-                  'subtasks',
-                  draft.subtasks.filter((s) => s.id !== step.id),
-                )
-              }
-            >
-              Remove
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          disabled={draft.subtasks.length >= 50}
-          onClick={() =>
-            set('subtasks', [
-              ...draft.subtasks,
-              { id: crypto.randomUUID(), title: '', completed: false },
-            ])
-          }
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            returnFocus.current?.focus();
+          }}
+          aria-describedby="assignment-editor-description"
+          onEscapeKeyDown={(event) => {
+            if (busy) event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            if (busy) event.preventDefault();
+          }}
+          className="fixed left-1/2 top-1/2 z-[71] max-h-[90dvh] w-[calc(100vw_-_2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl focus:outline-none"
         >
-          Add step
-        </button>
-      </section>
-      <section className="goal-editor-section">
-        <h3>Reminders</h3>
-        <label className="academic-check-label">
-          <input
-            type="checkbox"
-            checked={draft.remindersEnabled}
-            onChange={(e) => set('remindersEnabled', e.target.checked)}
-          />{' '}
-          Send gentle reminders
-        </label>
-        {draft.remindersEnabled && (
-          <>
-            <div className="academic-form-grid">
-              {(['push', 'telegram'] as const).map((channel) => (
-                <label key={channel} className="academic-check-label">
-                  <input
-                    type="checkbox"
-                    checked={draft.channels.includes(channel)}
-                    onChange={(e) =>
-                      set(
-                        'channels',
-                        e.target.checked
-                          ? [...draft.channels, channel]
-                          : draft.channels.filter((c) => c !== channel),
-                      )
-                    }
-                  />
-                  {channel === 'push' ? 'Web Push' : 'Telegram'}
-                </label>
-              ))}
+          <GlassCard padding="lg">
+            <div className="flex items-center justify-between gap-3">
+              <Dialog.Title className="text-lg font-semibold text-white">
+                {assignment ? 'Edit assignment' : 'Create assignment'}
+              </Dialog.Title>
+              <Dialog.Close
+                disabled={busy}
+                aria-label="Close assignment editor"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-cyan-300"
+              >
+                <X className="h-5 w-5" />
+              </Dialog.Close>
             </div>
-            <div className="academic-reminder-options">
-              {[...new Set([...reminderChoices, ...draft.offsets])]
-                .sort((a, b) => b - a)
-                .map((offset) => (
-                  <label key={offset} className="academic-check-label">
+            <Dialog.Description id="assignment-editor-description" className="mt-2 text-sm text-slate-200">
+              Deadline times use your saved scheduling timezone: <strong>{timezone}</strong>. Existing
+              finished work keeps its recorded deadline.
+            </Dialog.Description>
+            {error && (
+              <p
+                role="alert"
+                className="mt-4 rounded-lg border border-amber-300/30 bg-black/30 p-3 text-sm text-amber-100"
+              >
+                {error}
+              </p>
+            )}
+            <form onSubmit={submit} className="mt-5 space-y-4">
+              <fieldset disabled={busy} className="space-y-4">
+                <div>
+                  <label htmlFor="assignment-title" className="mb-1 block text-sm text-slate-200">
+                    Title *
+                  </label>
+                  <input
+                    id="assignment-title"
+                    required
+                    maxLength={255}
+                    autoFocus
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="assignment-description" className="mb-1 block text-sm text-slate-200">
+                    Description
+                  </label>
+                  <textarea
+                    id="assignment-description"
+                    maxLength={10000}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="assignment-deadline" className="mb-1 block text-sm text-slate-200">
+                    Deadline ({timezone}) *
+                  </label>
+                  <input
+                    id="assignment-deadline"
+                    required
+                    type="datetime-local"
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    className={fieldClass}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="assignment-priority" className="mb-1 block text-sm text-slate-200">
+                      Priority
+                    </label>
+                    <select
+                      id="assignment-priority"
+                      value={priority}
+                      onChange={(e) => setPriority(e.target.value as typeof priority)}
+                      className={fieldClass}
+                    >
+                      {['low', 'medium', 'high', 'urgent'].map((p) => (
+                        <option key={p} value={p} className="bg-slate-950">
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="assignment-category" className="mb-1 block text-sm text-slate-200">
+                      Subject / category
+                    </label>
+                    <input
+                      id="assignment-category"
+                      maxLength={100}
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className={fieldClass}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-3 rounded-xl border border-white/15 bg-black/20 p-3">
+                  <label className="flex min-h-10 items-center gap-3 text-sm text-white">
                     <input
                       type="checkbox"
-                      checked={draft.offsets.includes(offset)}
-                      onChange={(e) =>
-                        set(
-                          'offsets',
-                          e.target.checked
-                            ? [...draft.offsets, offset]
-                            : draft.offsets.filter((v) => v !== offset),
-                        )
-                      }
-                    />
-                    {offset === 0
-                      ? 'At deadline'
-                      : `${offset / 60} hours before`}
+                      checked={enabled}
+                      onChange={(e) => setEnabled(e.target.checked)}
+                      className="h-5 w-5 accent-cyan-400"
+                    />{' '}
+                    Assignment reminders
                   </label>
-                ))}
-            </div>
-          </>
-        )}
-      </section>
-    </GoalDialog>
+                  <p className="text-xs text-slate-200">
+                    Delivery needs configured Push or connected Telegram. Your selection is saved even if a
+                    channel is unavailable.
+                  </p>
+                  <fieldset className="flex flex-wrap gap-4">
+                    <legend className="mb-1 text-sm text-slate-200">Channels</legend>
+                    {['push', 'telegram'].map((c) => (
+                      <label key={c} className="flex min-h-10 items-center gap-2 text-sm text-white">
+                        <input
+                          type="checkbox"
+                          checked={channels.includes(c)}
+                          onChange={() =>
+                            setChannels((old) => (old.includes(c) ? old.filter((x) => x !== c) : [...old, c]))
+                          }
+                        />
+                        {c === 'push' ? 'Web Push' : 'Telegram'}
+                      </label>
+                    ))}
+                  </fieldset>
+                  <fieldset className="grid grid-cols-2 gap-2">
+                    <legend className="mb-2 text-sm text-slate-200">Remind me before the deadline</legend>
+                    {choices.map((offset) => (
+                      <label
+                        key={offset}
+                        className="flex min-h-10 items-center gap-2 rounded-lg border border-white/10 p-2 text-xs text-white"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={offsets.includes(offset)}
+                          onChange={() =>
+                            setOffsets((old) =>
+                              old.includes(offset)
+                                ? old.filter((x) => x !== offset)
+                                : [...old, offset].sort((a, b) => b - a),
+                            )
+                          }
+                        />
+                        {offset === 0 ? 'At deadline' : `${offset} minutes before`}
+                      </label>
+                    ))}
+                  </fieldset>
+                  <label htmlFor="assignment-custom-offset" className="block text-xs text-slate-200">
+                    Custom offset in minutes (0–43200, up to 12 selected)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="assignment-custom-offset"
+                      type="number"
+                      min={0}
+                      max={43200}
+                      step={1}
+                      value={custom}
+                      onChange={(e) => setCustom(e.target.value)}
+                      className={fieldClass}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={!/^\d+$/.test(custom) || Number(custom) > 43200 || offsets.length >= 12}
+                      onClick={() => {
+                        setOffsets((old) => [...new Set([...old, Number(custom)])].sort((a, b) => b - a));
+                        setCustom('');
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {priority === 'urgent' && (
+                    <p className="text-xs text-amber-100">
+                      Urgent reminders may bypass Do Not Disturb, as before.
+                    </p>
+                  )}
+                </div>
+              </fieldset>
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={busy}>
+                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save
+                </Button>
+              </div>
+            </form>
+          </GlassCard>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

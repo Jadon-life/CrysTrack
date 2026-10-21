@@ -4,6 +4,8 @@ export interface User {
   displayName?: string;
   avatarUrl?: string;
   timezone: string;
+  currentTimezone?: string;
+  schedulingTimezone?: string;
 }
 
 export interface ThemeState {
@@ -49,7 +51,7 @@ export interface TaskWithSchedule {
   schedules: number[]; // weekdays
   streak: number;
   bestStreak: number;
-  todayStatus: 'pending' | 'completed' | 'missed' | 'not_scheduled';
+  todayStatus: 'pending' | 'completed' | 'skipped' | 'missed' | 'not_scheduled';
 }
 
 export interface GoalWithProgress {
@@ -68,20 +70,16 @@ export interface GoalWithProgress {
 }
 
 export interface AssignmentWithUrgency {
+  revision: number;
+  reminderVersion: number;
+  completedAt?: string;
+  reminderConfig?: { enabled: boolean; channels: string[]; offsetMinutes: number[] };
   id: string;
   title: string;
   description?: string;
   deadline: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'upcoming' | 'due_soon' | 'due_today' | 'overdue' | 'completed' | 'dropped';
-  courseCode?: string;
-  academicKind?: import('./assignments').AcademicKind;
-  pointWeight?: string;
-  estimatedMinutes?: number;
-  workStartAt?: string;
-  subtasks?: import('./assignments').AssignmentSubtask[];
-  finishedLate?: boolean;
-  revision?: number;
+  status: 'upcoming' | 'due_soon' | 'due_today' | 'overdue' | 'completed';
   category?: string;
   daysUntil: number;
 }
@@ -98,9 +96,13 @@ export interface FinanceTargetWithProgress {
 }
 
 export interface MoneyEntry {
+  importBatchId?: string | null;
+  importRowId?: string | null;
   id: string;
+  billId?: string | null;
+  billOccurrenceId?: string | null;
   type: 'income' | 'expense' | 'saving' | 'transfer';
-  amount: string | number;
+  amount: number;
   date: string;
   source?: string;
   category?: string;
@@ -126,12 +128,5 @@ export interface AIInsight {
   generatedAt: string;
 }
 
-export type { GoalPlan, GoalMilestone, GoalLifecycle, GoalProgressSource } from './goals';
-
-export type { AcademicAssignment, AssignmentSubtask, AcademicWorkload } from './assignments';
-
-export type { TodayData,Timebox,DailyRitual,FocusSession,CalendarEvent } from './rhythm';
-
-export type { WealthAccount, LedgerEntry, BudgetCap, RecurringBill, SavingsCircle, CircleContribution, WealthSettings, WealthSuite } from './finance';
-
-export type { RewardEvent, RewardKind, StreakState, Badge, GamificationSnapshot } from './gamification';
+// Issue #37 additive read-RPC DTO; no stored amount or write contract changes.
+export type { WealthSnapshot, WealthReport, ExactWealthSummary } from '@/lib/wealth-report';

@@ -1,370 +1,243 @@
 'use client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
-import { useRhythm } from '@/components/rhythm/rhythm-provider';
-import { assignSlot, monthCells, weekStart } from '@/lib/rhythm/logic';
-import { shiftAcademicDay } from '@/lib/assignments/time';
-import { dateKeyForInstant } from '@/lib/reminders';
-import { fetcher, post, del } from '@/lib/api';
-import type { CalendarEvent, RhythmTask, Timebox } from '@/types/rhythm';
+import { fetcher } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { dayInTimezone } from '@/lib/today-progress';
+import { calendarDeadlineDay } from '@/lib/calendar-date';
+
+const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function dateKey(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export default function CalendarPage() {
-  const { data, refresh, error:dayError } = useRhythm();
-  const [cursor, setCursor] = useState(''),
-    [view, setView] = useState<'day' | 'week' | 'month'>('day'),
-    [events, setEvents] = useState<CalendarEvent[]>([]),
-    [tasks, setTasks] = useState<RhythmTask[]>([]),
-    [boxes, setBoxes] = useState<Timebox[]>([]),
-    [chosen, setChosen] = useState(''),
-    [minutes, setMinutes] = useState(30),
-    [error, setError] = useState(''),
-    [notice, setNotice] = useState(''),
-    [loading, setLoading] = useState(false),
-    [busy, setBusy] = useState(false),
-    serial = useRef(0),
-    lock = useRef(false);
+  const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [selected, setSelected] = useState(() => dateKey(new Date()));
+  const [timezone, setTimezone] = useState('UTC');
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (data) queueMicrotask(() => setCursor((current) => current || data.day));
-  }, [data]);
-  const days = useMemo(
-    () =>
-      !cursor
-        ? []
-        : view === 'month'
-          ? monthCells(cursor)
-          : view === 'week'
-            ? Array.from({ length: 7 }, (_, i) =>
-                shiftAcademicDay(weekStart(cursor), i),
-              )
-            : [cursor],
-    [cursor, view],
-  );
-  const start = days[0] || '',
-    end = days[days.length - 1] || '';
-  const load = useCallback(async () => {
-    if (!start) return;
-    const id = ++serial.current;
-    setLoading(true);
-    try {
-      const result = await fetcher(`/api/calendar?start=${start}&end=${end}`);
-      if (id === serial.current) {
-        setEvents(result.events);
-        setTasks(result.tasks);
-        setBoxes(result.boxes);
-        setError('');
+    let active = true;
+    const load = async () => {
+      const profile = await fetcher('/api/profile').catch(() => null);
+      let zone = String(profile?.scheduling_timezone || profile?.timezone || 'UTC');
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(new Date());
+      } catch {
+        zone = 'UTC';
       }
-    } catch (e) {
-      if (id === serial.current)
-        setError(
-          e instanceof Error ? e.message : 'Your calendar could not load.',
+      const current = dayInTimezone(zone);
+      const [taskData, goalData, assignmentData] = await Promise.all([
+        fetcher(`/api/tasks?date=${current.dateKey}&weekday=${current.weekday}`).catch(() => []),
+        fetcher('/api/goals').catch(() => []),
+        fetcher('/api/assignments').catch(() => []),
+      ]);
+      if (!active) return;
+      setTimezone(zone);
+      setSelected(current.dateKey);
+      setCursor(new Date(Number(current.dateKey.slice(0, 4)), Number(current.dateKey.slice(5, 7)) - 1, 1));
+      setTasks(Array.isArray(taskData) ? taskData : []);
+      setGoals(Array.isArray(goalData) ? goalData : []);
+      setAssignments(Array.isArray(assignmentData) ? assignmentData : []);
+      setLoading(false);
+    };
+    void load();
+    return () => { active = false; };
+  }, []);
+
+  const cells = useMemo(() => {
+    const first = new Date(
+      cursor.getFullYear(),
+      cursor.getMonth(),
+      1,
+    );
+
+    const last = new Date(
+      cursor.getFullYear(),
+      cursor.getMonth() + 1,
+      0,
+    );
+
+    const gridStart = new Date(first);
+    gridStart.setDate(
+      first.getDate() - first.getDay(),
+    );
+
+    const cellCount =
+      Math.ceil(
+        (
+          first.getDay() +
+          last.getDate()
+        ) / 7,
+      ) * 7;
+
+    return Array.from(
+      { length: cellCount },
+      (_, index) => {
+        const date = new Date(gridStart);
+
+        date.setDate(
+          gridStart.getDate() + index,
         );
-    } finally {
-      if (id === serial.current) setLoading(false);
-    }
-  }, [start, end]);
-  useEffect(() => {
-    queueMicrotask(() => void load());
-    const update = () => void load();
-    window.addEventListener('crystrack-activity-updated', update);
-    return () =>
-      window.removeEventListener('crystrack-activity-updated', update);
-  }, [load]);
-  const place = async (taskId: string, day: string, hour: number) => {
-    if (lock.current || !data) return;
-    lock.current = true;
-    setBusy(true);
-    try {
-      if (!taskId) throw new Error('Choose a task or drag one onto this hour.');
-      const payload = assignSlot(
-        taskId,
-        day,
-        hour,
-        minutes,
-        data.timezone,
-        boxes,
-      );
-      await post('/api/rhythm/timeboxes', payload);
-      setNotice('Focus time protected. You can move or remove this block.');
-      await load();
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Choose another slot.');
-    } finally {
-      lock.current = false;
-      setBusy(false);
-    }
+
+        return {
+          date,
+          inMonth:
+            date.getFullYear() ===
+              cursor.getFullYear() &&
+            date.getMonth() ===
+              cursor.getMonth(),
+        };
+      },
+    );
+  }, [cursor]);
+
+  const eventDay = (value: unknown) => calendarDeadlineDay(value, timezone);
+  const todayKey = dayInTimezone(timezone).dateKey;
+  const eventsFor = (date: Date) => {
+    const key = dateKey(date);
+    // The cells are pure civil dates. Get their weekday without consulting the
+    // browser's current clock or interpreting a deadline in browser local time.
+    const weekday = new Date(`${key}T12:00:00Z`).getUTCDay();
+    const taskEvents = tasks.filter((task: any) => task.task_schedules?.some((schedule: any) => schedule.weekday === weekday)).map((task: any) => ({ type: 'task', title: task.title, tone: 'bg-emerald-400' }));
+    const assignmentEvents = assignments.filter((item: any) => eventDay(item.deadline) === key).map((item: any) => ({ type: 'assignment', title: item.title, tone: 'bg-amber-400' }));
+    const goalEvents = goals.filter((goal: any) => eventDay(goal.deadline) === key).map((goal: any) => ({ type: 'goal', title: goal.title, tone: 'bg-violet-400' }));
+    return [...assignmentEvents, ...goalEvents, ...taskEvents];
   };
-  const remove = async (id: string) => {
-    if (lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    try {
-      await del(`/api/rhythm/timeboxes?id=${id}`);
-      await load();
-      await refresh();
-      setNotice('Block removed. Your task is still here.');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Try again.');
-    } finally {
-      lock.current = false;
-      setBusy(false);
-    }
-  };
-  const renderEvent = (event: CalendarEvent) => (
-    <div className={`rhythm-event rhythm-event-${event.type}`} key={event.id}>
-      <Link href={event.href}>
-        {event.completed ? '✓ ' : ''}
-        {event.title}
-      </Link>
-      <small>
-        {event.type}
-        {event.starts_at
-          ? ` · ${new Intl.DateTimeFormat('en-NG', { timeZone: data?.timezone || 'UTC', hour: '2-digit', minute: '2-digit' }).format(new Date(event.starts_at))}`
-          : ''}
-        {event.ends_at
-          ? `–${new Intl.DateTimeFormat('en-NG', { timeZone: data?.timezone || 'UTC', hour: '2-digit', minute: '2-digit' }).format(new Date(event.ends_at))}`
-          : ''}
-      </small>
-      {event.box_id && (
-        <button
-          disabled={busy}
-          aria-label={`Remove timebox for ${event.title}`}
-          onClick={() => void remove(event.box_id!)}
-        >
-          Remove block
-        </button>
-      )}
-    </div>
-  );
-  if(!data)return <div className="rhythm-page"><h1>Timeboxed Calendar</h1><p role={dayError?"alert":"status"}>{dayError||"Loading your saved local day…"}</p>{dayError&&<button onClick={()=>void refresh()}>Try again</button>}</div>;
+
+  const selectedDate = new Date(`${selected}T12:00:00`);
+  const selectedEvents = eventsFor(selectedDate);
+  const groupsForSelected = [
+    { type: 'task', label: 'Routines', tone: 'bg-emerald-400' },
+    { type: 'assignment', label: 'Assignments', tone: 'bg-amber-400' },
+    { type: 'goal', label: 'Goals', tone: 'bg-violet-400' },
+  ].map((category) => ({
+    ...category,
+    events: selectedEvents.filter((event) => event.type === category.type),
+  })).filter((category) => category.events.length > 0);
+
+  const monthLabel = cursor.toLocaleDateString([], { month: 'long', year: 'numeric' });
+
+  if (loading) return <div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[var(--theme-primary)]" /></div>;
+
   return (
-    <div className="rhythm-page">
-      <header>
-        <p className="rhythm-eyebrow">Plan · Time</p>
-        <h1>Timeboxed Calendar</h1>
-        <p>
-          Drag a task into an hour, or choose it and activate a slot with your
-          keyboard. {data?.timezone}
-        </p>
+    <div className="space-y-6">
+      <header className="scenic-readable-strip max-w-3xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">Plan · Time</p>
+        <h1 className="text-2xl font-bold text-white mt-1">Calendar</h1>
+        <p className="text-sm text-white/85 mt-1">See recurring routines, goal dates and assignment deadlines in one place.</p>
       </header>
-      <div className="rhythm-calendar-toolbar">
-        <div>
-          {(['day', 'week', 'month'] as const).map((v) => (
-            <button
-              key={v}
-              aria-pressed={view === v}
-              onClick={() => setView(v)}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-        <div>
-          <button
-            aria-label="Previous period"
-            onClick={() => {
-              if (view === 'month') {
-                const previous = new Date(`${cursor.slice(0, 7)}-01T12:00Z`);
-                previous.setUTCMonth(previous.getUTCMonth() - 1);
-                setCursor(previous.toISOString().slice(0, 10));
-              } else
-                setCursor(shiftAcademicDay(cursor, view === 'day' ? -1 : -7));
-            }}
-            disabled={!cursor}
-          >
-            ←
-          </button>
-          <button onClick={() => data && setCursor(data.day)}>Today</button>
-          <button
-            aria-label="Next period"
-            onClick={() => {
-              if (view === 'month') {
-                const next = new Date(`${cursor.slice(0, 7)}-01T12:00Z`);
-                next.setUTCMonth(next.getUTCMonth() + 1);
-                setCursor(next.toISOString().slice(0, 10));
-              } else
-                setCursor(shiftAcademicDay(cursor, view === 'day' ? 1 : 7));
-            }}
-            disabled={!cursor}
-          >
-            →
-          </button>
-        </div>
-        <label>
-          Selected date
-          <input
-            type="date"
-            value={cursor}
-            onChange={(e) => e.target.value && setCursor(e.target.value)}
-          />
-        </label>
-      </div>
-      {error && (
-        <p role="alert" className="rhythm-alert">
-          {error}
-          <button onClick={() => void load()}>Refresh</button>
-        </p>
-      )}
-      {notice && <p role="status">{notice}</p>}
-      {loading && <p role="status">Refreshing your calendar…</p>}
-      <div className="rhythm-calendar-layout">
-        <GlassCard className="rhythm-task-rail" hover>
-          <h2>Tasks to timebox</h2>
-          <label>
-            Choose task
-            <select
-              aria-label="Choose task to timebox"
-              value={chosen}
-              onChange={(e) => setChosen(e.target.value)}
-            >
-              <option value="">Choose a task</option>
-              {tasks.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Block minutes
-            <select
-              aria-label="Block minutes"
-              value={minutes}
-              onChange={(e) => setMinutes(Number(e.target.value))}
-            >
-              {[15, 25, 30, 45, 60, 90, 120].map((m) => (
-                <option key={m} value={m}>
-                  {m} min
-                </option>
-              ))}
-            </select>
-          </label>
-          {tasks
-            .filter(
-              (t) =>
-                !boxes.some(
-                  (b) => b.task_id === t.id && b.occurrence_day === cursor,
-                ),
-            )
-            .map((t) => (
-              <button
-                key={t.id}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('application/x-crystrack-task', t.id);
-                  e.dataTransfer.setData('text/plain', t.id);
-                  setChosen(t.id);
-                }}
-                onClick={() => setChosen(t.id)}
-                aria-pressed={chosen === t.id}
+      <div className="grid xl:grid-cols-[1fr_330px] gap-4">
+        <GlassCard padding="md" depth="substantial" className="calendar-glass calendar-glass--grid">
+          <div className="flex items-center justify-between mb-5"><button type="button" aria-label="Previous month" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className="glass-button !p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"><ChevronLeft className="w-4 h-4" /></button><p className="text-sm font-semibold text-white">{monthLabel}</p><button type="button" aria-label="Next month" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="glass-button !p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"><ChevronRight className="w-4 h-4" /></button></div>
+          <div className="grid grid-cols-7 gap-1">
+            {weekdayNames.map((day) => (
+              <div
+                key={day}
+                className="text-xs uppercase tracking-wide text-center text-[var(--theme-text-muted)] py-2"
               >
-                {t.title}
-              </button>
+                {day}
+              </div>
             ))}
-          {!tasks.length && <p>Create a routine in Plan to begin.</p>}
-        </GlassCard>
-        <GlassCard
-          depth="substantial"
-          className="rhythm-calendar-surface"
-          hover
-        >
-          {view === 'month' ? (
-            <div className="rhythm-month-grid">
-              {days.map((day) => {
-                const list = events.filter((e) => e.day === day);
-                const counts = [...new Set(list.map((e) => e.type))].map(
-                  (type) => ({
-                    type,
-                    count: list.filter((e) => e.type === type).length,
-                  }),
-                );
-                return (
+
+            {cells.map(({ date, inMonth }) => {
+              const key = dateKey(date);
+              const events = eventsFor(date);
+              const active = key === selected;
+              const today = key === todayKey;
+              const groups = [
+                { type: 'task', tone: 'bg-emerald-400' },
+                { type: 'assignment', tone: 'bg-amber-400' },
+                { type: 'goal', tone: 'bg-violet-400' },
+              ].filter((group) => events.some((item) => item.type === group.type));
+
+              return (
+                <div key={key} className="relative min-w-0" onMouseEnter={() => setHovered(key)} onMouseLeave={() => setHovered(null)}>
                   <button
-                    key={day}
-                    aria-label={`${day}, ${list.length} events`}
-                    onClick={() => {
-                      setCursor(day);
-                      setView('day');
-                    }}
-                    data-today={day === data?.day}
+                    type="button"
+                    aria-pressed={active}
+                    aria-label={date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) + ', ' + events.length + ' scheduled items'}
+                    aria-describedby={hovered === key && events.length ? 'calendar-preview-' + key : undefined}
+                    onClick={() => { setSelected(key); setHovered(null); }}
+                    className={cn(
+                      'calendar-day flex min-h-16 w-full flex-col items-center justify-center rounded-xl border px-1 py-2 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 sm:min-h-20',
+                      active ? 'border-[var(--theme-primary)] bg-white/10' : 'border-white/[0.07] bg-black/10 hover:bg-white/[0.04]',
+                      !inMonth && 'opacity-35',
+                    )}
                   >
-                    <strong>{day.slice(8)}</strong>
-                    {counts.map((c) => (
-                      <small key={c.type}>
-                        {c.count} {c.type}
-                      </small>
-                    ))}
+                    <span className={cn('grid h-7 w-7 place-items-center text-xs', today ? 'rounded-full bg-[var(--theme-primary)] font-bold text-white' : 'text-white/85')}>{date.getDate()}</span>
+                    <span className="mt-1 flex min-h-2 items-center justify-center gap-1" aria-hidden="true">
+                      {groups.map((group) => <span key={group.type} className={cn('h-1.5 w-1.5 rounded-full', group.tone)} />)}
+                    </span>
                   </button>
-                );
-              })}
+                  {hovered === key && events.length > 0 && (
+                    <div id={'calendar-preview-' + key} role="tooltip" className={cn(
+                      'pointer-events-none absolute bottom-[calc(100%+6px)] z-50 hidden w-56 rounded-xl border border-white/20 bg-[#071424]/95 p-3 text-left shadow-2xl backdrop-blur-xl md:block',
+                      date.getDay() === 0 ? 'left-0' : date.getDay() === 6 ? 'right-0' : 'left-1/2 -translate-x-1/2',
+                    )}>
+                      <p className="text-xs font-semibold text-white">{date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                      <div className="mt-2 space-y-1.5">
+                        {events.slice(0, 4).map((event, index) => (
+                          <p key={event.type + index} className="flex items-start gap-2 text-xs text-white/85">
+                            <span className={cn('mt-1 h-1.5 w-1.5 shrink-0 rounded-full', event.tone)} />
+                            <span className="line-clamp-2">{event.title}</span>
+                          </p>
+                        ))}
+                        {events.length > 4 && <p className="text-xs text-[var(--theme-text-muted)]">+ {events.length - 4} more · Click to see all</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </GlassCard>
+        <GlassCard padding="md" depth="substantial" className="calendar-glass h-fit">
+          <h2 className="text-sm font-semibold text-white">
+            {selectedDate.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+          </h2>
+          <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+            {selectedEvents.length} scheduled item{selectedEvents.length === 1 ? '' : 's'} · Open a category to see everything
+          </p>
+          {selectedEvents.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-white/10 bg-black/10 px-3 py-5 text-center">
+              <p className="text-sm font-medium text-white">Nothing scheduled for this day</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
+                A clear day. Add a routine, goal or assignment whenever you need one.
+              </p>
+              <Link href="/plan" className="mt-3 inline-flex min-h-10 items-center text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">Open Plan</Link>
             </div>
           ) : (
-            <div
-              className="rhythm-hour-scroll"
-              tabIndex={0}
-              aria-label="Calendar hours"
-            >
-              <div
-                className="rhythm-hour-grid"
-                style={{
-                  gridTemplateColumns: `repeat(${days.length},minmax(${days.length === 1 ? '220' : '140'}px,1fr))`,
-                }}
-              >
-                {days.map((day) => (
-                  <section key={day}>
-                    <h2>{day}</h2>
-                    <div className="rhythm-all-day">
-                      <p>Unscheduled / all day</p>
-                      {events
-                        .filter((e) => e.day === day && !e.starts_at)
-                        .map(renderEvent)}
-                    </div>
-                    {Array.from({ length: 24 }, (_, hour) => (
-                      <div
-                        key={hour}
-                        className="rhythm-slot"
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.dataTransfer.dropEffect = 'move';
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          void place(
-                            e.dataTransfer.getData(
-                              'application/x-crystrack-task',
-                            ) || e.dataTransfer.getData('text/plain'),
-                            day,
-                            hour,
-                          );
-                        }}
-                      >
-                        <button
-                          className="rhythm-slot-target"
-                          disabled={busy}
-                          aria-label={`Place selected task on ${day} at ${String(hour).padStart(2, '0')}:00`}
-                          onClick={() => void place(chosen, day, hour)}
-                        >
-                          {String(hour).padStart(2, '0')}:00 · + focus
-                        </button>
-                        {events
-                          .filter(
-                            (e) =>
-                              e.day === day &&
-                              e.starts_at &&
-                              Number(
-                                new Intl.DateTimeFormat('en-GB', {
-                                  timeZone: data?.timezone || 'UTC',
-                                  hour: '2-digit',
-                                  hourCycle: 'h23',
-                                }).format(new Date(e.starts_at)),
-                              ) === hour,
-                          )
-                          .map(renderEvent)}
-                      </div>
+            <div className="mt-4 space-y-2">
+              {groupsForSelected.map((category) => (
+                <details key={selected + '-' + category.type} className="calendar-day-details overflow-hidden rounded-xl border border-white/10 bg-black/10">
+                  <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-3 py-3 text-sm font-medium text-white hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden">
+                    <span className={cn('h-2 w-2 shrink-0 rounded-full', category.tone)} aria-hidden="true" />
+                    <span className="min-w-0 flex-1">{category.label}</span>
+                    <span className="text-xs text-[var(--theme-text-muted)]">{category.events.length}</span>
+                    <ChevronDown className="calendar-group-chevron h-4 w-4 text-[var(--theme-text-muted)]" aria-hidden="true" />
+                  </summary>
+                  <div className="space-y-2 border-t border-white/10 p-2">
+                    {category.events.map((event, index) => (
+                      <p key={event.type + index} className="calendar-event-glass rounded-lg border border-white/[0.06] p-3 text-sm text-white">
+                        {event.title}
+                      </p>
                     ))}
-                  </section>
-                ))}
-              </div>
+                  </div>
+                </details>
+              ))}
             </div>
           )}
         </GlassCard>
