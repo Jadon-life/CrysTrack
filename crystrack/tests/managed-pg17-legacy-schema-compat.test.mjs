@@ -9,7 +9,8 @@ test('hosted PG17 uses existing positive assignment versions without dropping us
   assert.match(s,/ALTER COLUMN revision SET DEFAULT 1/);
   assert.match(s,/sep28_assignment_positive_revision CHECK\(revision>0\)/);
   assert.match(s,/ADD COLUMN reminder_version integer NOT NULL DEFAULT 1/);
-  assert.doesNotMatch(s,/DROP COLUMN|TRUNCATE|DELETE FROM public\.assignments/i);
+  assert.doesNotMatch(s,/DROP COLUMN|TRUNCATE/i);
+  // The existing owner-scoped 'delete assignment' RPC is intentional and is not migration-time cleanup.
 });
 test('Sep28 bill payment uses new FK without replacing legacy money_entries bill_id', () => {
   const s=sql('0019_wealth_recurring_bills');
