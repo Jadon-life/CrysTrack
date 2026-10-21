@@ -11,7 +11,7 @@ import { isRestrictedPreview } from '@/lib/preview/mode';
 export default function ResetPasswordPage() {
   // Preview is synthetic and read-only; never create a real Auth client here.
   if (isRestrictedPreview()) {
-    return <GlassCard padding="lg"><h1 className="text-2xl font-bold">Demo only</h1>
+    return <GlassCard padding="lg"><h1 className="text-2xl font-bold">Synthetic read-only demo</h1>
       <p className="mt-3 text-sm">Account recovery is unavailable in the read-only CrysTrack demo.</p>
       <Link className="mt-4 inline-flex text-sm underline" href="/">Back to the demo</Link>
     </GlassCard>;
