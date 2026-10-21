@@ -20,8 +20,10 @@ CREATE TABLE public.wealth_bill_occurrences(
  CHECK((status='paid')=(paid_at IS NOT NULL)),CHECK((status='paid')=(entry_id IS NOT NULL)),CHECK((status='paid')=(actual_amount IS NOT NULL)),CHECK(actual_amount>0)
 );
 CREATE INDEX bill_occurrence_owner_day_idx ON public.wealth_bill_occurrences(user_id,due_day,id);
-ALTER TABLE public.money_entries ADD COLUMN bill_id uuid REFERENCES public.wealth_recurring_bills(id),ADD COLUMN bill_occurrence_id uuid REFERENCES public.wealth_bill_occurrences(id),
- ADD CONSTRAINT bill_origin_pair CHECK((bill_id IS NULL)=(bill_occurrence_id IS NULL));
+-- Keep legacy money_entries.bill_id (FK to public.wealth_bills) intact.
+-- Sep28 bill payments use their own provenance FK.
+ALTER TABLE public.money_entries ADD COLUMN sep28_bill_id uuid REFERENCES public.wealth_recurring_bills(id),ADD COLUMN bill_occurrence_id uuid REFERENCES public.wealth_bill_occurrences(id),
+ ADD CONSTRAINT bill_origin_pair CHECK((sep28_bill_id IS NULL)=(bill_occurrence_id IS NULL));
 CREATE UNIQUE INDEX money_bill_occurrence_unique ON public.money_entries(bill_occurrence_id) WHERE bill_occurrence_id IS NOT NULL;
 ALTER TABLE public.wealth_bill_occurrences ADD CONSTRAINT bill_payment_entry_fk FOREIGN KEY(entry_id) REFERENCES public.money_entries(id);
 CREATE TABLE crystrack_bills.states(user_id uuid PRIMARY KEY REFERENCES auth.users(id),revision bigint NOT NULL DEFAULT 1);
@@ -87,10 +89,10 @@ END $$;
 CREATE FUNCTION crystrack_bills.guard_entry() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE permit uuid;
 BEGIN
- IF TG_OP<>'INSERT' AND (OLD.bill_id IS NOT NULL OR OLD.bill_occurrence_id IS NOT NULL) THEN RAISE EXCEPTION 'Bill payment history is immutable' USING ERRCODE='42501';END IF;
- IF TG_OP<>'DELETE' AND (NEW.bill_id IS NOT NULL OR NEW.bill_occurrence_id IS NOT NULL) THEN
+ IF TG_OP<>'INSERT' AND (OLD.sep28_bill_id IS NOT NULL OR OLD.bill_occurrence_id IS NOT NULL) THEN RAISE EXCEPTION 'Bill payment history is immutable' USING ERRCODE='42501';END IF;
+ IF TG_OP<>'DELETE' AND (NEW.sep28_bill_id IS NOT NULL OR NEW.bill_occurrence_id IS NOT NULL) THEN
   IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'Immutable bill origin' USING ERRCODE='42501'; END IF;
-  DELETE FROM crystrack_bills.entry_permits WHERE entry_id=NEW.id AND user_id=NEW.user_id AND bill_id=NEW.bill_id AND occurrence_id=NEW.bill_occurrence_id RETURNING entry_id INTO permit;
+  DELETE FROM crystrack_bills.entry_permits WHERE entry_id=NEW.id AND user_id=NEW.user_id AND bill_id=NEW.sep28_bill_id AND occurrence_id=NEW.bill_occurrence_id RETURNING entry_id INTO permit;
   IF permit IS NULL OR NEW.type<>'expense' OR NEW.flow_kind<>'expense' OR NEW.debt_id IS NOT NULL OR NEW.expected_flow_id IS NOT NULL THEN RAISE EXCEPTION 'Bill origin unavailable' USING ERRCODE='42501'; END IF;
  END IF;
  RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END;
@@ -130,7 +132,7 @@ BEGIN
   v_amount:=(p_fields->>'actualAmount')::numeric;IF v_amount<=0 THEN RAISE EXCEPTION 'Invalid actual amount' USING ERRCODE='22023';END IF;
   e:=gen_random_uuid();
   INSERT INTO crystrack_bills.entry_permits VALUES(e,u,b.id,o.id);
-  INSERT INTO public.money_entries(id,user_id,type,flow_kind,amount,date,source,category,note,bill_id,bill_occurrence_id)
+  INSERT INTO public.money_entries(id,user_id,type,flow_kind,amount,date,source,category,note,sep28_bill_id,bill_occurrence_id)
    VALUES(e,u,'expense','expense',v_amount,n,o.title,o.category,'Explicit bill payment; due '||o.due_day,b.id,o.id);
   UPDATE public.wealth_bill_occurrences SET status='paid',paid_at=n,actual_amount=v_amount,entry_id=e,revision=revision+1 WHERE id=o.id;
   INSERT INTO public.activity_events(user_id,type,entity_type,entity_id,metadata_json) VALUES(u,'finance_entry','finance',e,jsonb_build_object('title',o.title,'amount',-v_amount,'type','expense','origin','bill','billId',b.id,'occurrenceId',o.id));
@@ -148,7 +150,7 @@ BEGIN
 END $$;
 CREATE FUNCTION crystrack_bills.occ_json(o public.wealth_bill_occurrences,z text,d date) RETURNS jsonb LANGUAGE sql STABLE SET search_path='' AS $$
  SELECT jsonb_build_object('id',o.id,'billId',o.bill_id,'dueDay',o.due_day,'timezone',o.timezone,'title',o.title,'category',o.category,'expected',o.expected_amount::text,'actual',o.actual_amount::text,'revision',o.revision,'paidAt',o.paid_at,'entryId',o.entry_id,
- 'status',CASE WHEN o.status='paid' THEN CASE WHEN EXISTS(SELECT 1 FROM public.money_entries e WHERE e.id=o.entry_id AND e.user_id=o.user_id AND e.bill_id=o.bill_id AND e.bill_occurrence_id=o.id AND e.amount=o.actual_amount AND e.date=o.paid_at AND e.type='expense' AND e.flow_kind='expense') THEN 'paid' ELSE 'not_confirmed' END
+ 'status',CASE WHEN o.status='paid' THEN CASE WHEN EXISTS(SELECT 1 FROM public.money_entries e WHERE e.id=o.entry_id AND e.user_id=o.user_id AND e.sep28_bill_id=o.bill_id AND e.bill_occurrence_id=o.id AND e.amount=o.actual_amount AND e.date=o.paid_at AND e.type='expense' AND e.flow_kind='expense') THEN 'paid' ELSE 'not_confirmed' END
  WHEN o.status='canceled' THEN 'canceled' WHEN o.due_day<d THEN 'overdue' WHEN o.due_day<=d+6 THEN 'due_soon' ELSE 'planned' END)
 $$;
 CREATE FUNCTION public.wealth_bill_list(p_id uuid DEFAULT NULL,p_page integer DEFAULT 0,p_revision text DEFAULT NULL) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
@@ -161,7 +163,7 @@ BEGIN
  IF p_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.wealth_recurring_bills WHERE id=p_id AND user_id=u) THEN RAISE EXCEPTION 'Not available' USING ERRCODE='42501';END IF;
  SELECT coalesce(jsonb_agg(jsonb_build_object('id',b.id,'title',b.title,'category',b.category,'merchant',b.merchant,'amount',b.amount::text,'frequency',b.frequency,'firstDue',b.first_due,'endDate',b.end_date,'status',b.status,'reminderEnabled',b.reminder_enabled,'revision',b.revision,
  'next', (SELECT crystrack_bills.occ_json(o,z,d) FROM public.wealth_bill_occurrences o WHERE o.bill_id=b.id AND o.status='pending' ORDER BY due_day,id LIMIT 1),
- 'paidCount',(SELECT count(*) FROM public.wealth_bill_occurrences p JOIN public.money_entries e ON e.id=p.entry_id AND e.user_id=p.user_id AND e.bill_id=p.bill_id AND e.bill_occurrence_id=p.id AND e.amount=p.actual_amount AND e.date=p.paid_at AND e.flow_kind='expense' AND e.type='expense' WHERE p.bill_id=b.id AND p.status='paid')) ORDER BY b.id),'[]') INTO items
+ 'paidCount',(SELECT count(*) FROM public.wealth_bill_occurrences p JOIN public.money_entries e ON e.id=p.entry_id AND e.user_id=p.user_id AND e.sep28_bill_id=p.bill_id AND e.bill_occurrence_id=p.id AND e.amount=p.actual_amount AND e.date=p.paid_at AND e.flow_kind='expense' AND e.type='expense' WHERE p.bill_id=b.id AND p.status='paid')) ORDER BY b.id),'[]') INTO items
  FROM (SELECT * FROM public.wealth_recurring_bills WHERE user_id=u AND (p_id IS NULL OR id=p_id) ORDER BY id LIMIT 20 OFFSET CASE WHEN p_id IS NULL THEN p_page*20 ELSE 0 END) b;
  SELECT CASE WHEN p_id IS NULL THEN (SELECT count(*)>p_page*20+20 FROM public.wealth_recurring_bills WHERE user_id=u) ELSE (SELECT count(*)>p_page*20+20 FROM public.wealth_bill_occurrences WHERE bill_id=p_id AND user_id=u) END INTO more;
  SELECT coalesce(jsonb_agg(crystrack_bills.occ_json(o,z,d) ORDER BY due_day,id),'[]') INTO occ FROM (SELECT * FROM public.wealth_bill_occurrences WHERE user_id=u AND bill_id=p_id ORDER BY due_day,id LIMIT 20 OFFSET p_page*20) o;
