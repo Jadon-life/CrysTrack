@@ -21,6 +21,11 @@ if (-not (Get-Command 'supabase' -ErrorAction SilentlyContinue)) {
 }
 & supabase db dump --help *> $null
 if ($LASTEXITCODE -ne 0) { throw 'Supabase CLI does not expose db dump.' }
+if (-not (Get-Command 'docker' -ErrorAction SilentlyContinue)) {
+  throw 'Docker Desktop is required for the official Supabase CLI dump process.'
+}
+& docker info *> $null
+if ($LASTEXITCODE -ne 0) { throw 'Docker Desktop is not running or cannot be accessed.' }
 
 $fullRoot = [System.IO.Path]::GetFullPath($DestinationRoot)
 if ($fullRoot -match '(?i)(\\|/)(onedrive|dropbox|google.drive|repos?|github|crystrack)(\\|/)' -or
@@ -55,7 +60,7 @@ try {
   if (-not ($validDirect -or $validPooler)) {
     throw 'Connection does not identify the expected CrysTrack project. Refusing to back up another database.'
   }
-  if ($uri.Port -notin @(5432, 6543)) {
+  if ($uri.Port -ne 5432) {
     throw 'Unexpected DB port. Get a current Session Pooler (5432) connection URL from CrysTrack > Connect.'
   }
   if ($uri.UserInfo -notmatch ':') { throw 'Database password is missing from the URL.' }
