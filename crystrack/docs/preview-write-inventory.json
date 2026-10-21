@@ -141,6 +141,12 @@
     ]
   },
   {
+    "file": "src/app/api/profile/bootstrap/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
     "file": "src/app/api/profile/route.ts",
     "methods": [
       "PUT"
