@@ -10,12 +10,12 @@ const build = client => {
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
-  const module = { exports: {} };
+  const fixtureModule = { exports: {} };
   new Function('require', 'module', 'exports', compiled)(
     name => name === '@/lib/supabase/server' ? { createClient: async () => client } : require(name),
-    module, module.exports,
+    fixtureModule, fixtureModule.exports,
   );
-  return module.exports.POST;
+  return fixtureModule.exports.POST;
 };
 
 const request = (timezone, { origin = 'http://localhost', contentType = 'application/json', body } = {}) =>
