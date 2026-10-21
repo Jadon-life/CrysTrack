@@ -70,3 +70,10 @@ No IndexedDB/device queue, local preferences, unsynchronized intents, auth/push/
 Telegram secret, raw provider prompt, lease or original bank file is included.
 All hosted rollout remains blocked by Issue #18. Only local candidate 0024 is added;
 no production schema compatibility or hosted application is asserted.
+
+The v1 [column type registry](../src/lib/account-export/column-types.json) documents
+native date versus timestamp fields and scalar types. Validation uses these
+explicit types, not a field-name guess: for example, bill `end_date` remains a
+calendar date, whereas routine schedule bounds retain ISO timestamp offsets.
+Unknown/malformed projected types and orphan AI/frozen-daily relationships fail
+before a file is offered. This does not rewrite or repair stored values.

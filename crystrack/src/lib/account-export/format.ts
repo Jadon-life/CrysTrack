@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import catalog from './catalog.json';
+import columnTypes from './column-types.json';
 export const EXPORT_VERSION = 'crystrack-account/v1' as const;
 export const MAX_EXPORT_BYTES = 12 * 1024 * 1024;
 export const categorySchema = z.enum(['tasks', 'assignments', 'goals', 'wealth', 'settings', 'history', 'ai']);
@@ -48,9 +49,16 @@ export function validateSnapshot(raw:unknown,owner:string,selected:ExportCategor
       if('user_id'in row&&row.user_id!==owner)throw Error('EXPORT_OWNER');
       for(const [key,value]of Object.entries(row)){
         if(key==='schedule')z.array(z.object({weekday:z.number().int().min(0).max(6),start:z.union([z.string().datetime({offset:true}),z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).nullable(),end:z.union([z.string().datetime({offset:true}),z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).nullable()}).strict()).max(1000).parse(value);
+        const kind=(columnTypes as Record<string,Record<string,string>>)[d.table]?.[key];
+        if(!kind)throw Error('EXPORT_COLUMN_TYPE');
         if(value===null)continue;
-        if((key==='id'||key.endsWith('_id')||key==='routine_key')&&!z.string().uuid().safeParse(value).success)throw Error('EXPORT_ID');
-        if(['created_at','updated_at','completed_at','archived_at','deadline','date','start_date','end_date','scheduled_for','sent_at','snoozed_until','generated_at','paid_at','expected_on','due_date','last_confirmed_at','activated_at','requested_at','effective_at','opens_at','closes_at','materialized_at','closed_at','reached_at','claimed_at','accepted_at','enabled_since'].includes(key)&&!z.string().datetime({offset:true}).safeParse(value).success)throw Error('EXPORT_TIMESTAMP');
+        if(kind==='uuid')z.string().uuid().parse(value);
+        else if(kind==='timestamp with time zone')z.string().datetime({offset:true}).parse(value);
+        else if(kind==='date')z.string().date().parse(value);
+        else if(kind==='integer')z.number().int().min(-2147483648).max(2147483647).parse(value);
+        else if(kind==='boolean')z.boolean().parse(value);
+        else if(kind==='ARRAY')z.array(z.string().nullable()).max(1000).parse(value);
+        else if(kind!=='jsonb')z.string().parse(value);
       }
       if(d.order.some(k=>row[k]===null||row[k]===undefined))throw Error('EXPORT_ID');
       for(const field of d.decimals){const v=row[field];if(v!==null&&(typeof v!=='string'||! /^-?\d+(?:\.\d+)?$/.test(v)))throw Error('EXPORT_DECIMAL');}
