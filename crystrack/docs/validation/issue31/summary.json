@@ -1,0 +1,69 @@
+{
+  "issue": 31,
+  "base": "a0637c43be62673962437c40f2ddd1649821e2eb",
+  "branch": "feat/piece6c-wealth-csv",
+  "draftPr": 34,
+  "application": {
+    "passed": 187,
+    "failed": 0,
+    "skipped": 0,
+    "typescript": "passed",
+    "lintErrors": 0,
+    "preExistingLintWarnings": 4
+  },
+  "database": {
+    "passed": 108,
+    "failed": 0,
+    "skipped": 0,
+    "localOnly": true,
+    "migration": "src/db/migrations/0020_wealth_csv_statements.sql",
+    "sha256": "5e63dabb2c006c614952226313e154c40bd03745d3f86a42efb40e81f2048014"
+  },
+  "normalBuild": "passed; restored after synthetic build",
+  "csvBrowser": {
+    "widths": [
+      375,
+      430,
+      768,
+      1280,
+      1440
+    ],
+    "completeExportRows": 2005,
+    "oversizeExport": "503 JSON, no attachment and unchanged ledger",
+    "scopedAxeViolations": 0
+  },
+  "retainedBrowserSuites": [
+    "assignments",
+    "today-streak",
+    "crystals",
+    "week-grid",
+    "budgets",
+    "bills"
+  ],
+  "preview": {
+    "routes": [
+      "/",
+      "/plan",
+      "/tasks",
+      "/goals",
+      "/assignments",
+      "/calendar",
+      "/finance",
+      "/insights",
+      "/history",
+      "/ai",
+      "/settings",
+      "/auth"
+    ],
+    "apiWriters": 40,
+    "externalRequests": [],
+    "clientArtifactMarkersAbsent": 5,
+    "blockedMode": "passed",
+    "browserErrors": []
+  },
+  "maintenanceProbesDeniedBeforeAuth": 55,
+  "hostedChanges": false,
+  "deployed": false,
+  "productionReleaseBlocker": 18,
+  "finalGitHubCi": "See final-head checks on draft PR #34; no circular commit SHA stored in this source evidence"
+}

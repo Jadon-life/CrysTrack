@@ -27,13 +27,13 @@ export async function GET() {
       .order('created_at', { ascending: false }),
     supabase
       .from('profiles')
-      .select('timezone, current_timezone')
+      .select('timezone, scheduling_timezone')
       .eq('user_id', user.id)
       .maybeSingle(),
   ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const timezone = profile?.current_timezone || profile?.timezone || 'UTC';
+  const timezone = profile?.scheduling_timezone || profile?.timezone || 'UTC';
   const now = new Date();
 
   return NextResponse.json((goals || []).map((goal: any) => {

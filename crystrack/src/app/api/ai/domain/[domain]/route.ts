@@ -1,3 +1,4 @@
+import { aiProviderConfigured } from '@/lib/ai/privacy-server';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -6,316 +7,148 @@ import {
   DOMAIN_INSIGHT_POLICY_VERSION,
   intelligenceAnalysisModel,
 } from '@/lib/ai/intelligence';
-import { buildIntelligenceContext, fingerprintContext, type IntelligenceDomain } from '@/lib/ai/context';
-
+import { fingerprintContext } from '@/lib/ai/context';
+import { buildScopedContext } from '@/lib/ai/scoped-context';
+import { aiDomainSchema, AI_PRIVACY_POLICY } from '@/lib/ai/privacy';
+import {
+  readAiPrivacy,
+  beginAi,
+  finishAi,
+  checkAiLease,
+  assertAiOrigin,
+  aiFailure,
+  aiHeaders,
+  AiPrivacyError,
+} from '@/lib/ai/privacy-server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const DOMAINS = new Set<IntelligenceDomain>(['tasks', 'goals', 'assignments', 'wealth', 'overview']);
-
-function validDomain(value: string): value is IntelligenceDomain {
-  return DOMAINS.has(value as IntelligenceDomain);
-}
-
 function validatedInsight(value: unknown) {
-  const parsed =
-    DomainInsightSchema.safeParse(value);
-
-  return parsed.success
-    ? parsed.data
-    : null;
+  const parsed = DomainInsightSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
-
 async function currentUser() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new AiPrivacyError('AUTH', 401);
   return { supabase, user };
 }
-
-export async function GET(_request: Request, props: { params: Promise<{ domain: string }> }) {
-  const params = await props.params;
-  if (!validDomain(params.domain)) return NextResponse.json({ error: 'Unknown AI domain' }, { status: 404 });
-  const { supabase, user } = await currentUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { data, error } = await supabase
+async function latestSaved(
+  client: any,
+  user: string,
+  domain: string,
+  revision: number,
+  fingerprint?: string,
+) {
+  let q = client
     .from('ai_domain_insights')
-    .select('insight, generated_at, model')
-    .eq('user_id', user.id)
-    .eq('domain', params.domain)
+    .select('insight,generated_at,model,data_fingerprint')
+    .eq('user_id', user)
+    .eq('domain', domain);
+  const prefix = AI_PRIVACY_POLICY + ':' + revision + ':';
+  q = fingerprint
+    ? q.eq('data_fingerprint', prefix + fingerprint)
+    : q.like('data_fingerprint', prefix + '%');
+  const { data, error } = await q
     .order('generated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  const insight =
-    validatedInsight(data?.insight);
-
-  return NextResponse.json({
-    insight,
-    generatedAt: data?.generated_at || null,
-    model: data?.model || intelligenceAnalysisModel(),
-    configured: Boolean(process.env.OPENROUTER_API_KEY),
-    cached: Boolean(insight),
-  });
+  if (error) throw new AiPrivacyError('UNAVAILABLE');
+  return data;
 }
-
-export async function POST(
-  request: Request,
-  props: {
-    params: Promise<{ domain: string }>;
-  },
-) {
-  const params = await props.params;
-
-  if (!validDomain(params.domain)) {
-    return NextResponse.json(
-      { error: 'Unknown AI domain' },
-      { status: 404 },
-    );
-  }
-
-  const { supabase, user } =
-    await currentUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 },
-    );
-  }
-
-  const forceRefresh =
-    new URL(request.url)
-      .searchParams
-      .get('force') === '1';
-
-  const { data: latest } =
-    await supabase
-      .from('ai_domain_insights')
-      .select(
-        'insight, generated_at, model, data_fingerprint',
-      )
-      .eq('user_id', user.id)
-      .eq('domain', params.domain)
-      .order(
-        'generated_at',
-        { ascending: false },
-      )
-      .limit(1)
-      .maybeSingle();
-
-  const latestInsight =
-    validatedInsight(
-      latest?.insight,
-    );
-
-  if (!process.env.OPENROUTER_API_KEY) {
-    return NextResponse.json({
-      insight:
-        latestInsight,
-      generatedAt:
-        latest?.generated_at || null,
-      model:
-        latest?.model ||
-        intelligenceAnalysisModel(),
-      configured: false,
-      cached: Boolean(latestInsight),
-      currentSnapshot: null,
-      currentDate: null,
-    });
-  }
-
-  let currentSnapshot: any = null;
-  let currentDate: string | null = null;
-
+export async function GET(_request: Request, props: { params: Promise<{ domain: string }> }) {
   try {
-    const context =
-      await buildIntelligenceContext(
-        supabase,
-        user.id,
-        params.domain,
-      );
-
-    const fingerprint =
-      fingerprintContext({
-        policy_version:
-          DOMAIN_INSIGHT_POLICY_VERSION,
-        context,
-      });
-
-    currentDate =
-      String(
-        (context as any)
-          ?.as_of_date || '',
-      ) || null;
-
-    currentSnapshot =
-      params.domain === 'tasks'
-        ? (
-            (context as any)
-              ?.tasks?.today || null
-          )
-        : null;
-
-    if (
-      !forceRefresh &&
-      latest?.data_fingerprint ===
-        fingerprint &&
-      latestInsight
-    ) {
-      return NextResponse.json({
-        insight: latestInsight,
-        generatedAt:
-          latest.generated_at,
-        model: latest.model,
-        configured: true,
-        cached: true,
-        currentSnapshot,
-        currentDate,
-      });
-    }
-
-    if (!forceRefresh) {
-      const {
-        data: sameFingerprint,
-      } = await supabase
-        .from('ai_domain_insights')
-        .select(
-          'insight, generated_at, model',
-        )
-        .eq('user_id', user.id)
-        .eq(
-          'domain',
-          params.domain,
-        )
-        .eq(
-          'data_fingerprint',
-          fingerprint,
-        )
-        .maybeSingle();
-
-      const sameFingerprintInsight =
-        validatedInsight(
-          sameFingerprint?.insight,
-        );
-
-      if (
-        sameFingerprint &&
-        sameFingerprintInsight
-      ) {
-        return NextResponse.json({
-          insight:
-            sameFingerprintInsight,
-          generatedAt:
-            sameFingerprint
-              .generated_at,
-          model:
-            sameFingerprint.model,
-          configured: true,
-          cached: true,
-          currentSnapshot,
-          currentDate,
-        });
-      }
-    }
-
-    const insight =
-      await analyzeDomainWithOpenRouter(
-        params.domain,
-        context,
-      );
-
-    if (!insight) {
-      return NextResponse.json({
-        insight:
-          latestInsight,
-        generatedAt:
-          latest?.generated_at ||
-          null,
-        model:
-          latest?.model ||
-          intelligenceAnalysisModel(),
-        configured: false,
-        cached: Boolean(latestInsight),
-        currentSnapshot,
-        currentDate,
-      });
-    }
-
-    const generatedAt =
-      new Date().toISOString();
-
-    const {
-      data: stored,
-      error: storeError,
-    } = await supabase
-      .from('ai_domain_insights')
-      .upsert(
+    const domain = aiDomainSchema.parse((await props.params).domain),
+      { supabase, user } = await currentUser(),
+      p = await readAiPrivacy(supabase);
+    if (!p.enabled || (domain === 'wealth' && !p.wealthEnabled))
+      return NextResponse.json(
         {
-          user_id: user.id,
-          domain: params.domain,
-          data_fingerprint:
-            fingerprint,
-          insight,
-          model:
-            intelligenceAnalysisModel(),
-          generated_at:
-            generatedAt,
+          insight: null,
+          generatedAt: null,
+          enabled: p.enabled,
+          wealthEnabled: p.wealthEnabled,
+          configured: aiProviderConfigured(),
+          cached: false,
+          source: 'none',
         },
-        {
-          onConflict:
-            'user_id,domain,data_fingerprint',
-        },
-      )
-      .select(
-        'insight, generated_at, model',
-      )
-      .single();
-
-    if (storeError) {
-      throw storeError;
-    }
-
-    return NextResponse.json({
-      insight:
-        stored?.insight || insight,
-      generatedAt:
-        stored?.generated_at ||
-        generatedAt,
-      model:
-        stored?.model ||
-        intelligenceAnalysisModel(),
-      configured: true,
-      cached: false,
-      currentSnapshot,
-      currentDate,
-    });
-  } catch (error: any) {
-    if (latest && latestInsight) {
-      return NextResponse.json({
-        insight: latestInsight,
-        generatedAt:
-          latest.generated_at,
-        model: latest.model,
-        configured: true,
-        cached: true,
-        stale: true,
-        warning:
-          'Fresh AI analysis is temporarily unavailable; showing the latest saved insight.',
-        currentSnapshot,
-        currentDate,
-      });
-    }
-
+        { headers: aiHeaders },
+      );
+    const latest = await latestSaved(supabase, user.id, domain, p.revision),
+      latestInsight = validatedInsight(latest?.insight);
+    if ((await readAiPrivacy(supabase)).revision !== p.revision)
+      throw new AiPrivacyError('CHANGED', 409);
     return NextResponse.json(
       {
-        error:
-          error?.message ||
-          'AI analysis is temporarily unavailable',
+        insight: latestInsight,
+        generatedAt: latest?.generated_at || null,
+        model: latest?.model || null,
+        enabled: true,
+        wealthEnabled: p.wealthEnabled,
+        configured: aiProviderConfigured(),
+        cached: Boolean(latestInsight),
+        source: latestInsight ? 'saved-ai' : 'none',
+        warning: latestInsight
+          ? 'Saved AI-generated commentary; not fresh analysis. It may be incomplete or incorrect.'
+          : '',
       },
-      { status: 503 },
+      { headers: aiHeaders },
     );
+  } catch (e) {
+    return aiFailure(e);
+  }
+}
+export async function POST(request: Request, props: { params: Promise<{ domain: string }> }) {
+  try {
+    const domain = aiDomainSchema.parse((await props.params).domain),
+      { supabase, user } = await currentUser();
+    assertAiOrigin(request);
+    const lease = await beginAi(supabase, domain, request.signal);
+    const context = await buildScopedContext(supabase, user.id, domain, lease.wealthEnabled);
+    const fingerprint = fingerprintContext({
+      policy_version: DOMAIN_INSIGHT_POLICY_VERSION,
+      privacy: AI_PRIVACY_POLICY,
+      context,
+    });
+    const latest = await latestSaved(supabase, user.id, domain, lease.revision, fingerprint),
+      latestInsight = validatedInsight(latest?.insight);
+    const sameFingerprintInsight = latestInsight;
+    if (new URL(request.url).searchParams.get('force') !== '1' && sameFingerprintInsight) {
+      await checkAiLease(lease);
+      return NextResponse.json(
+        {
+          insight: sameFingerprintInsight,
+          generatedAt: latest.generated_at,
+          model: latest.model,
+          enabled: true,
+          configured: true,
+          cached: true,
+          source: 'saved-ai',
+          warning: 'Saved AI-generated commentary; not fresh analysis.',
+        },
+        { headers: aiHeaders },
+      );
+    }
+    const insight = await analyzeDomainWithOpenRouter(domain, context, lease);
+    if (!insight) throw new AiPrivacyError('UNCONFIGURED');
+    const result = await finishAi(lease, {
+      fingerprint,
+      insight,
+      model: intelligenceAnalysisModel(),
+    });
+    return NextResponse.json(
+      {
+        ...result,
+        enabled: true,
+        configured: true,
+        source: 'ai',
+        currentSnapshot: domain === 'tasks' ? (context.tasks as any)?.today : null,
+        currentDate: context.as_of_date,
+      },
+      { headers: aiHeaders },
+    );
+  } catch (e) {
+    return aiFailure(e);
   }
 }

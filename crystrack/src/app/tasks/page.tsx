@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { TaskWeekGrid } from '@/components/tasks/task-week-grid';
 import { GlassCard } from '@/components/shared/glass-card';
 import { DomainInsightCard } from '@/components/ai/domain-insight-card';
 import { StatusBadge } from '@/components/shared/status-badge';
@@ -9,13 +10,18 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CreateModal } from '@/components/shared/create-modal';
 import { del, fetcher, post } from '@/lib/api';
-import { cn, getLocalDateKey } from '@/lib/utils';
-import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {useOfflineToday} from '@/components/offline/offline-today-provider';
+import {OfflineTodayStatus,OfflineRoutineMarker} from '@/components/offline/offline-today-status';
+import { groupTodayTasks, summarizeToday } from '@/lib/today-progress';
+import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, SkipForward, Archive, Trash2, ChevronDown } from 'lucide-react';
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function TasksPage() {
+  const offline=useOfflineToday();
   const searchParams = useSearchParams();
+  const [taskView,setTaskView] = useState<'today'|'week'>('today');
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,13 +33,16 @@ export default function TasksPage() {
     title: '', description: '', preferredTime: '', category: '', schedules: [] as number[],
     remindersEnabled: true, reminderChannel: 'push', beforeMinutes: 15, atPreferredTime: true, followUp: true, endOfDayReminder: true,
   });
-  const today = new Date().getDay();
+  const [schedulingDay,setSchedulingDay] = useState('');
+  const today = schedulingDay ? new Date(`${schedulingDay}T12:00:00Z`).getUTCDay() : 0;
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      setTasks(await fetcher(`/api/tasks?date=${getLocalDateKey()}&weekday=${new Date().getDay()}`));
+      const context = await fetcher('/api/daily-records/context');
+      setSchedulingDay(context.day);
+      setTasks(await fetcher(`/api/tasks?date=${context.day}`));
     } catch (e: any) {
       setError(e.message || 'Failed to load tasks');
     } finally {
@@ -87,26 +96,34 @@ export default function TasksPage() {
     }));
   };
 
+  useEffect(()=>{const update=()=>void loadTasks();window.addEventListener('crystrack-offline-confirmed',update);return()=>window.removeEventListener('crystrack-offline-confirmed',update);},[loadTasks]);
+
   const toggleTaskCompletion = async (taskId: string) => {
     setError('');
+    const item=tasks.find(x=>x.id===taskId);const local=item?.today_status;
+    if(await offline.stageAction(taskId,local==='completed'?'pending':'completed'))return;
     try {
-      await post(`/api/tasks/${taskId}/occurrences/${getLocalDateKey()}/toggle`, {});
+      const task = tasks.find(item => item.id === taskId);
+      await post(`/api/tasks/${taskId}/occurrences/${schedulingDay}/toggle`, {desiredStatus:task?.today_status === 'completed' ? 'pending' : 'completed',expectedRevision:task?.daily_revision,requestId:crypto.randomUUID()});
       await loadTasks();
-      window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
+      await loadTasks();
       setError(e.message || 'Failed to update task');
-    }
+    } finally { window.dispatchEvent(new Event('crystrack-activity-updated')); }
   };
 
   const toggleTaskSkip = async (taskId: string) => {
     setError('');
+    const item=tasks.find(x=>x.id===taskId);const local=item?.today_status;
+    if(await offline.stageAction(taskId,local==='skipped'?'pending':'skipped'))return;
     try {
-      await post(`/api/tasks/${taskId}/occurrences/${getLocalDateKey()}/skip`, {});
+      const task = tasks.find(item => item.id === taskId);
+      await post(`/api/tasks/${taskId}/occurrences/${schedulingDay}/skip`, {desiredStatus:task?.today_status === 'skipped' ? 'pending' : 'skipped',expectedRevision:task?.daily_revision,requestId:crypto.randomUUID()});
       await loadTasks();
-      window.dispatchEvent(new Event('crystrack-activity-updated'));
     } catch (e: any) {
+      await loadTasks();
       setError(e.message || 'Failed to skip task');
-    }
+    } finally { window.dispatchEvent(new Event('crystrack-activity-updated')); }
   };
 
   const archiveRoutine = async () => {
@@ -137,7 +154,7 @@ export default function TasksPage() {
   };
 
   const deleteTask = async (task: any) => {
-    if (!window.confirm(`Delete "${task.title}" permanently? Its schedules, occurrences and reminders will be removed.`)) return;
+    if (!window.confirm(`Delete "${task.title}" from future days? Your recorded history and today’s plan will be kept.`)) return;
     setError('');
     try {
       await del(`/api/tasks/${task.id}`);
@@ -152,8 +169,10 @@ export default function TasksPage() {
     () => tasks.filter((task: any) => task.scheduled_today).sort((a: any, b: any) => (a.preferred_time || '99:99').localeCompare(b.preferred_time || '99:99')),
     [tasks],
   );
-  const completedToday = todayTasks.filter((task: any) => task.today_status === 'completed').length;
-  const completionPercent = todayTasks.length ? Math.round((completedToday / todayTasks.length) * 100) : 0;
+  const todayGroups = useMemo(() => groupTodayTasks(todayTasks), [todayTasks]);
+  const progress = summarizeToday(tasks);
+  const completedToday = progress.completed;
+  const completionPercent = progress.percent;
 
   const filteredTasks = filterDay !== null
     ? tasks.filter((task: any) => task.task_schedules?.some((schedule: any) => schedule.weekday === filterDay))
@@ -161,6 +180,7 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-8">
+      <OfflineTodayStatus/>
       <div className="flex flex-col items-start sm:flex-row sm:items-center justify-between gap-4 scenic-readable-copy">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400">Plan · Routines</p>
@@ -176,78 +196,108 @@ export default function TasksPage() {
 
       <DomainInsightCard domain="tasks" />
 
+      <div className="flex flex-wrap gap-2 scenic-readable-strip" aria-label="Task views">
+        <Button variant={taskView==='today'?'primary':'ghost'} aria-pressed={taskView==='today'} onClick={()=>setTaskView('today')}>Today’s routines</Button>
+        <Button variant={taskView==='week'?'primary':'ghost'} aria-pressed={taskView==='week'} onClick={()=>setTaskView('week')}>Week grid</Button>
+      </div>
+      {taskView==='week' ? <TaskWeekGrid onChange={loadTasks} /> : <>
+
+
       <section className="space-y-3">
-        <div className="flex items-end justify-between gap-4 scenic-readable-strip">
+        <div className="flex items-center justify-between gap-4 scenic-readable-strip">
           <div>
             <h2 className="text-lg font-semibold text-white">Today</h2>
-            <p className="text-xs text-[var(--theme-text-muted)] mt-1">{completedToday} of {todayTasks.length} scheduled routines complete</p>
+            <p className="mt-1 text-xs text-[var(--theme-text-muted)]" aria-live="polite">
+              {completedToday} of {todayTasks.length} scheduled routines complete
+              {progress.skipped > 0 ? ' · ' + progress.skipped + ' skipped' : ''}
+              {progress.remaining > 0 ? ' · ' + progress.remaining + ' remaining' : ''}
+            </p>
           </div>
-          <span className="text-sm font-semibold text-emerald-400">{completionPercent}%</span>
-        </div>
-        <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
-          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${completionPercent}%` }} />
+          <div className="relative h-[66px] w-[66px] shrink-0" role="img" aria-label={completionPercent + '% of scheduled routines completed'}>
+            <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90" aria-hidden="true">
+              <circle cx="40" cy="40" r="31" pathLength="100" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="7" />
+              <circle cx="40" cy="40" r="31" pathLength="100" fill="none" stroke="var(--theme-primary)" strokeWidth="7" strokeLinecap="round" strokeDasharray={completionPercent + ' 100'} />
+            </svg>
+            <span className="absolute inset-0 grid place-items-center text-sm font-semibold text-white">{completionPercent}%</span>
+          </div>
         </div>
 
-        {loading && <div className="flex justify-center py-10"><Loader2 className="w-7 h-7 text-blue-400 animate-spin" /></div>}
+        {loading && <div className="flex justify-center py-10" role="status"><Loader2 className="h-7 w-7 animate-spin text-[var(--theme-primary)]" /><span className="sr-only">Loading today&apos;s routines</span></div>}
         {!loading && todayTasks.length === 0 && (
-          <GlassCard padding="lg" className="text-center py-8">
-            <CheckCircle2 className="w-8 h-8 text-emerald-300 mx-auto mb-3" aria-hidden="true" />
+          <GlassCard padding="lg" className="py-8 text-center">
+            <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-[var(--theme-primary)]" aria-hidden="true" />
             <p className="text-sm font-semibold text-white">No routines are scheduled for today.</p>
             <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-muted)]">
-              You have room to set the pace. Add a routine when you are ready.
+              Add a routine when you are ready.
             </p>
             <Button variant="primary" onClick={() => setShowCreate(true)} className="mt-4">
-              <Plus className="w-4 h-4 mr-1.5" /> Create a routine
+              <Plus className="mr-1.5 h-4 w-4" /> Create a routine
             </Button>
           </GlassCard>
         )}
-
-        <div className="space-y-2">
-          {todayTasks.map((task: any, index: number) => (
-            <GlassCard key={task.id} padding="sm" className="animate-enter" style={{ animationDelay: `${index * 50}ms` }}>
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  checked={task.today_status === 'completed'}
-                  disabled={task.today_status === 'skipped' || task.today_status === 'missed'}
-                  onCheckedChange={() => toggleTaskCompletion(task.id)}
-                  className="border-white/30 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      'text-sm font-medium truncate',
-                      task.today_status === 'completed' && 'text-slate-500 line-through',
-                      task.today_status === 'skipped' && 'text-slate-400',
-                      task.today_status !== 'completed' && task.today_status !== 'skipped' && 'text-white',
-                    )}>{task.title}</span>
-                    {task.today_status === 'skipped' && <span className="text-[10px] uppercase tracking-wide text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Skipped</span>}
-                    {task.category && <span className="hidden sm:inline text-[11px] text-slate-500">{task.category}</span>}
-                  </div>
-                  {task.description && <p className="text-xs text-[var(--theme-text-muted)] truncate mt-0.5">{task.description}</p>}
+        {!loading && progress.allDone && (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100" role="status">
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" /> All scheduled routines are complete
+          </div>
+        )}
+        {!loading && todayTasks.length > 0 && (
+          <GlassCard padding="md" className="max-h-[34rem] overflow-y-auto">
+            <div className="space-y-4">
+              {todayGroups.map((group) => (
+                <div key={group.key} className="space-y-1">
+                  <h3 className="px-2 text-xs font-semibold uppercase tracking-wide text-[var(--theme-text-muted)]">{group.label}</h3>
+                  {group.tasks.map((task: any) => (
+                    <div key={task.id} className="flex items-center gap-2 rounded-xl px-1 py-1.5 transition-colors hover:bg-white/[0.045]">
+                      <Checkbox
+                        checked={task.today_status === 'completed'}
+                        disabled={task.today_status === 'skipped' || task.today_status === 'missed'}
+                        aria-label={task.today_status === 'completed' ? 'Mark ' + task.title + ' incomplete' : 'Complete ' + task.title}
+                        onCheckedChange={() => void toggleTaskCompletion(task.id)}
+                        className="h-10 w-10 shrink-0 rounded-full border-white/25 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className={cn('break-words text-sm font-medium', task.today_status === 'completed' ? 'text-white/55 line-through' : 'text-white')}>{task.title}</p><OfflineRoutineMarker id={task.id}/>
+                        <p className="mt-0.5 text-xs text-[var(--theme-text-muted)]">
+                          {task.preferred_time || 'Any time'}
+                          {task.today_status === 'skipped' ? ' · Skipped' : ''}
+                          {task.category ? ' · ' + task.category : ''}
+                          {' · '}
+                          <span title="Routine streak">{task.streak || 0} streak</span>
+                        </p>
+                      </div>
+                      {task.today_status !== 'completed' && task.today_status !== 'missed' && (
+                        <button
+                          type="button"
+                          aria-label={(task.today_status === 'skipped' ? 'Undo skip for ' : 'Skip ') + task.title}
+                          onClick={() => void toggleTaskSkip(task.id)}
+                          className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[var(--theme-text-muted)] hover:bg-white/10 hover:text-amber-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                        >
+                          <SkipForward className="h-3.5 w-3.5" aria-hidden="true" />
+                          {task.today_status === 'skipped' ? 'Unskip' : 'Skip'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  {task.preferred_time && <span className="text-xs text-slate-500">{task.preferred_time}</span>}
-                  <div className="flex items-center gap-1 text-xs text-amber-400" title="Current streak">
-                    <Flame className="w-3.5 h-3.5" /> {task.streak || 0}
-                  </div>
-                  {task.today_status !== 'completed' && (
-                    <button type="button" onClick={() => toggleTaskSkip(task.id)} className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-amber-300 transition-colors">
-                      <SkipForward className="w-3.5 h-3.5" /> {task.today_status === 'skipped' ? 'Undo skip' : 'Skip today'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </GlassCard>
-          ))}
-        </div>
+              ))}
+            </div>
+          </GlassCard>
+        )}
       </section>
 
-      <section className="space-y-4 routine-readable-section">
-        <div>
-          <h2 className="text-lg font-semibold text-white">All routines</h2>
-          <p className="text-xs text-[var(--theme-text-muted)] mt-1">Review schedules without mixing them with today&apos;s execution list.</p>
-        </div>
-
+      <section className="routine-readable-section">
+        <details className="group overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-black/15">
+          <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 py-4 text-white hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-sky-300 [&::-webkit-details-marker]:hidden">
+            <Calendar className="h-5 w-5 shrink-0 text-[var(--theme-primary)]" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-semibold">All routines</span>
+              <span className="mt-1 block text-xs text-[var(--theme-text-muted)]">
+                {tasks.length} routine{tasks.length === 1 ? '' : 's'} · Open to manage schedules, archive or delete
+              </span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-[var(--theme-text-muted)] transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
+          </summary>
+          <div className="space-y-4 border-t border-white/10 px-3 py-4 sm:px-4">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
           <button onClick={() => setFilterDay(null)} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border', filterDay === null ? 'bg-blue-500/15 text-blue-300 border-blue-500/30' : 'bg-white/[0.025] text-slate-400 border-white/10 hover:bg-white/5')}>
             <Filter className="w-3.5 h-3.5" /> All
@@ -315,7 +365,7 @@ export default function TasksPage() {
                       type="button"
                       onClick={() => void deleteTask(task)}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20"
-                      title="Delete task permanently"
+                      title="Remove routine from future days"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Delete</span>
@@ -326,6 +376,8 @@ export default function TasksPage() {
             );
           })}
         </div>
+          </div>
+        </details>
       </section>
 
       {archiveTarget && (
@@ -374,6 +426,8 @@ export default function TasksPage() {
           </GlassCard>
         </div>
       )}
+
+      </>}
 
       <CreateModal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create recurring task" onSubmit={handleCreate}>
         <div className="space-y-4">

@@ -1,0 +1,47 @@
+[
+  {
+    "suite": "assignments",
+    "exit": 0,
+    "seconds": 86.9
+  },
+  {
+    "suite": "today-streak",
+    "exit": 0,
+    "seconds": 13.2
+  },
+  {
+    "suite": "crystals",
+    "exit": 0,
+    "seconds": 22.2
+  },
+  {
+    "suite": "week-grid",
+    "exit": 0,
+    "seconds": 23.2
+  },
+  {
+    "suite": "budgets",
+    "exit": 0,
+    "seconds": 26.1
+  },
+  {
+    "suite": "bills",
+    "exit": 0,
+    "seconds": 67.4
+  },
+  {
+    "suite": "csv",
+    "exit": 0,
+    "seconds": 61.8
+  },
+  {
+    "suite": "money-presentation",
+    "exit": 0,
+    "seconds": 46.3
+  },
+  {
+    "suite": "overview",
+    "exit": 0,
+    "seconds": 74.7
+  }
+]

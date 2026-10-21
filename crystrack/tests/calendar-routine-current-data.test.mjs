@@ -46,7 +46,7 @@ test(
 );
 
 test(
-  'calendar collapses day-cell items into compact counts',
+  'calendar keeps month cells compact with coloured category dots',
   () => {
     const calendar = read(
       'src/app/calendar/page.tsx',
@@ -54,17 +54,17 @@ test(
 
     assert.match(
       calendar,
-      /const taskCount/,
+      /const groups =/,
     );
 
     assert.match(
       calendar,
-      /const assignmentCount/,
+      /events\.some/,
     );
 
     assert.match(
       calendar,
-      /const goalCount/,
+      /groups\.map/,
     );
 
     assert.doesNotMatch(
@@ -113,67 +113,18 @@ test(
   },
 );
 
-test(
-  'task intelligence forces fresh analysis after task activity',
-  () => {
-    const route = read(
-      'src/app/api/ai/domain/[domain]/route.ts',
-    );
-
-    const card = read(
-      'src/components/ai/domain-insight-card.tsx',
-    );
-
-    const intelligence = read(
-      'src/lib/ai/intelligence.ts',
-    );
-
-    assert.match(
-      route,
-      /searchParams\s*\.get\('force'\)\s*===\s*'1'/,
-    );
-
-    assert.match(
-      route,
-      /!forceRefresh/,
-    );
-
-    assert.match(
-      route,
-      /\.upsert\(/,
-    );
-
-    assert.match(
-      route,
-      /generated_at:\s*generatedAt/,
-    );
-
-    assert.match(
-      route,
-      /currentSnapshot/,
-    );
-
-    assert.match(
-      card,
-      /refresh\(\s*false,\s*true,\s*\)/,
-    );
-
-    assert.match(
-      card,
-      /refresh\(\s*true,\s*true,\s*\)/,
-    );
-
-    assert.match(
-      card,
-      /requestSequence/,
-    );
-
-    assert.match(
-      intelligence,
-      /tasks\.today and each routine's current_day are the authoritative current state/,
-    );
-  },
-);
+test('task intelligence reads cache after activity; only explicit authorized refresh generates', () => {
+  const route=read('src/app/api/ai/domain/[domain]/route.ts');
+  const card=read('src/components/ai/domain-insight-card.tsx');
+  const authority=read('src/db/migrations/0022_ai_privacy_consent.sql');
+  assert.match(card,/const changed\s*=\s*\(\)\s*=>\s*void refresh\(false\)/);
+  assert.match(card,/method:\s*generate \? 'POST' : 'GET'/);
+  assert.match(card,/refresh\(true\)/);
+  assert.match(route,/beginAi/);assert.match(route,/finishAi/);
+  assert.match(authority,/ON CONFLICT\(user_id,domain,data_fingerprint\)/);
+  assert.match(route,/currentSnapshot/);
+  assert.match(read('src/lib/ai/intelligence.ts'),/tasks\.today and each routine's current_day are the authoritative current state/);
+});
 
 test(
   'September 2026 uses five rows and stops at October 3',

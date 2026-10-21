@@ -19,14 +19,13 @@ test('all UI mutation endpoints exist', () => {
   for (const route of requiredRoutes) assert.equal(fs.existsSync(file(route)), true, `${route} is missing`);
 });
 
-test('dashboard and insights no longer ship demo data', () => {
-  const today = read('src/components/dashboard/today-view.tsx');
-  const rightRail = read('src/components/dashboard/right-rail.tsx');
+test('active Today dashboard and insights do not ship demo data', () => {
+  const today = read('src/app/page.tsx');
   const insights = read('src/app/api/insights/route.ts');
 
   assert.equal(today.includes('demoItems'), false);
-  assert.equal(rightRail.includes('Learn JavaScript'), false);
-  assert.equal(rightRail.includes('Emergency Fund'), false);
+  assert.equal(today.includes('const summary ='), true);
+  assert.equal(today.includes('summary.map'), true);
   assert.equal(insights.includes('You completed 12 tasks'), false);
 });
 
@@ -38,10 +37,17 @@ test('tasks bind checkbox and streak to real API state', () => {
   assert.equal(tasks.includes('task.streak'), true);
 });
 
-test('tailwind stat surfaces are statically discoverable', () => {
-  const stats = read('src/components/dashboard/quick-stats.tsx');
-  assert.equal(stats.includes('bg-${'), false);
-  assert.equal(stats.includes('surfaceClass'), true);
+test('active Today stat surfaces use discoverable Tailwind classes', () => {
+  const today = read('src/app/page.tsx');
+  assert.equal(today.includes('tone: \'text-'), true);
+  assert.equal(today.includes('bg-${'), false);
+  assert.equal(today.includes('<GlassCard key={label}'), true);
+});
+
+test('retired dashboard components are not part of the application', () => {
+  for (const name of ['focus-timer', 'today-view', 'right-rail', 'quick-stats', 'quick-capture']) {
+    assert.equal(fs.existsSync(file(`src/components/dashboard/${name}.tsx`)), false, `Legacy component still present: ${name}`);
+  }
 });
 
 test('navigation follows the consolidated product model', () => {

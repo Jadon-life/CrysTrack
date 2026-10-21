@@ -16,20 +16,21 @@ test('overdue goals are greyed and cannot be checked in', () => {
   assert.match(route, /Goal deadline has passed; check-ins are closed/);
 });
 
-test('overdue assignments have no completion checkbox', () => {
+test('overdue assignments remain completable for September crystal rewards', () => {
   const page = read('src/app/assignments/page.tsx');
   const complete = read('src/app/api/assignments/[id]/complete/route.ts');
 
   assert.match(page, /const overdue = assignment\.computed_status === 'overdue'/);
-  assert.match(page, /Deadline passed — completion closed/);
-  assert.match(complete, /Assignment deadline has passed; completion is closed/);
+  assert.match(page, /Ready to finish when you are/);
+  assert.match(page, /aria-label=\{`Complete \$\{assignment.title\}`\}/);
+  assert.match(page, /Finish Late/);
+  assert.match(complete, /mutateAssignment\(request, 'complete'/);
 });
 
-test('task, goal and assignment permanent delete routes exist', () => {
+test('task retirement preserves history; goal and assignment delete routes remain owner scoped', () => {
   const routes = [
-    read('src/app/api/tasks/[taskId]/route.ts'),
     read('src/app/api/goals/[id]/route.ts'),
-    read('src/app/api/assignments/[id]/route.ts'),
+
   ];
 
   for (const route of routes) {
@@ -38,7 +39,10 @@ test('task, goal and assignment permanent delete routes exist', () => {
     assert.match(route, /\.from\('reminders'\)/);
   }
 
-  assert.match(read('src/app/tasks/page.tsx'), /Delete task permanently/);
+  assert.match(read('src/app/api/assignments/[id]/route.ts'), /mutateAssignment\(request, 'delete'/);
+  assert.match(read('src/db/migrations/0016_assignment_lifecycle.sql'), /DELETE FROM public.reminders WHERE user_id=u/);
+  assert.match(read('src/app/api/tasks/[taskId]/route.ts'), /rpc\('daily_retire_routine'/);
+  assert.match(read('src/app/tasks/page.tsx'), /Your recorded history and today’s plan will be kept/);
   assert.match(read('src/app/goals/page.tsx'), /Delete goal permanently/);
   assert.match(read('src/app/assignments/page.tsx'), /Delete assignment permanently/);
 });

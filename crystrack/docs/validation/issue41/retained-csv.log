@@ -1,0 +1,131 @@
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Statement operation not confirmed { code: 'unknown', status: 400 }
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Statement operation not confirmed { code: 'unknown', status: 400 }
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Review boundary 200 http://127.0.0.1:44147
+Statement operation not confirmed { code: 'unknown', status: 400 }
+Review boundary 200 http://127.0.0.1:44147
+Statement operation not confirmed { code: 'unknown', status: 503 }
+{
+  "checks": [
+    "375: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow",
+    "430: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow",
+    "768: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow",
+    "1280: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow",
+    "Oversized CSV response fails before attachment bytes; no truncation or export-side writes",
+    "1440: real local sign-in, mapping/balance denial, correction/category/exclusion, duplicate acknowledgement, cancel zero writes, explicit atomic confirmation, protected replay/refresh, no extra shards/old changes, export and reopen, keyboard/focus/axe/overflow"
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 430,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 768,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 1280,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 1440,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    }
+  ],
+  "exports": [
+    {
+      "width": 375,
+      "count": 4,
+      "sha256": "0e72bf0e4178fd2a6669a2220fd8932558c0759e94407ad50fc9d5c5425839de",
+      "notes": false
+    },
+    {
+      "width": 430,
+      "count": 4,
+      "sha256": "eca329fea96d94c273ae4e80995ac7097c5a29dd38636ad46f9d207b2c333a77",
+      "notes": false
+    },
+    {
+      "width": 768,
+      "count": 4,
+      "sha256": "a20908149dbb2b8fd754f9fcab337da4087a907eb08620da8b7223dacd215f32",
+      "notes": false
+    },
+    {
+      "width": 1280,
+      "count": 4,
+      "sha256": "b40ddd1977c95eb7002992ec782d86ee4ec0b362367f2e4fba651814c092d8c0",
+      "notes": true
+    },
+    {
+      "width": 1440,
+      "count": 2005,
+      "sha256": "8a7bd5fe668d1273ecb89f2ac8b060cd8e6de08c5e3fa4212be85c437ae27527",
+      "notes": false
+    }
+  ],
+  "browserErrors": [],
+  "externalRequestsBlocked": 28,
+  "brightContrast": [
+    {
+      "selector": "h2",
+      "ratio": 11.679978616039618
+    },
+    {
+      "selector": "p",
+      "ratio": 10.661611395292335
+    },
+    {
+      "selector": "button",
+      "ratio": 11.679978616039618
+    }
+  ]
+}

@@ -1,438 +1,136 @@
 'use client';
-
-import React, {
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import {
-  BrainCircuit,
-  Loader2,
-  RefreshCw,
-} from 'lucide-react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { BrainCircuit, Loader2, RefreshCw } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
+import { useAuth } from '@/components/layout/auth-provider';
+import { AiPrivacyNotice, useAiPrivacy } from './ai-privacy';
 
-const LABELS: Record<string, string> = {
+type Domain = 'tasks' | 'goals' | 'assignments' | 'overview' | 'wealth';
+const LABELS = {
   tasks: 'Routine Intelligence',
   goals: 'Goal Intelligence',
-  assignments:
-    'Assignment Intelligence',
-  overview:
-    'Cross-domain Intelligence',
+  assignments: 'Assignment Intelligence',
+  overview: 'Cross-domain Intelligence',
+  wealth: 'Wealth Intelligence',
 };
-
-type TaskCurrentSnapshot = {
-  scheduled: number;
-  completed: number;
-  pending: number;
-  skipped: number;
-  missed: number;
-};
-
-export function DomainInsightCard({
-  domain,
-}: {
-  domain:
-    | 'tasks'
-    | 'goals'
-    | 'assignments'
-    | 'overview';
-}) {
-  const [insight, setInsight] =
-    useState<any>(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [
-    refreshing,
-    setRefreshing,
-  ] = useState(false);
-
-  const [
-    configured,
-    setConfigured,
-  ] = useState(true);
-
-  const [
-    currentSnapshot,
-    setCurrentSnapshot,
-  ] =
-    useState<TaskCurrentSnapshot | null>(
-      null,
-    );
-
-  const [
-    currentDate,
-    setCurrentDate,
-  ] = useState<string | null>(null);
-
-  const [
-    generatedAt,
-    setGeneratedAt,
-  ] = useState<string | null>(null);
-
-  const [warning, setWarning] =
-    useState('');
-
-  const [error, setError] =
-    useState('');
-
-  const requestSequence =
-    useRef(0);
-
-  const refresh = async (
-    showSpinner = false,
-    force = false,
-  ) => {
-    const requestId =
-      requestSequence.current + 1;
-
-    requestSequence.current =
-      requestId;
-
-    if (showSpinner) {
-      setRefreshing(true);
-    }
-
+export function AiDomainContent({ domain, fallback }: { domain: Domain; fallback?: string }) {
+  const privacy = useAiPrivacy(),
+    { user } = useAuth(),
+    key = user?.id + ':' + privacy.state?.revision;
+  const current = useRef(key);
+  useLayoutEffect(() => {
+    current.current = key;
+  }, [key]);
+  const [bundle, setBundle] = useState<{ key: string; data: any } | null>(null),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const sequence = useRef(0);
+  const enabled =
+    !!privacy.state?.enabled && (domain !== 'wealth' || !!privacy.state.wealthEnabled);
+  const refresh = async (generate = false) => {
+    const seq = ++sequence.current,
+      ownerKey = current.current;
     setError('');
-
+    if (generate) setBusy(true);
     try {
-      const suffix =
-        force ? '?force=1' : '';
-
-      const response =
-        await fetch(
-          `/api/ai/domain/${domain}${suffix}`,
-          {
-            method: 'POST',
-            cache: 'no-store',
-          },
-        );
-
-      const data =
-        await response
-          .json()
-          .catch(() => null);
-
-      if (
-        requestId !==
-        requestSequence.current
-      ) {
-        return;
-      }
-
-      if (!response.ok) {
-        setError(
-          data?.error ||
-            'Unable to refresh intelligence right now.',
-        );
-        return;
-      }
-
-      setInsight(
-        data?.insight || null,
-      );
-
-      setConfigured(
-        data?.configured !== false,
-      );
-
-      setCurrentSnapshot(
-        data?.currentSnapshot ||
-          null,
-      );
-
-      setCurrentDate(
-        data?.currentDate || null,
-      );
-
-      setGeneratedAt(
-        data?.generatedAt || null,
-      );
-
-      setWarning(
-        data?.warning ||
-          (
-            data?.stale
-              ? 'Fresh analysis is unavailable; showing the latest saved insight.'
-              : ''
-          ),
-      );
-    } catch (
-      refreshError: any
-    ) {
-      if (
-        requestId ===
-        requestSequence.current
-      ) {
-        setError(
-          refreshError?.message ||
-            'Unable to refresh intelligence right now.',
-        );
-      }
+      const r = await fetch(`/api/ai/domain/${domain}${generate ? '?force=1' : ''}`, {
+          method: generate ? 'POST' : 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+        }),
+        data = await r.json();
+      if (seq !== sequence.current || ownerKey !== current.current) return;
+      if (!r.ok) throw new Error(data.error || 'AI commentary is unavailable.');
+      setBundle({ key: ownerKey, data });
+    } catch (e: any) {
+      if (seq === sequence.current && ownerKey === current.current)
+        setError(e?.message || 'AI commentary is unavailable.');
     } finally {
-      if (
-        showSpinner &&
-        requestId ===
-          requestSequence.current
-      ) {
-        setRefreshing(false);
-      }
+      if (seq === sequence.current) setBusy(false);
     }
   };
-
   useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      try {
-        await refresh(
-          false,
-          false,
-        );
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    const onActivityUpdated =
-      () => {
-        void refresh(
-          false,
-          true,
-        );
-      };
-
-    window.addEventListener(
-      'crystrack-activity-updated',
-      onActivityUpdated,
-    );
-
-    void load();
-
+    const counter = sequence;
+    // Navigation and activity changes read local cache only; never generate a provider request.
+    queueMicrotask(() => void refresh(false));
+    const changed = () => void refresh(false);
+    window.addEventListener('crystrack-activity-updated', changed);
     return () => {
-      cancelled = true;
-
-      window.removeEventListener(
-        'crystrack-activity-updated',
-        onActivityUpdated,
-      );
+      counter.current++;
+      window.removeEventListener('crystrack-activity-updated', changed);
     };
-
-    // Domain is fixed for the lifetime of each mounted page card.
+    // The request key changes for every owner/permission revision.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domain]);
-
-  const updatedAtLabel =
-    generatedAt &&
-    !Number.isNaN(
-      new Date(
-        generatedAt,
-      ).getTime(),
-    )
-      ? new Date(
-          generatedAt,
-        ).toLocaleTimeString(
-          [],
-          {
-            hour: '2-digit',
-            minute: '2-digit',
-          },
-        )
-      : null;
-
+  }, [domain, key]);
+  const data = enabled && bundle?.key === key ? bundle.data : null,
+    insight = data?.insight;
   return (
-    <GlassCard padding="md">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <BrainCircuit className="w-4 h-4 text-[var(--theme-primary)]" />
-            <p className="text-sm font-semibold text-white">
-              {LABELS[domain] ||
-                'CrysTrack Intelligence'}
-            </p>
-          </div>
-
-          <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">
-            {domain === 'tasks'
-              ? 'Current routine state first, then recent pattern analysis.'
-              : 'Important observations only. CrysTrack reuses unchanged analysis when the underlying data has not changed.'}
+    <div className="space-y-3" data-testid={'ai-domain-' + domain}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+            <BrainCircuit aria-hidden="true" className="h-4 w-4 text-[var(--theme-primary)]" />
+            {LABELS[domain]}
+          </h3>
+          <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+            CrysTrack reuses unchanged analysis. New provider analysis runs only when requested or
+            on an authorized AI-coached goal check-in.
           </p>
         </div>
-
         <button
           type="button"
-          onClick={() =>
-            void refresh(
-              true,
-              true,
-            )
-          }
-          disabled={refreshing}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-[var(--theme-text-muted)] hover:text-white hover:bg-white/[0.08] disabled:opacity-50"
-          aria-label="Refresh AI insight"
+          aria-label={domain === 'wealth' ? 'Refresh Wealth Intelligence' : 'Refresh AI insight'}
+          disabled={!enabled || !privacy.state?.configured || busy}
+          onClick={() => void refresh(true)}
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/25 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200 disabled:opacity-40"
         >
-          {refreshing
-            ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              )
-            : (
-                <RefreshCw className="w-3.5 h-3.5" />
-              )}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </button>
       </div>
-
-      {domain === 'tasks' &&
-        currentSnapshot && (
-          <div className="mt-4 rounded-xl border border-white/10 bg-black/10 px-3 py-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-primary)]">
-                Today
-                {currentDate
-                  ? ` · ${currentDate}`
-                  : ''}
-              </p>
-
-              {updatedAtLabel && (
-                <span className="text-[10px] text-[var(--theme-text-muted)]">
-                  Updated{' '}
-                  {updatedAtLabel}
-                </span>
-              )}
-            </div>
-
-            <p className="mt-1.5 text-xs text-white/85">
-              {currentSnapshot.completed}{' '}
-              of{' '}
-              {currentSnapshot.scheduled}{' '}
-              complete
-              {currentSnapshot.pending >
-              0
-                ? ` · ${currentSnapshot.pending} pending`
-                : ''}
-              {currentSnapshot.skipped >
-              0
-                ? ` · ${currentSnapshot.skipped} skipped`
-                : ''}
-              {currentSnapshot.missed >
-              0
-                ? ` · ${currentSnapshot.missed} missed`
-                : ''}
-            </p>
-          </div>
-        )}
-
-      {warning && (
-        <p className="mt-3 text-[11px] text-amber-200">
-          {warning}
-        </p>
-      )}
-
+      <AiPrivacyNotice wealth={domain === 'wealth'} />
       {error && (
-        <p className="mt-3 text-[11px] text-red-300">
+        <p role="alert" className="rounded-lg bg-slate-950/80 p-3 text-sm text-amber-100">
           {error}
         </p>
       )}
-
-      {loading && !insight
-        ? (
-            <div className="flex items-center gap-2 py-4 text-xs text-[var(--theme-text-muted)]">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading current
-              intelligence…
-            </div>
-          )
-        : !configured &&
-            !insight
-          ? (
-              <p className="text-xs text-amber-200 mt-4">
-                AI is not configured
-                for this deployment.
-              </p>
-            )
-          : insight
-            ? (
-                <div className="mt-4">
-                  <p className="text-sm font-semibold text-white">
-                    {
-                      insight.headline
-                    }
-                  </p>
-
-                  <p className="text-xs leading-relaxed text-white/85 mt-2">
-                    {
-                      insight.summary
-                    }
-                  </p>
-
-                  {Array.isArray(
-                    insight.observations,
-                  ) &&
-                    insight
-                      .observations
-                      .length >
-                      0 && (
-                      <div className="mt-3 space-y-1.5">
-                        {insight.observations
-                          .slice(
-                            0,
-                            3,
-                          )
-                          .map(
-                            (
-                              item: string,
-                              index: number,
-                            ) => (
-                              <p
-                                key={
-                                  index
-                                }
-                                className="text-[11px] leading-relaxed text-[var(--theme-text-muted)]"
-                              >
-                                •{' '}
-                                {
-                                  item
-                                }
-                              </p>
-                            ),
-                          )}
-                      </div>
-                    )}
-
-                  {Array.isArray(
-                    insight.actions,
-                  ) &&
-                    insight
-                      .actions
-                      .length >
-                      0 && (
-                      <div className="mt-3 border-t border-white/10 pt-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-primary)]">
-                          Suggested focus
-                        </p>
-
-                        <p className="text-xs text-white mt-1">
-                          {
-                            insight
-                              .actions[0]
-                          }
-                        </p>
-                      </div>
-                    )}
-                </div>
-              )
-            : (
-                <p className="text-xs text-[var(--theme-text-muted)] mt-4">
-                  No AI observation
-                  yet. CrysTrack will
-                  generate one as
-                  activity becomes
-                  available.
-                </p>
-              )}
+      {insight ? (
+        <div className="space-y-2 rounded-xl bg-slate-950/75 p-3 text-sm text-slate-100">
+          <p className="text-xs text-slate-200">
+            Saved AI-generated commentary ·{' '}
+            {data.generatedAt ? new Date(data.generatedAt).toLocaleString() : 'date unavailable'}.
+            May be incomplete or incorrect; not current approval.
+          </p>
+          <p className="font-semibold text-white">{insight.headline}</p>
+          <p>{insight.summary}</p>
+          {insight.observations?.slice(0, 3).map((x: string, i: number) => (
+            <p key={i}>{x}</p>
+          ))}
+          {insight.actions?.length > 0 && (
+            <p>
+              <span className="font-semibold">Suggested focus: </span>
+              {insight.actions[0]}
+            </p>
+          )}
+        </div>
+      ) : fallback ? (
+        <div className="rounded-xl bg-slate-950/75 p-3 text-sm text-slate-100">
+          <p className="mb-1 text-xs font-semibold text-cyan-100">
+            Local calculation · not AI-generated
+          </p>
+          {fallback}
+        </div>
+      ) : (
+        <p className="text-xs text-[var(--theme-text-muted)]">
+          No approved saved AI commentary is shown. Your deterministic tracking still works.
+        </p>
+      )}
+    </div>
+  );
+}
+export function DomainInsightCard({ domain }: { domain: Domain }) {
+  return (
+    <GlassCard padding="md">
+      <AiDomainContent domain={domain} />
     </GlassCard>
   );
 }

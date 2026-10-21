@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -33,12 +33,23 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { Button } from '@/components/ui/button';
+import { MoneyAmount } from '@/components/wealth/money-amount';
+import { manualMoneyHint, editableMoney, moneyPresentation } from '@/lib/money-presentation';
+import { CsvTools } from '@/components/wealth/csv-tools';
+import { RecurringBills } from '@/components/wealth/recurring-bills';
+import { MonthlyBudgets } from '@/components/wealth/monthly-budgets';
 import { CreateModal } from '@/components/shared/create-modal';
 import { EXPERIENCE_CONFIG } from '@/config/experience';
 import { fetcher, patch, post } from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
-import { formatWealthMoney, suggestCategory } from '@/lib/wealth';
+import { suggestCategory } from '@/lib/wealth';
+import { reportSchema } from '@/lib/wealth-report';
+import { AiDomainContent } from '@/components/ai/domain-insight-card';
+import { CalmDisclosure } from '@/components/shared/calm-disclosure';
+import { nextDailyBoundary } from '@/lib/today-streak';
 import { useWealthCurrency } from '@/lib/wealth-currency';
+import { sourceAmountToNgn, type InputMoneyCurrency } from '@/lib/wealth-input-currency';
+import { isRestrictedPreview } from '@/lib/preview/mode';
 
 const emptyData = {
   entries: [] as any[],
@@ -46,48 +57,23 @@ const emptyData = {
   debts: [] as any[],
   expectedFlows: [] as any[],
   summary: null as any,
+  cashflow: [] as any[],
+  reporting: null as any,
 };
-
-function monthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function cashflowSeries(entries: any[]) {
-  const now = new Date();
-  const months = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    return {
-      key: monthKey(date),
-      label: date.toLocaleDateString([], { month: 'short' }),
-      income: 0,
-      expenses: 0,
-      savings: 0,
-    };
-  });
-
-  const byKey = new Map(months.map((month) => [month.key, month]));
-  for (const entry of entries) {
-    const date = new Date(entry.date);
-    const bucket = byKey.get(monthKey(date));
-    if (!bucket) continue;
-    const kind = String(entry.flow_kind || entry.type || '');
-    const amount = Number(entry.amount || 0);
-    if (kind === 'income') bucket.income += amount;
-    if (kind === 'expense') bucket.expenses += amount;
-    if (kind === 'saving') bucket.savings += amount;
-    if (kind === 'savings_release') bucket.savings -= amount;
-  }
-
-  return months;
-}
 
 export default function WealthPage() {
   const [data, setData] = useState(emptyData);
+  const [ledgerRevision,setLedgerRevision] = useState(0);
+  const [showRecent, setShowRecent] = useState(false);
+  const [wealthView,setWealthView] = useState<'overview'|'budgets'|'bills'|'csv'>('overview');
+  const readGeneration=useRef(0);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const { currency, setCurrency, rate, loadingRate } = useWealthCurrency();
 
   const [showEntry, setShowEntry] = useState(false);
+  const [entryCurrency, setEntryCurrency] = useState<InputMoneyCurrency>('NGN');
+  const expenseIntent = useRef<{key:string;id:string;date:string}|null>(null);
   const [showTarget, setShowTarget] = useState(false);
   const [showDebt, setShowDebt] = useState(false);
   const [showExpected, setShowExpected] = useState(false);
@@ -118,19 +104,19 @@ export default function WealthPage() {
   });
   const [repaymentAmount, setRepaymentAmount] = useState('');
   const [actualAmount, setActualAmount] = useState('');
-  const [aiInsight, setAiInsight] = useState<any>(null);
-  const [aiLoading, setAiLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (_analyze = true) => {
+    const generation=++readGeneration.current;
+    setLoading(true);setData(emptyData);
     try {
-      const nextData = await fetcher('/api/wealth', { cache: 'no-store' });
-      setData(nextData);
-      void fetcher('/api/ai/domain/wealth', { method: 'POST' }).then(setAiInsight).catch(() => null);
+      const nextData = reportSchema.parse(await fetcher('/api/wealth', { cache: 'no-store' }));
+      if (generation!==readGeneration.current) return;
+      setData(nextData);setStatus('');
+      setLedgerRevision(n=>n+1);
     } catch (error: any) {
-      setStatus(error?.message || 'Could not load Wealth');
+      if(generation===readGeneration.current){setData(emptyData);setStatus('Wealth is temporarily unavailable. Refresh to verify your balances; no records were changed.');}
     } finally {
-      setLoading(false);
+      if(generation===readGeneration.current)setLoading(false);
     }
   }, []);
 
@@ -140,27 +126,34 @@ export default function WealthPage() {
     });
   }, [load]);
 
-  const money = (value: number, compact = false, sign = false) =>
-    formatWealthMoney(Number(value || 0), currency, rate?.usdNgn, { compact, sign });
+  const money = (value: number | string) =>
+    moneyPresentation(value, currency, rate?.usdNgn, {}).text;
 
   const summary = data.summary;
-  const series = useMemo(() => cashflowSeries(data.entries), [data.entries]);
-  const categoryData = useMemo(
-    () => (summary?.categoryPatterns || []).slice(0, 5).map((item: any) => ({ name: item.category, value: item.current })),
-    [summary],
-  );
+  const series = useMemo(() => data.cashflow.map(m=>({...m,income:Number(m.income),expenses:Number(m.expenses),incomeExact:m.income,expensesExact:m.expenses})), [data.cashflow]);
+  const categoryData = useMemo(() => (summary?.categoryPatterns || []).slice(0,5).map((item:any)=>({name:item.category,value:Number(item.current),exact:item.current})),[summary]);
+  useEffect(()=>{const generationState=readGeneration;const refresh=()=>{if(document.visibilityState!=='hidden')void load(false);};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);generationState.current++;};},[load]);
+  useEffect(()=>{if(!data.reporting)return;const t=setTimeout(()=>void load(false),nextDailyBoundary(data.reporting.timezone));return()=>clearTimeout(t);},[data.reporting,load]);
+
 
   const saveEntry = async () => {
-    const amount = Number(entry.amount);
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Amount must be greater than zero');
+    const normalized = sourceAmountToNgn(entry.amount, entryCurrency, rate?.usdNgn, rate?.stale);
+    if (!normalized) throw new Error('Use a positive exact amount, or refresh the USD quote before saving.');
+    const amount = Number(normalized.ngn);
 
+    const key = JSON.stringify(entry);
+    if (!expenseIntent.current || expenseIntent.current.key !== key) expenseIntent.current = {key,id:crypto.randomUUID(),date:entry.date || new Date().toISOString()};
     await post('/api/finance/entries', {
       ...entry,
       amount,
+      note: entryCurrency === 'USD' ? [entry.note, `Source ${normalized.origin}, at $1 = ₦${normalized.quote} (reference quote at entry time)`].filter(Boolean).join(' · ') : entry.note,
       targetId: entry.targetId || null,
-      date: entry.date || new Date().toISOString(),
+      date: entry.flowKind === 'expense' ? expenseIntent.current.date : entry.date || new Date().toISOString(),
+      ...(entry.flowKind === 'expense' ? {requestId:expenseIntent.current.id} : {}),
     });
+    expenseIntent.current = null;
     setEntry({ flowKind: 'expense', amount: '', date: '', source: '', category: '', note: '', targetId: '' });
+    setEntryCurrency('NGN');
     await load();
   };
 
@@ -229,59 +222,12 @@ export default function WealthPage() {
     await load();
   };
 
-  const refreshInsight = async () => {
-    setAiLoading(true);
-    try {
-      setAiInsight(await fetcher('/api/ai/domain/wealth', { method: 'POST' }));
-    } catch (error: any) {
-      setStatus(error?.message || 'AI insight is unavailable');
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   const categorySuggestion = suggestCategory(entry.source, data.entries);
   const categories = EXPERIENCE_CONFIG.wealth.categories;
 
-  if (loading && !summary) {
-    return <div className="min-h-[55vh] grid place-items-center"><Loader2 className="w-8 h-8 animate-spin text-[var(--theme-primary)]" /></div>;
-  }
 
-  return (
-    <div className="space-y-5 pb-8">
-      <section className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--theme-primary)]">CrysTrack</p>
-          <h1 className="dashboard-hero-title text-3xl sm:text-4xl font-semibold mt-1">Wealth</h1>
-          <p className="dashboard-hero-copy text-sm mt-2">Know where your money is going, what is changing, and what is actually safe to spend.</p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="wealth-segmented" aria-label="Wealth display currency">
-            <button type="button" onClick={() => setCurrency('NGN')} className={currency === 'NGN' ? 'is-active' : ''}>₦ NGN</button>
-            <button type="button" onClick={() => setCurrency('USD')} className={currency === 'USD' ? 'is-active' : ''}>$ USD</button>
-          </div>
-          <Button variant="default" onClick={() => setShowEntry(true)}><Plus className="w-4 h-4 mr-1.5" />Money entry</Button>
-          <Button variant="primary" onClick={() => setShowExpected(true)}><CalendarClock className="w-4 h-4 mr-1.5" />Expected money</Button>
-        </div>
-      </section>
-
-      {status && <div className="rounded-xl border border-[var(--theme-border)] bg-black/25 px-4 py-3 text-sm text-white">{status}</div>}
-
-      <section className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--theme-text-muted)]">
-        <span className="font-semibold text-white/90">Canonical ledger: NGN</span>
-        {rate ? (
-          <>
-            <span>$1 = ₦{rate.usdNgn.toLocaleString('en-NG', { maximumFractionDigits: 2 })}</span>
-            <span>{rate.stale ? 'Cached reference rate' : 'Current reference rate'}</span>
-            {rate.updatedAt && <span>Updated {new Date(rate.updatedAt).toLocaleString()}</span>}
-            <a className="hover:text-white underline underline-offset-2" href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates by ExchangeRate-API</a>
-          </>
-        ) : <span>{loadingRate ? 'Loading reference exchange rate…' : 'USD conversion unavailable; NGN ledger remains intact.'}</span>}
-      </section>
-
-      <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {[
+  const balanceCards = [
           { label: 'Available', value: summary?.availableBalance || 0, icon: WalletCards, tone: 'text-emerald-300', note: 'Spendable cash from confirmed entries' },
           { label: 'Net cashflow', value: summary?.netSpendableFlow || 0, icon: summary?.netSpendableFlow >= 0 ? TrendingUp : TrendingDown, tone: summary?.netSpendableFlow >= 0 ? 'text-emerald-300' : 'text-red-300', note: 'Income − expenses − savings' },
           { label: 'Saved', value: summary?.savedBalance || 0, icon: ShieldCheck, tone: 'text-sky-300', note: 'Removed from available cash' },
@@ -291,198 +237,74 @@ export default function WealthPage() {
           <GlassCard key={label} padding="md">
             <div className="flex items-center justify-between">
               <Icon className={cn('w-5 h-5', tone)} />
-              <span className="text-[10px] text-[var(--theme-text-muted)]">{currency}</span>
+              <span className="text-xs text-[var(--theme-text-muted)]">{currency}</span>
             </div>
-            <p className="text-[11px] text-[var(--theme-text-muted)] mt-4">{label}</p>
-            <p className="wealth-number text-xl sm:text-2xl font-semibold text-white mt-1 truncate">{money(value, true)}</p>
-            <p className="text-[10px] leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-4">{label}</p>
+            <div className="wealth-number text-xl sm:text-2xl font-semibold text-white mt-1 break-words"><MoneyAmount amount={value} currency={currency} rate={rate?.usdNgn} mode="summary" /></div>
+            <p className="text-xs leading-relaxed text-[var(--theme-text-muted)] mt-1">{note}</p>
           </GlassCard>
-        ))}
+        ));
+
+  return (
+    <div className="space-y-5 pb-8">
+      <section className="scenic-readable-copy flex flex-col xl:flex-row xl:items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--theme-primary)]">CrysTrack</p>
+          <h1 className="dashboard-hero-title text-3xl sm:text-4xl font-semibold mt-1">Wealth</h1>
+          <p className="dashboard-hero-copy text-sm mt-2">Your available money, recent changes and next steps.</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="wealth-segmented" aria-label="Wealth display currency">
+            <button type="button" onClick={() => setCurrency('NGN')} className={currency === 'NGN' ? 'is-active' : ''}>₦ NGN</button>
+            <button type="button" onClick={() => setCurrency('USD')} className={currency === 'USD' ? 'is-active' : ''}>$ USD</button>
+          </div>
+          <Button variant="primary" onClick={() => setShowEntry(true)}><Plus className="w-4 h-4 mr-1.5" />Money entry</Button>
+          <Button variant="outline" onClick={() => setShowExpected(true)}><CalendarClock className="w-4 h-4 mr-1.5" />Expected money</Button>
+        </div>
       </section>
 
-      <section className="grid xl:grid-cols-12 gap-4">
-        <GlassCard padding="md" className="xl:col-span-7">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="dashboard-panel-title text-sm">Cashflow</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Six-month view of actual recorded money.</p>
-            </div>
-            <span className="text-[11px] text-[var(--theme-text-muted)]">This month: {money(summary?.monthIncome || 0)} in · {money(summary?.monthExpenses || 0)} out</span>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={series}>
-                <defs>
-                  <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4ade80" stopOpacity={0.32} />
-                    <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fb7185" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="#fb7185" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="rgba(255,255,255,.07)" vertical={false} />
-                <XAxis dataKey="label" stroke="rgba(255,255,255,.5)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis hide />
-                <Tooltip
-                  contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
-                  formatter={(value: any) => money(Number(value))}
-                />
-                <Area type="monotone" dataKey="income" stroke="#4ade80" fill="url(#incomeFill)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expenses" stroke="#fb7185" fill="url(#expenseFill)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </GlassCard>
+      {status && <div className="rounded-xl border border-[var(--theme-border)] bg-black/25 px-4 py-3 text-sm text-white">{status}</div>}
 
-        <GlassCard padding="md" className="xl:col-span-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="dashboard-panel-title text-sm flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-[var(--theme-primary)]" /> Wealth Intelligence</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">CrysTrack processes your ledger for patterns; AI receives compact transaction context without identity, credentials, private notes or debt counterparties.</p>
-            </div>
-            <Button variant="outline" onClick={() => void refreshInsight()} disabled={aiLoading}>
-              {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            </Button>
-          </div>
+      {isRestrictedPreview() && <p role="status" className="rounded-xl border border-cyan-400/30 bg-slate-950/80 px-3 py-2 text-xs text-cyan-100">Synthetic demonstration: $1 = ₦1,600 is an example only, not a real or tradeable exchange rate. All demo finances are read-only.</p>}
+      {rate?.stale && <p role="status" className="rounded-xl bg-slate-950/75 px-3 py-2 text-xs text-white">Using a cached USD reference rate. NGN records stay exact.</p>}
+      {!rate && <p role="status" className="rounded-xl bg-slate-950/75 px-3 py-2 text-xs text-white">{loadingRate ? 'Loading reference exchange rate…' : 'USD conversion unavailable; NGN ledger remains intact.'}</p>}
 
-          <div className="rounded-xl border border-white/10 bg-black/15 p-4 mt-4">
-            <p className="text-sm font-semibold text-white">{aiInsight?.insight?.headline || 'Current pattern'}</p>
-            <p className="text-xs leading-relaxed text-white/85 mt-2">{aiInsight?.insight?.summary || summary?.deterministicRemark}</p>
-            {aiInsight?.insight?.observations?.[0] && <p className="text-[11px] leading-relaxed text-[var(--theme-text-muted)] mt-3">{aiInsight.insight.observations[0]}</p>}
-            {aiInsight?.insight?.actions?.[0] && <div className="mt-3 pt-3 border-t border-white/10"><p className="text-[10px] uppercase tracking-wide text-[var(--theme-primary)]">Next review</p><p className="text-xs text-white mt-1">{aiInsight.insight.actions[0]}</p></div>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-              <p className="text-[10px] text-[var(--theme-text-muted)]">Savings rate</p>
-              <p className="wealth-number text-xl font-semibold text-white mt-1">{summary?.savingsRatePct == null ? '—' : `${Math.round(summary.savingsRatePct)}%`}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-              <p className="text-[10px] text-[var(--theme-text-muted)]">Spending pace</p>
-              <p className="text-sm font-semibold text-white mt-1 capitalize">{summary?.spendingVelocity || 'insufficient'}</p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard padding="md" className="xl:col-span-7">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="dashboard-panel-title text-sm">Spending pattern</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">CrysTrack compares your current pace with up to three recent months.</p>
-            </div>
-            <p className="text-[11px] text-[var(--theme-text-muted)]">Projected month: {money(summary?.projectedMonthExpenses || 0)}</p>
-          </div>
-
-          <div className="grid md:grid-cols-[220px_1fr] gap-5 items-center">
-            <div className="h-52">
-              {categoryData.length ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={categoryData} innerRadius={58} outerRadius={82} paddingAngle={2} dataKey="value">
-                      {categoryData.map((_: any, index: number) => (
-                        <Cell key={index} fill={['#60a5fa', '#4ade80', '#f59e0b', '#a78bfa', '#fb7185'][index % 5]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
-                      formatter={(value: any) => money(Number(value))}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : <div className="h-full grid place-items-center text-xs text-[var(--theme-text-muted)]">No expense pattern yet.</div>}
-            </div>
-
-            <div className="space-y-2">
-              {(summary?.categoryPatterns || []).slice(0, 6).map((item: any) => (
-                <div key={item.category} className="grid grid-cols-[1fr_auto] gap-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2.5">
-                  <div className="min-w-0">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-medium text-white truncate">{item.category}</p>
-                      <p className="text-[10px] text-[var(--theme-text-muted)]">{Math.round(item.sharePct)}% of spending</p>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mt-2">
-                      <div className="h-full rounded-full bg-[var(--theme-primary)]" style={{ width: `${Math.min(100, item.sharePct)}%` }} />
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="wealth-number text-xs font-semibold text-white">{money(item.current, true)}</p>
-                    <p className={cn('text-[10px] mt-1', (item.vsBaselinePct ?? 0) > 15 ? 'text-red-300' : (item.vsBaselinePct ?? 0) < -15 ? 'text-emerald-300' : 'text-[var(--theme-text-muted)]')}>
-                      {item.vsBaselinePct == null ? 'learning' : `${item.vsBaselinePct > 0 ? '+' : ''}${Math.round(item.vsBaselinePct)}% vs baseline`}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard padding="md" className="xl:col-span-5">
-          <p className="dashboard-panel-title text-sm">Forecast</p>
-          <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Expected money never changes your actual balance until you confirm it.</p>
-
-          <div className="rounded-xl border border-white/10 bg-black/12 p-4 mt-4">
-            <p className="text-[10px] uppercase tracking-wide text-[var(--theme-text-muted)]">Projected month-end available</p>
-            <p className="wealth-number text-2xl font-semibold text-white mt-2">
-              {money(summary?.projectedMonthEndLow || 0, true)} – {money(summary?.projectedMonthEndHigh || 0, true)}
-            </p>
-            <p className="text-[10px] text-[var(--theme-text-muted)] mt-2">Range reflects unconfirmed expected income/expenses and liabilities due this month.</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-              <p className="text-[10px] text-[var(--theme-text-muted)]">Owed to you</p>
-              <p className="wealth-number text-lg font-semibold text-sky-300 mt-1">{money(summary?.receivables || 0, true)}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-              <p className="text-[10px] text-[var(--theme-text-muted)]">You owe</p>
-              <p className="wealth-number text-lg font-semibold text-orange-300 mt-1">{money(summary?.liabilities || 0, true)}</p>
-            </div>
-          </div>
-        </GlassCard>
+      <div className="scenic-readable-strip flex flex-wrap gap-2" role="group" aria-label="Wealth views">
+        <Button variant={wealthView==='overview'?'primary':'ghost'} aria-pressed={wealthView==='overview'} onClick={()=>setWealthView('overview')}>Overview</Button>
+        <Button variant={wealthView==='budgets'?'primary':'ghost'} aria-pressed={wealthView==='budgets'} onClick={()=>setWealthView('budgets')}>Budgets</Button>
+        <Button variant={wealthView==='bills'?'primary':'ghost'} aria-pressed={wealthView==='bills'} onClick={()=>setWealthView('bills')}>Bills & subscriptions</Button>
+        <Button variant={wealthView==='csv'?'primary':'ghost'} aria-pressed={wealthView==='csv'} onClick={()=>setWealthView('csv')}>CSV tools</Button>
+      </div>
+      {wealthView==='overview'&&!summary ? <GlassCard padding="md"><div role="status" className="text-sm text-white">{loading?'Verifying the complete ledger…':'Wealth is temporarily unavailable. Refresh to verify your balances; no records were changed.'}</div><Button className="mt-3" disabled={loading} onClick={()=>void load(false)}>Refresh Wealth</Button></GlassCard> : wealthView==='csv' ? <CsvTools onChange={load}/> : wealthView==='bills' ? <RecurringBills currency={currency} rate={rate} ledgerRevision={ledgerRevision} onChange={load}/> : wealthView==='budgets'  ? <MonthlyBudgets currency={currency} rate={rate} ledgerRevision={ledgerRevision}/> : <>
+      <p className="w-fit rounded-lg bg-black/60 px-3 py-2 text-xs text-white" data-testid="wealth-report-status">All {data.reporting?.ledgerCount} recorded transactions · {data.reporting?.month} · {data.reporting?.timezone}</p>
+      <section className="grid grid-cols-2 gap-3">
+        {balanceCards.slice(0, 2)}
       </section>
 
-      <section className="grid xl:grid-cols-2 gap-4">
+      <GlassCard padding="md">
+        <section aria-labelledby="wealth-attention-heading" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-950/80 p-3">
+          <div><h2 id="wealth-attention-heading" className="text-sm font-semibold text-white">Keep an eye on</h2><p className="mt-1 text-xs text-white/85">Bills are plans; payments always need your confirmation.</p></div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={()=>setWealthView('budgets')}>Review budgets</Button>
+            <Button variant="outline" onClick={()=>setWealthView('bills')}>Review bills</Button>
+            {summary?.dueLiabilities !== '0.00' && <a href="#wealth-debts" className="inline-flex min-h-10 items-center rounded-lg bg-slate-950/70 px-3 text-sm text-amber-100 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">Due debt · {money(summary.dueLiabilities)}</a>}
+          </div>
+        </section>
+      </GlassCard>
+      <CalmDisclosure title="Balance details" description="Saved, safe to spend and net position" testId="wealth-balances">
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {balanceCards.slice(2)}
+      </section>
+
+      </CalmDisclosure>
         <GlassCard padding="md">
           <div className="flex items-center justify-between">
             <div>
-              <p className="dashboard-panel-title text-sm">Expected money</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Exact amount or range; exact date is optional.</p>
+              <h2 id="wealth-debts" tabIndex={-1} className="dashboard-panel-title text-sm">Money owed</h2>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">Receivables and liabilities stay separate from income and normal spending.</p>
             </div>
-            <button type="button" onClick={() => setShowExpected(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ Add expected</button>
-          </div>
-
-          <div className="space-y-2 mt-4">
-            {data.expectedFlows.filter((item: any) => item.status === 'active').slice(0, 8).map((flow: any) => (
-              <div key={flow.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className={cn('w-9 h-9 rounded-xl grid place-items-center', flow.direction === 'income' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-red-500/10 text-red-300')}>
-                  {flow.direction === 'income' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">{flow.title}</p>
-                  <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
-                    {money(Number(flow.amount_min), true)}
-                    {flow.amount_max && Number(flow.amount_max) !== Number(flow.amount_min) ? ` – ${money(Number(flow.amount_max), true)}` : ''}
-                    {' · '}{flow.timing_hint || flow.frequency.replace('_', ' ')}
-                  </p>
-                </div>
-                <button type="button" onClick={() => { setConfirmingFlow(flow); setActualAmount(String(flow.amount_min)); }} className="text-[11px] font-semibold text-[var(--theme-primary)]">
-                  {flow.direction === 'income' ? 'Received' : 'Paid'}
-                </button>
-              </div>
-            ))}
-            {!data.expectedFlows.some((item: any) => item.status === 'active') && <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">No expected money added yet.</p>}
-          </div>
-        </GlassCard>
-
-        <GlassCard padding="md">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="dashboard-panel-title text-sm">Money owed</p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Receivables and liabilities stay separate from income and normal spending.</p>
-            </div>
-            <button type="button" onClick={() => setShowDebt(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ Add debt</button>
+            <button type="button" onClick={() => setShowDebt(true)} className="inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-2 text-xs font-semibold text-[var(--theme-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">+ Add debt</button>
           </div>
 
           <div className="space-y-2 mt-4">
@@ -493,67 +315,28 @@ export default function WealthPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{item.counterparty}</p>
-                  <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">
-                    {item.kind === 'receivable' ? 'Owes you' : 'You owe'} {money(Number(item.outstanding_amount), true)}
-                    {item.due_date ? ` · ${formatDate(item.due_date)}` : ''}
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">
+                    {item.kind === 'receivable' ? 'Owes you' : 'You owe'} {money(item.outstanding_amount)}
+                    {item.due_date ? ` · ${formatDate(item.due_date, data.reporting.timezone)}` : ''}
                   </p>
                 </div>
-                <button type="button" onClick={() => { setRepayingDebt(item); setRepaymentAmount(String(item.outstanding_amount)); }} className="text-[11px] font-semibold text-[var(--theme-primary)]">Repay</button>
+                <button type="button" onClick={() => { setRepayingDebt(item); setRepaymentAmount(editableMoney(String(item.outstanding_amount))); }} className="inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-2 text-xs font-semibold text-[var(--theme-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">Repay</button>
               </div>
             ))}
             {!data.debts.some((item: any) => item.status === 'open') && <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">No open debts or receivables.</p>}
           </div>
         </GlassCard>
-      </section>
-
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="dashboard-panel-title text-sm">Savings goals</p>
-            <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Savings are removed from available cash but still count toward your net position.</p>
-          </div>
-          <button type="button" onClick={() => setShowTarget(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ New goal</button>
-        </div>
-
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {data.targets.map((item: any) => {
-            const current = Number(item.current_amount || 0);
-            const targetAmount = Number(item.target_amount || 0);
-            const percent = targetAmount > 0 ? Math.max(0, Math.min(100, Math.round((current / targetAmount) * 100))) : 0;
-            return (
-              <GlassCard key={item.id} padding="md">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{item.title}</p>
-                    <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">{item.deadline ? `Target ${formatDate(item.deadline)}` : 'No fixed deadline'}</p>
-                  </div>
-                  <Target className="w-4 h-4 text-[var(--theme-primary)]" />
-                </div>
-                <div className="h-2 rounded-full bg-white/10 overflow-hidden mt-4">
-                  <div className="h-full bg-[var(--theme-primary)] rounded-full" style={{ width: `${percent}%` }} />
-                </div>
-                <div className="flex justify-between gap-3 mt-2">
-                  <p className="wealth-number text-xs text-white">{money(current, true)}</p>
-                  <p className="text-[10px] text-[var(--theme-text-muted)]">{percent}% of {money(targetAmount, true)}</p>
-                </div>
-              </GlassCard>
-            );
-          })}
-          {!data.targets.length && <GlassCard padding="lg" className="md:col-span-2 xl:col-span-3 text-center"><p className="text-xs text-[var(--theme-text-muted)]">No savings goals yet.</p></GlassCard>}
-        </div>
-      </section>
-
       <GlassCard padding="md">
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="dashboard-panel-title text-sm">Recent money</p>
-            <p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Manual ledger entries. NGN remains the stored source of truth.</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1">{Math.min(showRecent ? data.entries.length : 4, data.entries.length)} of {data.entries.length} recent · full history in CSV tools.</p>
           </div>
-          <button type="button" onClick={() => setShowEntry(true)} className="text-xs font-semibold text-[var(--theme-primary)]">+ Add</button>
+          <button type="button" onClick={() => setShowEntry(true)} className="inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-2 text-xs font-semibold text-[var(--theme-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">+ Add</button>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-x-5">
-          {data.entries.slice(0, 14).map((item: any) => {
+        <div id="recent-money-rows" className="grid lg:grid-cols-2 gap-x-5">
+          {data.entries.slice(0, showRecent ? data.entries.length : 4).map((item: any) => {
             const kind = String(item.flow_kind || item.type || '');
             const positive = ['income', 'borrow', 'receivable_repayment', 'savings_release'].includes(kind);
             const neutral = kind === 'transfer';
@@ -567,16 +350,237 @@ export default function WealthPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-white truncate">{item.source || item.category || kind.replaceAll('_', ' ')}</p>
-                  <p className="text-[10px] text-[var(--theme-text-muted)] mt-1">{item.category || 'Uncategorised'} · {formatDate(item.date)}</p>
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.category || 'Uncategorised'} · {formatDate(item.date, data.reporting.timezone)}</p>
                 </div>
                 <p className={cn('wealth-number text-xs font-semibold', positive ? 'text-emerald-300' : neutral ? 'text-white/70' : 'text-red-300')}>
-                  {positive ? '+' : neutral ? '' : '-'}{money(Number(item.amount), true)}
+                  {positive ? '+' : neutral ? '' : '-'}{money(item.amount)}
                 </p>
               </div>
             );
           })}
         </div>
+        {data.entries.length > 4 && <button type="button" aria-expanded={showRecent} aria-controls="recent-money-rows" onClick={()=>setShowRecent(value=>!value)} className="mt-3 inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold text-cyan-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">{showRecent ? 'Show fewer transactions' : `Show all ${data.entries.length} recent transactions`}</button>}
       </GlassCard>
+      <CalmDisclosure title="Spending insights & forecast" description="Cashflow, category patterns, projections and existing AI commentary" testId="wealth-analysis">
+      <section className="grid xl:grid-cols-12 gap-4">
+        <GlassCard padding="md" className="xl:col-span-7">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="dashboard-panel-title text-sm">Cashflow</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">Six-month view of actual recorded money.</p>
+            </div>
+            <span className="text-xs text-[var(--theme-text-muted)]">This month: {money(summary?.monthIncome || 0)} in · {money(summary?.monthExpenses || 0)} out</span>
+          </div>
+          <div className="h-64"><div className="sr-only"><table><caption>Six-month recorded cashflow, exact NGN</caption><thead><tr><th scope="col">Month</th><th scope="col">Income</th><th scope="col">Expenses</th><th scope="col">Savings less releases</th></tr></thead><tbody>{data.cashflow.map(month=><tr key={month.key}><th scope="row">{month.key}</th>{[month.income,month.expenses,month.savings].map((amount,index)=><td key={index}><MoneyAmount amount={amount} mode="statement" inspect={false}/></td>)}</tr>)}</tbody></table></div>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={series} aria-label="Six-month recorded income and expenses; exact NGN amounts are in the accompanying table">
+                <defs>
+                  <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4ade80" stopOpacity={0.32} />
+                    <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fb7185" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="#fb7185" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(255,255,255,.07)" vertical={false} />
+                <XAxis dataKey="label" stroke="rgba(255,255,255,.5)" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis hide />
+                <Tooltip
+                  contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
+                  formatter={(_value: any, name: any, info: any) => money(info.payload[name+'Exact'])}
+                />
+                <Area isAnimationActive={false} type="monotone" dataKey="income" stroke="#4ade80" fill="url(#incomeFill)" strokeWidth={2} />
+                <Area isAnimationActive={false} type="monotone" dataKey="expenses" stroke="#fb7185" fill="url(#expenseFill)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </GlassCard>
+
+        <GlassCard padding="md" className="xl:col-span-5">
+          <AiDomainContent domain="wealth" fallback={summary?.deterministicRemark}/>
+
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+              <p className="text-xs text-[var(--theme-text-muted)]">Savings rate</p>
+              <p className="wealth-number text-xl font-semibold text-white mt-1">{summary?.savingsRatePct == null ? '—' : `${Math.round(summary.savingsRatePct)}%`}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+              <p className="text-xs text-[var(--theme-text-muted)]">Spending pace</p>
+              <p className="text-sm font-semibold text-white mt-1 capitalize">{summary?.spendingVelocity || 'insufficient'}</p>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard padding="md" className="xl:col-span-7">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="dashboard-panel-title text-sm">Spending pattern</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack compares your current pace with up to three recent months.</p>
+            </div>
+            <p className="text-xs text-[var(--theme-text-muted)]">Projected month: {money(summary?.projectedMonthExpenses || 0)}</p>
+          </div>
+
+          <div className="grid md:grid-cols-[220px_1fr] gap-5 items-center">
+            <div className="h-52">
+              {categoryData.length ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart aria-label="Expenses by category this month; exact amounts are listed beside the chart">
+                    <Pie isAnimationActive={false} data={categoryData} innerRadius={58} outerRadius={82} paddingAngle={2} dataKey="value">
+                      {categoryData.map((item: any, index: number) => (
+                        <Cell key={index} aria-label={`${item.name}: NGN ${item.exact} recorded expenses this month`} fill={['#60a5fa', '#4ade80', '#f59e0b', '#a78bfa', '#fb7185'][index % 5]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: 'rgba(4,10,20,.94)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 12 }}
+                      formatter={(_value: any, _name: any, info: any) => money(info.payload.exact)}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : <div className="h-full grid place-items-center text-xs text-[var(--theme-text-muted)]">No expense pattern yet.</div>}
+            </div>
+
+            <div className="space-y-2">
+              {(summary?.categoryPatterns || []).slice(0, 6).map((item: any) => (
+                <div key={item.category} className="grid grid-cols-[1fr_auto] gap-3 rounded-xl border border-white/10 bg-black/10 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-medium text-white truncate">{item.category}</p>
+                      <p className="text-xs text-[var(--theme-text-muted)]">{Math.round(item.sharePct)}% of spending</p>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mt-2">
+                      <div className="h-full rounded-full bg-[var(--theme-primary)]" style={{ width: `${Math.min(100, item.sharePct)}%` }} />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="wealth-number text-xs font-semibold text-white">{money(item.current)}</p>
+                    <p className={cn('text-xs mt-1', (item.vsBaselinePct ?? 0) > 15 ? 'text-red-300' : (item.vsBaselinePct ?? 0) < -15 ? 'text-emerald-300' : 'text-[var(--theme-text-muted)]')}>
+                      {item.vsBaselinePct == null ? 'learning' : `${item.vsBaselinePct > 0 ? '+' : ''}${Math.round(item.vsBaselinePct)}% vs baseline`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard padding="md" className="xl:col-span-5">
+          <p className="dashboard-panel-title text-sm">Forecast</p>
+          <p className="text-xs text-[var(--theme-text-muted)] mt-1">Expected money never changes your actual balance until you confirm it.</p>
+
+          <div className="rounded-xl border border-white/10 bg-black/12 p-4 mt-4">
+            <p className="text-xs uppercase tracking-wide text-[var(--theme-text-muted)]">Projected month-end available</p>
+            <p className="wealth-number text-2xl font-semibold text-white mt-2">
+              {money(summary?.projectedMonthEndLow || 0)} – {money(summary?.projectedMonthEndHigh || 0)}
+            </p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-2">Range reflects unconfirmed expected income/expenses and liabilities due this month.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+              <p className="text-xs text-[var(--theme-text-muted)]">Owed to you</p>
+              <p className="wealth-number text-lg font-semibold text-sky-300 mt-1">{money(summary?.receivables || 0)}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+              <p className="text-xs text-[var(--theme-text-muted)]">You owe</p>
+              <p className="wealth-number text-lg font-semibold text-orange-300 mt-1">{money(summary?.liabilities || 0)}</p>
+            </div>
+          </div>
+        </GlassCard>
+      </section>
+
+      </CalmDisclosure>
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <CalmDisclosure title="Expected money" description="Manage unconfirmed income and expense plans">
+        <GlassCard padding="md">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="dashboard-panel-title text-sm">Expected money</p>
+              <p className="text-xs text-[var(--theme-text-muted)] mt-1">Exact amount or range; exact date is optional.</p>
+            </div>
+            <button type="button" onClick={() => setShowExpected(true)} className="inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-2 text-xs font-semibold text-[var(--theme-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">+ Add expected</button>
+          </div>
+
+          <div className="space-y-2 mt-4">
+            {data.expectedFlows.filter((item: any) => item.status === 'active').slice(0, 8).map((flow: any) => (
+              <div key={flow.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/10 p-3">
+                <div className={cn('w-9 h-9 rounded-xl grid place-items-center', flow.direction === 'income' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-red-500/10 text-red-300')}>
+                  {flow.direction === 'income' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white truncate">{flow.title}</p>
+                  <p className="text-xs text-[var(--theme-text-muted)] mt-1">
+                    {money(flow.amount_min)}
+                    {flow.amount_max && Number(flow.amount_max) !== Number(flow.amount_min) ? ` – ${money(flow.amount_max)}` : ''}
+                    {' · '}{flow.timing_hint || flow.frequency.replace('_', ' ')}
+                  </p>
+                </div>
+                <button type="button" onClick={() => { setConfirmingFlow(flow); setActualAmount(editableMoney(String(flow.amount_min))); }} className="inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-2 text-xs font-semibold text-[var(--theme-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">
+                  {flow.direction === 'income' ? 'Received' : 'Paid'}
+                </button>
+              </div>
+            ))}
+            {!data.expectedFlows.some((item: any) => item.status === 'active') && <p className="text-xs text-[var(--theme-text-muted)] py-6 text-center">No expected money added yet.</p>}
+          </div>
+        </GlassCard>        </CalmDisclosure>
+        <CalmDisclosure title="Savings goals" description="View targets or add a goal">
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="dashboard-panel-title text-sm">Savings goals</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1">Savings are removed from available cash but still count toward your net position.</p>
+          </div>
+          <button type="button" onClick={() => setShowTarget(true)} className="inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-2 text-xs font-semibold text-[var(--theme-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">+ New goal</button>
+        </div>
+
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {data.targets.map((item: any) => {
+            const current = Number(item.current_amount || 0);
+            const targetAmount = Number(item.target_amount || 0);
+            const percent = targetAmount > 0 ? Math.max(0, Math.min(100, Math.round((current / targetAmount) * 100))) : 0;
+            return (
+              <GlassCard key={item.id} padding="md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{item.title}</p>
+                    <p className="text-xs text-[var(--theme-text-muted)] mt-1">{item.deadline ? `Target ${formatDate(item.deadline, data.reporting.timezone)}` : 'No fixed deadline'}</p>
+                  </div>
+                  <Target className="w-4 h-4 text-[var(--theme-primary)]" />
+                </div>
+                <div className="h-2 rounded-full bg-white/10 overflow-hidden mt-4">
+                  <div className="h-full bg-[var(--theme-primary)] rounded-full" style={{ width: `${percent}%` }} />
+                </div>
+                <div className="flex justify-between gap-3 mt-2">
+                  <p className="wealth-number text-xs text-white">{money(item.current_amount || 0)}</p>
+                  <p className="text-xs text-[var(--theme-text-muted)]">{percent}% of {money(item.target_amount || 0)}</p>
+                </div>
+              </GlassCard>
+            );
+          })}
+          {!data.targets.length && <GlassCard padding="lg" className="md:col-span-2 xl:col-span-3 text-center"><p className="text-xs text-[var(--theme-text-muted)]">No savings goals yet.</p></GlassCard>}
+        </div>
+      </section>
+
+        </CalmDisclosure>
+      </div>
+      <CalmDisclosure title="Currency & reporting help" description="NGN source amounts, reference rate and saved timezone" testId="wealth-report-help">
+      <section className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-100">
+        <span className="font-semibold text-white/90">Canonical ledger: NGN</span>
+        {rate ? (
+          <>
+            <span>$1 = ₦{rate.usdNgn.toLocaleString('en-NG', { maximumFractionDigits: 2 })}</span>
+            <span>{isRestrictedPreview() ? 'Synthetic example quote — not current market FX' : rate.stale ? 'Cached reference rate' : 'Current reference rate'}</span>
+            {rate.updatedAt && <span>Updated {new Date(rate.updatedAt).toLocaleString()}</span>}
+            {!isRestrictedPreview() && <a className="hover:text-white underline underline-offset-2" href="https://www.exchangerate-api.com" target="_blank" rel="noreferrer">Rates by ExchangeRate-API</a>}
+          </>
+        ) : <span>{loadingRate ? 'Loading reference exchange rate…' : 'USD conversion unavailable; NGN ledger remains intact.'}</span>}
+      </section>
+      <p className="text-xs leading-relaxed text-slate-100">Saved timezone changes re-bucket history without changing records. Approximate amounts offer exact details; plans never change actual balances until confirmed.</p>
+      </CalmDisclosure>
+
+
+      </>}
 
       <CreateModal isOpen={showEntry} onClose={() => setShowEntry(false)} title="Add money entry" onSubmit={saveEntry}>
         <div className="space-y-4">
@@ -590,8 +594,17 @@ export default function WealthPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-white/85 mb-1.5">Amount (NGN) *</label>
-            <input type="number" step="0.01" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <label htmlFor="wealth-entry-unit" className="block text-xs font-semibold text-white/85 mb-1.5">Enter amount in</label>
+            <select id="wealth-entry-unit" value={entryCurrency} onChange={(e) => {setEntryCurrency(e.target.value as InputMoneyCurrency); setEntry(v => ({...v,amount:''}));}} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
+              <option value="NGN">₦ Nigerian naira</option><option value="USD">$ US dollars</option>
+            </select>
+            <label htmlFor="wealth-entry-amount" className="block text-xs font-semibold text-white/85 mt-3 mb-1.5">Amount ({entryCurrency}) *</label>
+            <input id="wealth-entry-amount" aria-label={`Amount (${entryCurrency})`} aria-describedby="manual-money-hint" inputMode="decimal" type="text" value={entry.amount} onChange={(event) => setEntry((current) => ({ ...current, amount: event.target.value }))} placeholder={entryCurrency==='USD'?'e.g. 30.00':'e.g. 30000'} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <p id="manual-money-hint" role="status" className="mt-2 text-xs text-[var(--theme-text-muted)]">
+              {entryCurrency==='NGN'? manualMoneyHint : rate && !rate.stale
+                ? `Saved as ${sourceAmountToNgn(entry.amount, 'USD', rate.usdNgn)?.ngn ?? '—'} NGN at $1 = ₦${rate.usdNgn.toLocaleString('en-NG')}; original USD and quote are noted on the transaction.`
+                : 'USD entries require a current exchange rate. Refresh when it becomes available.'}
+            </p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Source / description</label>
@@ -604,7 +617,7 @@ export default function WealthPage() {
               placeholder="e.g. Salary, Fuel, Groceries"
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white"
             />
-            {categorySuggestion && !entry.category && <button type="button" onClick={() => setEntry((current) => ({ ...current, category: categorySuggestion }))} className="text-[10px] text-[var(--theme-primary)] mt-1.5">Use learned category: {categorySuggestion}</button>}
+            {categorySuggestion && !entry.category && <button type="button" onClick={() => setEntry((current) => ({ ...current, category: categorySuggestion }))} className="text-xs text-[var(--theme-primary)] mt-1.5">Use learned category: {categorySuggestion}</button>}
           </div>
           <div>
             <label className="block text-xs font-semibold text-white/85 mb-1.5">Category</label>
@@ -631,8 +644,9 @@ export default function WealthPage() {
 
       <CreateModal isOpen={showTarget} onClose={() => setShowTarget(false)} title="Create savings goal" onSubmit={saveTarget}>
         <div className="space-y-4">
+          <p className="text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
           <input value={target.title} onChange={(event) => setTarget((current) => ({ ...current, title: event.target.value }))} placeholder="Goal name" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-          <input type="number" value={target.targetAmount} onChange={(event) => setTarget((current) => ({ ...current, targetAmount: event.target.value }))} placeholder="Target amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" inputMode="decimal" value={target.targetAmount} onChange={(event) => setTarget((current) => ({ ...current, targetAmount: event.target.value }))} placeholder="Target amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <input type="date" value={target.deadline} onChange={(event) => setTarget((current) => ({ ...current, deadline: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           <textarea value={target.description} onChange={(event) => setTarget((current) => ({ ...current, description: event.target.value }))} placeholder="What is this savings goal for?" className="w-full h-20 resize-none bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
         </div>
@@ -640,12 +654,13 @@ export default function WealthPage() {
 
       <CreateModal isOpen={showDebt} onClose={() => setShowDebt(false)} title="Record money owed" onSubmit={saveDebt}>
         <div className="space-y-4">
+          <p className="text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
           <select value={debt.kind} onChange={(event) => setDebt((current) => ({ ...current, kind: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
             <option value="receivable" className="bg-slate-950">Someone owes me</option>
             <option value="liability" className="bg-slate-950">I owe someone</option>
           </select>
           <input value={debt.counterparty} onChange={(event) => setDebt((current) => ({ ...current, counterparty: event.target.value }))} placeholder="Name" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-          <input type="number" value={debt.amount} onChange={(event) => setDebt((current) => ({ ...current, amount: event.target.value }))} placeholder="Amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <input type="number" step="0.01" inputMode="decimal" value={debt.amount} onChange={(event) => setDebt((current) => ({ ...current, amount: event.target.value }))} placeholder="Amount in NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <input type="date" value={debt.dueDate} onChange={(event) => setDebt((current) => ({ ...current, dueDate: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           <textarea value={debt.note} onChange={(event) => setDebt((current) => ({ ...current, note: event.target.value }))} placeholder="Optional note" className="w-full h-20 resize-none bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
         </div>
@@ -653,21 +668,22 @@ export default function WealthPage() {
 
       <CreateModal isOpen={Boolean(repayingDebt)} onClose={() => setRepayingDebt(null)} title={repayingDebt?.kind === 'receivable' ? 'Record repayment received' : 'Record debt repayment'} onSubmit={repayDebt}>
         <div className="space-y-3">
-          <p className="text-xs text-[var(--theme-text-muted)]">Outstanding: {repayingDebt ? money(Number(repayingDebt.outstanding_amount)) : '—'}</p>
-          <input type="number" value={repaymentAmount} onChange={(event) => setRepaymentAmount(event.target.value)} placeholder="Actual repayment amount" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <p className="text-xs text-[var(--theme-text-muted)]">Outstanding: {repayingDebt ? money(repayingDebt.outstanding_amount) : '—'}</p>
+          <input type="number" step="0.01" inputMode="decimal" value={repaymentAmount} onChange={(event) => setRepaymentAmount(event.target.value)} placeholder="Actual repayment amount" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
         </div>
       </CreateModal>
 
       <CreateModal isOpen={showExpected} onClose={() => setShowExpected(false)} title="Add expected money" onSubmit={saveExpected}>
         <div className="space-y-4">
+          <p className="text-xs text-[var(--theme-text-muted)]">{manualMoneyHint}</p>
           <select value={expected.direction} onChange={(event) => setExpected((current) => ({ ...current, direction: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
             <option value="income" className="bg-slate-950">Expected income</option>
             <option value="expense" className="bg-slate-950">Expected expense</option>
           </select>
           <input value={expected.title} onChange={(event) => setExpected((current) => ({ ...current, title: event.target.value }))} placeholder="e.g. Salary, Rent, Freelance payment" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
           <div className="grid grid-cols-2 gap-3">
-            <input type="number" value={expected.amountMin} onChange={(event) => setExpected((current) => ({ ...current, amountMin: event.target.value }))} placeholder="Minimum NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
-            <input type="number" value={expected.amountMax} onChange={(event) => setExpected((current) => ({ ...current, amountMax: event.target.value }))} placeholder="Maximum NGN (optional)" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
+            <input type="number" step="0.01" inputMode="decimal" value={expected.amountMin} onChange={(event) => setExpected((current) => ({ ...current, amountMin: event.target.value }))} placeholder="Minimum NGN" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+            <input type="number" step="0.01" inputMode="decimal" value={expected.amountMax} onChange={(event) => setExpected((current) => ({ ...current, amountMax: event.target.value }))} placeholder="Maximum NGN (optional)" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" />
           </div>
           <select value={expected.frequency} onChange={(event) => setExpected((current) => ({ ...current, frequency: event.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white">
             <option value="one_off" className="bg-slate-950">One off</option>
@@ -689,11 +705,11 @@ export default function WealthPage() {
       <CreateModal isOpen={Boolean(confirmingFlow)} onClose={() => setConfirmingFlow(null)} title={confirmingFlow?.direction === 'income' ? 'Confirm income received' : 'Confirm expense paid'} onSubmit={confirmFlow}>
         <div className="space-y-3">
           <p className="text-xs text-[var(--theme-text-muted)]">
-            Forecast: {confirmingFlow ? money(Number(confirmingFlow.amount_min)) : '—'}
-            {confirmingFlow?.amount_max && Number(confirmingFlow.amount_max) !== Number(confirmingFlow.amount_min) ? ` – ${money(Number(confirmingFlow.amount_max))}` : ''}
+            Forecast: {confirmingFlow ? money(confirmingFlow.amount_min) : '—'}
+            {confirmingFlow?.amount_max && Number(confirmingFlow.amount_max) !== Number(confirmingFlow.amount_min) ? ` – ${money(confirmingFlow.amount_max)}` : ''}
           </p>
-          <p className="text-[11px] text-white/70">The actual amount can be below or above the forecast range. CrysTrack records what really happened.</p>
-          <input type="number" value={actualAmount} onChange={(event) => setActualAmount(event.target.value)} placeholder="Actual amount received / paid" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
+          <p className="text-xs text-white/70">The actual amount can be below or above the forecast range. CrysTrack records what really happened.</p>
+          <input type="number" step="0.01" inputMode="decimal" value={actualAmount} onChange={(event) => setActualAmount(event.target.value)} placeholder="Actual amount received / paid" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" required />
         </div>
       </CreateModal>
     </div>

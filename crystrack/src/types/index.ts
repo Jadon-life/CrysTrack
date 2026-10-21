@@ -4,6 +4,8 @@ export interface User {
   displayName?: string;
   avatarUrl?: string;
   timezone: string;
+  currentTimezone?: string;
+  schedulingTimezone?: string;
 }
 
 export interface ThemeState {
@@ -49,7 +51,7 @@ export interface TaskWithSchedule {
   schedules: number[]; // weekdays
   streak: number;
   bestStreak: number;
-  todayStatus: 'pending' | 'completed' | 'missed' | 'not_scheduled';
+  todayStatus: 'pending' | 'completed' | 'skipped' | 'missed' | 'not_scheduled';
 }
 
 export interface GoalWithProgress {
@@ -68,6 +70,10 @@ export interface GoalWithProgress {
 }
 
 export interface AssignmentWithUrgency {
+  revision: number;
+  reminderVersion: number;
+  completedAt?: string;
+  reminderConfig?: { enabled: boolean; channels: string[]; offsetMinutes: number[] };
   id: string;
   title: string;
   description?: string;
@@ -90,7 +96,11 @@ export interface FinanceTargetWithProgress {
 }
 
 export interface MoneyEntry {
+  importBatchId?: string | null;
+  importRowId?: string | null;
   id: string;
+  billId?: string | null;
+  billOccurrenceId?: string | null;
   type: 'income' | 'expense' | 'saving' | 'transfer';
   amount: number;
   date: string;
@@ -117,3 +127,6 @@ export interface AIInsight {
   recommendations: string[];
   generatedAt: string;
 }
+
+// Issue #37 additive read-RPC DTO; no stored amount or write contract changes.
+export type { WealthSnapshot, WealthReport, ExactWealthSummary } from '@/lib/wealth-report';

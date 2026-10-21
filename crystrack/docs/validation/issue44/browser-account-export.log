@@ -1,0 +1,165 @@
+{
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "theme": "dark",
+      "violations": []
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "violations": []
+    },
+    {
+      "width": 430,
+      "theme": "dark",
+      "violations": []
+    },
+    {
+      "width": 430,
+      "theme": "light",
+      "violations": []
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "violations": []
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "violations": []
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "violations": []
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "violations": []
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "violations": []
+    }
+  ],
+  "checks": [
+    {
+      "width": 375,
+      "theme": "dark",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 430,
+      "theme": "dark",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 430,
+      "theme": "light",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 1280,
+      "theme": "light",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "moneyRows": 2008,
+      "billAndCsvProvenance": true,
+      "dailyRows": 1388,
+      "checksums": true,
+      "exactKobo": true
+    }
+  ],
+  "browserErrors": [],
+  "externalRequestsBlocked": 6,
+  "rawArchivesCommitted": false,
+  "noFinancialDailyRewardAiMutation": true,
+  "categoryIsolation": true,
+  "currentConsentAiHistory": true,
+  "clearedHistoryNotResurrected": true,
+  "revocationDisablesAiExport": true,
+  "offlineFailsClosed": true,
+  "authLossNoFile": true,
+  "manualCancelNoFile": true,
+  "crossOriginDenied": true
+}

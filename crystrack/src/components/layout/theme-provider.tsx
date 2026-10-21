@@ -8,6 +8,7 @@ import {
   phaseFromSolarTimes,
   type EnvironmentState,
 } from '@/lib/environment';
+import { isRestrictedPreview } from '@/lib/preview/mode';
 import { getThemeForPhase, type ThemeColors, type ThemePreference } from '@/lib/theme';
 
 interface ThemeContextType {
@@ -70,7 +71,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useMemo(() => getThemeForPhase(environment.phase, preference), [environment.phase, preference]);
 
   const resolvePermission = useCallback(async () => {
-    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+    if (isRestrictedPreview() || typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       setLocationPermission('unsupported');
       return 'unsupported' as const;
     }
@@ -96,7 +97,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const requestLocation = useCallback(async (options?: { prompt?: boolean }) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    if (isRestrictedPreview() || typeof navigator === 'undefined' || !navigator.geolocation) {
       await loadApproximateEnvironment();
       return;
     }

@@ -1,3 +1,4 @@
+import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { NextResponse } from 'next/server';
 import webPush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -9,8 +10,6 @@ import {
   localClock,
   minuteMatches,
   normaliseChannels,
-  previousDateKey,
-  weekdayForDateKey,
 } from '@/lib/reminders';
 
 export const runtime = 'nodejs';
@@ -40,7 +39,7 @@ const RETRY_DELAY_MS = 45 * 1000;
 
 async function reserveDelivery(
   admin: ReturnType<typeof createAdminClient>,
-  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload },
+  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload; assignmentVersion?: number; assignmentOffset?: number; billRevision?: number },
 ) {
   const { data: inserted, error: insertError } = await admin
     .from('reminder_deliveries')
@@ -118,9 +117,30 @@ async function reserveDelivery(
 
 async function deliver(
   admin: ReturnType<typeof createAdminClient>,
-  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload },
+  input: { userId: string; entityType: string; entityId: string; deliveryKey: string; scheduledFor: string; channels: string[]; payload: DeliveryPayload; assignmentVersion?: number; assignmentOffset?: number; billRevision?: number },
 ) {
-  const reservation = await reserveDelivery(admin, input);
+  // Assignment claims re-read and lock the live schedule in one database transaction.
+  let reservation;
+  if (input.entityType === 'assignment') {
+    const { data: claim, error } = await admin.rpc('assignment_claim_reminder', { p_id: input.entityId, p_version: input.assignmentVersion, p_offset: input.assignmentOffset });
+    if (error) { console.error('Assignment reminder claim failed', { code: error.code }); return { duplicate: false, sent: [] as string[], failed: input.channels }; }
+    if (!claim) return { duplicate: true, sent: [] as string[], failed: [] as string[] };
+    input = { ...input, userId: claim.userId, payload: claim.payload, deliveryKey: claim.deliveryKey };
+    reservation = { duplicate: false, id: claim.id as string, priorSent: claim.priorSent as string[], channelsToAttempt: claim.channelsToAttempt as string[] };
+  } else if (input.entityType === 'bill') {
+    const { data: claim, error } = await admin.rpc('bill_claim_reminder', {
+      p_id: input.entityId, p_revision: input.billRevision,
+    });
+    if (error) {
+      console.error('Bill reminder claim not confirmed', { code: error.code });
+      return { duplicate: false, sent: [] as string[], failed: input.channels };
+    }
+    if (!claim) return { duplicate: true, sent: [] as string[], failed: [] as string[] };
+    input = { ...input, userId: claim.userId, payload: claim.payload, deliveryKey: claim.deliveryKey,
+      channels: claim.channelsToAttempt };
+    reservation = { duplicate: false, id: claim.id as string, priorSent: claim.priorSent as string[],
+      channelsToAttempt: claim.channelsToAttempt as string[] };
+  } else reservation = await reserveDelivery(admin, input);
   if (reservation.duplicate || !reservation.id) {
     return { duplicate: true, sent: reservation.priorSent, failed: [] as string[] };
   }
@@ -152,6 +172,7 @@ async function deliver(
         let anyPush = false;
         for (const subscription of subscriptions) {
           try {
+            assertRealServicesAllowed();
             await webPush.sendNotification({
               endpoint: subscription.endpoint,
               keys: { p256dh: subscription.keys_p256dh, auth: subscription.keys_auth },
@@ -183,6 +204,7 @@ async function deliver(
       errors.push(!token ? 'Telegram bot is not configured' : 'Telegram is not connected');
     } else {
       try {
+        assertRealServicesAllowed();
         const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -204,6 +226,21 @@ async function deliver(
   const uniqueFailed = Array.from(new Set(failed));
   const requestedSatisfied = input.channels.every((channel) => uniqueSent.includes(channel));
   const status = requestedSatisfied ? 'sent' : uniqueSent.length ? 'partial' : 'failed';
+
+  if (input.entityType === 'assignment') {
+    const { error } = await admin.rpc('assignment_finish_delivery', { p_delivery: reservation.id, p_sent: uniqueSent, p_failed: uniqueFailed, p_error: errors.join('; ') || null });
+    if (error) console.error('Assignment reminder result was not confirmed', { code: error.code });
+    return { duplicate: false, sent: uniqueSent, failed: uniqueFailed };
+  }
+
+  if (input.entityType === 'bill') {
+    const { error } = await admin.rpc('bill_finish_delivery', {
+      p_delivery: reservation.id, p_sent: uniqueSent, p_failed: uniqueFailed,
+      p_error: errors.join('; ') || null,
+    });
+    if (error) console.error('Bill reminder result not confirmed', { code: error.code });
+    return { duplicate: false, sent: uniqueSent, failed: uniqueFailed };
+  }
 
   await admin.from('reminder_deliveries').update({
     sent_channels: uniqueSent,
@@ -240,37 +277,9 @@ async function occurrenceStatus(admin: ReturnType<typeof createAdminClient>, tas
   return data || null;
 }
 
-async function closeMissedTasks(admin: ReturnType<typeof createAdminClient>, userId: string, todayKey: string) {
-  const yesterdayKey = previousDateKey(todayKey);
-  const yesterdayWeekday = weekdayForDateKey(yesterdayKey);
-  const { data: tasks } = await admin
-    .from('recurring_tasks')
-    .select('id, title, task_schedules(weekday)')
-    .eq('user_id', userId)
-    .eq('active', true)
-    .is('archived_at', null);
-
-  for (const task of tasks || []) {
-    if (!(task.task_schedules || []).some((item: any) => item.weekday === yesterdayWeekday)) continue;
-    const existing = await occurrenceStatus(admin, task.id, yesterdayKey);
-    if (existing) continue;
-
-    const { data: occurrence, error } = await admin.from('task_occurrences').insert({
-      task_id: task.id,
-      date: `${yesterdayKey}T00:00:00.000Z`,
-      status: 'missed',
-    }).select('id').single();
-
-    if (!error && occurrence) {
-      await admin.from('activity_events').insert({
-        user_id: userId,
-        type: 'task_missed',
-        entity_type: 'task',
-        entity_id: task.id,
-        metadata_json: { title: task.title, date: yesterdayKey, status: 'missed' },
-      });
-    }
-  }
+async function closeMissedTasks(admin: ReturnType<typeof createAdminClient>, userId: string) {
+  const {error} = await admin.rpc('recover_daily_records',{p_user_id:userId,p_limit:31});
+  if (error) console.error('Daily closure recovery failed', {code:error.code});
 }
 
 export async function POST(request: Request) {
@@ -280,7 +289,7 @@ export async function POST(request: Request) {
   const now = new Date();
   const { data: profiles, error: profileError } = await admin
     .from('profiles')
-    .select('user_id, timezone, current_timezone, current_city');
+    .select('user_id, timezone, scheduling_timezone, current_timezone, current_city');
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
 
   const summary = { users: 0, attempted: 0, sent: 0, failed: 0 };
@@ -294,7 +303,7 @@ export async function POST(request: Request) {
     const inDnd = isWithinDnd(clock.minuteOfDay, Boolean(preferences?.dnd_enabled), preferences?.dnd_start_time, preferences?.dnd_end_time);
     const defaultChannels = normaliseChannels(preferences?.default_reminder_channels, ['push']);
 
-    if (clock.minuteOfDay < 10) await closeMissedTasks(admin, userId, clock.dateKey);
+    await closeMissedTasks(admin, userId);
 
     const { data: tasks } = await admin
       .from('recurring_tasks')
@@ -348,9 +357,11 @@ export async function POST(request: Request) {
       }
     }
 
+    const assignmentClock = localClock(now, profile.scheduling_timezone || profile.timezone || 'UTC');
+    const assignmentDnd = isWithinDnd(assignmentClock.minuteOfDay, Boolean(preferences?.dnd_enabled), preferences?.dnd_start_time, preferences?.dnd_end_time);
     const { data: assignments } = await admin
       .from('assignments')
-      .select('id, title, deadline, priority, reminder_config')
+      .select('id, title, deadline, priority, reminder_config, reminder_version')
       .eq('user_id', userId)
       .neq('status', 'completed');
 
@@ -365,14 +376,15 @@ export async function POST(request: Request) {
       for (const rawOffset of Array.isArray(config.offsetMinutes) ? config.offsetMinutes : [1440, 120, 0]) {
         const offset = Number(rawOffset);
         if (!Number.isFinite(offset) || !dueAssignmentOffset(diffMinutes, offset)) continue;
-        if (inDnd && !urgent) continue;
+        if (assignmentDnd && !urgent) continue;
         const label = offset === 0 ? 'due now' : offset >= 1440 ? `${Math.round(offset / 1440)} day${offset >= 2880 ? 's' : ''} remaining` : `${Math.round(offset / 60)} hours remaining`;
         summary.attempted += 1;
         const result = await deliver(admin, {
           userId,
           entityType: 'assignment',
           entityId: assignment.id,
-          deliveryKey: `assignment:${assignment.id}:offset:${offset}`,
+          deliveryKey: `assignment:${assignment.id}:v${assignment.reminder_version}:offset:${offset}`,
+          assignmentVersion: assignment.reminder_version, assignmentOffset: offset,
           scheduledFor: now.toISOString(),
           channels,
           payload: { title: assignment.title, body: `Assignment ${label}.`, url: '/assignments', tag: `assignment-${assignment.id}-${offset}` },
@@ -380,6 +392,22 @@ export async function POST(request: Request) {
         summary.sent += result.sent.length ? 1 : 0;
         summary.failed += !result.sent.length && !result.duplicate ? 1 : 0;
       }
+    }
+
+    // Same dispatcher; opt-in, saved-zone DND and live payment checks are revalidated in SQL.
+    const { data: billSlots, error: billError } = await admin.rpc('bill_reminder_candidates', {
+      p_user: userId,
+    });
+    if (billError) console.error('Bill reminders unavailable', { code: billError.code });
+    for (const slot of billSlots || []) {
+      summary.attempted += 1;
+      const result = await deliver(admin, {
+        userId, entityType: 'bill', entityId: slot.id, billRevision: slot.revision,
+        deliveryKey: 'bill:' + slot.id, scheduledFor: now.toISOString(), channels: defaultChannels,
+        payload: { title: 'Planned bill', body: 'Payment is not confirmed.', url: '/finance', tag: 'bill:' + slot.id },
+      });
+      summary.sent += result.sent.length ? 1 : 0;
+      summary.failed += !result.sent.length && !result.duplicate ? 1 : 0;
     }
 
     const { data: goals } = await admin

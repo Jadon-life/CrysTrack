@@ -1,0 +1,133 @@
+/* CrysTrack: photo-inspired physical rocker and low-contrast glass scrollbars.
+   Leaves September backgrounds, layout and adaptive colour tokens untouched. */
+:root {
+  --crys-scroll-thumb: color-mix(in srgb, var(--theme-text-muted) 34%, transparent);
+  --crys-scroll-hover: color-mix(in srgb, var(--theme-primary) 49%, var(--theme-text-muted));
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--crys-scroll-thumb) transparent;
+}
+*:hover { scrollbar-color: var(--crys-scroll-hover) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  min-height: 32px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--crys-scroll-thumb);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--crys-scroll-hover);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--theme-primary) 70%, var(--theme-text-muted));
+  background-clip: padding-box;
+}
+/* Existing horizontal filter/chip rails are intentionally hidden. */
+.scrollbar-hide { scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Real Three.js theme rocker. Its fallback uses the same active CrysTrack
+   colour tokens; no white plastic or unrelated purple hardware. */
+.crys-3d-switch {
+  display: inline-block;
+  position: relative;
+  isolation: isolate;
+  flex: 0 0 auto;
+  width: 100px;
+  height: 42px;
+  border: 0;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.crys-3d-switch__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+.crys-3d-switch[data-ready='true'] .crys-3d-switch__canvas { opacity: 1; }
+.crys-3d-switch__fallback {
+  position: absolute;
+  inset: 6px 5px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--theme-border);
+  background: rgba(255,255,255,.055);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -4px 3px rgba(0,0,0,.28),
+    0 4px 0 color-mix(in srgb, var(--theme-border) 55%, transparent),
+    0 7px 12px rgba(0,0,0,.30);
+  transform: perspective(220px) rotateY(-14deg) rotateX(6deg);
+}
+.crys-3d-switch[data-mode='dark'] .crys-3d-switch__fallback {
+  transform: perspective(220px) rotateY(14deg) rotateX(-6deg);
+}
+.crys-3d-switch[data-ready='true'] .crys-3d-switch__fallback { display: none; }
+
+.crys-3d-switch__fallback-icons {
+  position: absolute;
+  pointer-events: none;
+  inset: 9px 12px 11px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  place-items: center;
+  color: var(--theme-primary);
+}
+.crys-3d-switch__fallback-icons > :last-child {
+  color: var(--theme-primary);
+}
+.crys-3d-switch[data-mode='dark'] .crys-3d-switch__fallback-icons > :first-child {
+  opacity: .45;
+}
+.crys-3d-switch[data-mode='light'] .crys-3d-switch__fallback-icons > :last-child {
+  opacity: .45;
+}
+.crys-3d-switch[data-ready='true'] .crys-3d-switch__fallback-icons { display: none; }
+
+.crys-3d-switch__auto {
+  display: none;
+  position: absolute;
+  right: 8px;
+  top: 3px;
+  width: 6px;
+  height: 6px;
+  background: var(--theme-primary);
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--theme-text) 65%, transparent);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--theme-primary) 62%, transparent);
+}
+.crys-3d-switch[data-auto='true'] .crys-3d-switch__auto { display: block; }
+.crys-3d-switch:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .crys-3d-switch { width: 86px; height: 38px; }
+  .crys-3d-switch__fallback-icons { inset: 8px 10px 10px; }
+}
+@media (forced-colors: active) {
+  .crys-3d-switch__canvas { opacity: 0 !important; }
+  .crys-3d-switch__fallback {
+    display: block !important;
+    transform: none !important;
+    background: ButtonFace;
+    border: 2px solid ButtonText;
+    box-shadow: none;
+  }
+  .crys-3d-switch__fallback-icons {
+    display: grid !important;
+    color: ButtonText !important;
+  }
+  .crys-3d-switch__fallback-icons > * { color: ButtonText !important; opacity: 1 !important; }
+  .crys-3d-switch:focus-visible { outline-color: Highlight; }
+}

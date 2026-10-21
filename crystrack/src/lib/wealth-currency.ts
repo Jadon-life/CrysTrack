@@ -1,5 +1,6 @@
 'use client';
 
+import { isRestrictedPreview } from '@/lib/preview/mode';
 import { useCallback, useEffect, useState } from 'react';
 import type { WealthDisplayCurrency } from '@/config/experience';
 import type { ExchangeRateSnapshot } from '@/lib/wealth';
@@ -34,6 +35,22 @@ export function useWealthCurrency() {
   const [loadingRate, setLoadingRate] = useState(true);
 
   useEffect(() => {
+    if (isRestrictedPreview()) {
+      // Read-only example for the Wealth display toggle; never call a live FX
+      // service or persist a demo rate to the browser's ordinary user cache.
+      queueMicrotask(() => {
+        setRate({
+          usdNgn: 1600,
+          ngnUsd: 1 / 1600,
+          provider: 'Synthetic demonstration — not a live exchange rate',
+          updatedAt: null,
+          nextUpdateAt: null,
+          stale: false,
+        });
+        setLoadingRate(false);
+      });
+      return;
+    }
     const storedCurrency = window.localStorage.getItem(CURRENCY_KEY);
     const cached = readCachedRate();
 
@@ -72,7 +89,7 @@ export function useWealthCurrency() {
 
   const setCurrency = useCallback((next: WealthDisplayCurrency) => {
     setCurrencyState(next);
-    window.localStorage.setItem(CURRENCY_KEY, next);
+    if (!isRestrictedPreview()) window.localStorage.setItem(CURRENCY_KEY, next);
   }, []);
 
   return { currency, setCurrency, rate, loadingRate };

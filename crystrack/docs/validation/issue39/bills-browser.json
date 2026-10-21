@@ -1,0 +1,73 @@
+{
+  "checks": [
+    "Creating plans does not affect balances, expected money or legacy forecasts",
+    "Real create/edit/pause/resume; keyboard dialog focus containment and Escape restoration",
+    "Five widths: no document overflow, >=40px controls, semantic dates/labels/history, scoped axe zero violations, keyboard modal containment/Escape/focus return, physical switch and bright scenic photo preserved",
+    "Actual amount differs from expected; required explicit confirmation; committed-response loss/exact retry/replay create one expense, budget spend and zero spending shards; real history proof",
+    "Second-tab update conflicts; terminal cancel keeps payment expense and exposes no reopen/payment controls",
+    "Unavailable reread removes stale totals/cards instead of claiming zero or paid",
+    "Malformed success acknowledgement stays unconfirmed; exact create replay recovers one definition without expense or false payment",
+    "Real local dispatcher rejects unauthenticated scheduler; missing Push/Telegram configuration records one failed attempt, no retry duplicate or false success/activity/payment"
+  ],
+  "widths": [
+    375,
+    430,
+    768,
+    1280,
+    1440
+  ],
+  "accessibility": [
+    {
+      "width": 375,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 430,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 768,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 1280,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    },
+    {
+      "width": 1440,
+      "violations": [],
+      "manualReview": [
+        "color-contrast"
+      ]
+    }
+  ],
+  "externalRequestsBlocked": 5,
+  "browserErrors": [],
+  "rate": "Synthetic indicative quote: 1600 NGN/USD",
+  "brightContrast": [
+    {
+      "selector": "h2",
+      "ratio": 11.679978616039618
+    },
+    {
+      "selector": "p",
+      "ratio": 10.661611395292335
+    },
+    {
+      "selector": "button",
+      "ratio": 4.5553003392738765
+    }
+  ]
+}

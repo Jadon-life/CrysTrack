@@ -1,16 +1,16 @@
 import { 
   pgTable, uuid, varchar, text, timestamp, boolean, 
-  integer, decimal, jsonb, pgEnum, index 
+  integer, decimal, jsonb, pgEnum, index, date, bigint, primaryKey, uniqueIndex, foreignKey, pgSchema, type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 
 // Enums
-export const taskStatusEnum = pgEnum('task_status', ['pending', 'completed', 'missed', 'not_scheduled']);
+export const taskStatusEnum = pgEnum('task_status', ['pending', 'completed', 'skipped', 'missed', 'not_scheduled']);
 export const assignmentStatusEnum = pgEnum('assignment_status', ['upcoming', 'due_soon', 'due_today', 'overdue', 'completed']);
 export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high', 'urgent']);
 export const moneyTypeEnum = pgEnum('money_type', ['income', 'expense', 'saving', 'transfer']);
 export const reminderChannelEnum = pgEnum('reminder_channel', ['push', 'email']);
 export const reminderStatusEnum = pgEnum('reminder_status', ['pending', 'sent', 'snoozed', 'cancelled']);
-export const activityTypeEnum = pgEnum('activity_type', ['task_completed', 'task_missed', 'goal_checkin', 'assignment_completed', 'finance_entry', 'reminder_sent']);
+export const activityTypeEnum = pgEnum('activity_type', ['task_completed', 'task_skipped', 'task_missed', 'goal_checkin', 'assignment_completed', 'finance_entry', 'reminder_sent']);
 
 // Users (extends Supabase Auth)
 export const profiles = pgTable('profiles', {
@@ -18,6 +18,8 @@ export const profiles = pgTable('profiles', {
   userId: uuid('user_id').notNull().unique(),
   displayName: varchar('display_name', { length: 255 }),
   timezone: varchar('timezone', { length: 100 }).default('UTC'),
+  currentTimezone: varchar('current_timezone', { length: 100 }),
+  schedulingTimezone: varchar('scheduling_timezone', { length: 100 }),
   locale: varchar('locale', { length: 10 }).default('en-US'),
   avatarUrl: text('avatar_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -123,10 +125,14 @@ export const assignments = pgTable('assignments', {
   status: assignmentStatusEnum('status').default('upcoming'),
   category: varchar('category', { length: 100 }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
+  revision: integer('revision').notNull().default(1),
+  reminderVersion: integer('reminder_version').notNull().default(1),
+  reminderConfig: jsonb('reminder_config').$type<{ enabled: boolean; channels: string[]; offsetMinutes: number[] }>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (table) => ({
   userIdIdx: index('assignment_user_id_idx').on(table.userId),
   deadlineIdx: index('assignment_deadline_idx').on(table.deadline),
+  ownerDeadlineIdx: index('assignment_owner_deadline_id_idx').on(table.userId, table.deadline, table.id),
 }));
 
 // Finance
@@ -150,6 +156,10 @@ export const moneyEntries = pgTable('money_entries', {
   type: moneyTypeEnum('type').notNull(),
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   date: timestamp('date', { withTimezone: true }).defaultNow(),
+  importBatchId: uuid('import_batch_id').references(() => wealthCsvBatches.id),
+  importRowId: uuid('import_row_id').references(() => wealthCsvRows.id),
+  billId: uuid('bill_id').references(()=>wealthRecurringBills.id),
+  billOccurrenceId: uuid('bill_occurrence_id').references(()=>wealthBillOccurrences.id),
   source: varchar('source', { length: 255 }),
   category: varchar('category', { length: 100 }),
   note: text('note'),
@@ -208,3 +218,175 @@ export type FinanceTarget = typeof financeTargets.$inferSelect;
 export type MoneyEntry = typeof moneyEntries.$inferSelect;
 export type GoalCheckIn = typeof goalCheckIns.$inferSelect;
 export type ActivityEvent = typeof activityEvents.$inferSelect;
+
+// Durable daily records: routine_key deliberately has no FK to recurring_tasks.
+export const dailyTrackingStates = pgTable('daily_tracking_states', {
+ userId: uuid('user_id').primaryKey(), initialTimezone: text('initial_timezone').notNull(),
+ schedulingTimezone: text('scheduling_timezone').notNull(), activatedAt: timestamp('activated_at', {withTimezone:true}).notNull(),
+ activationDay: date('activation_day').notNull(), captureStartsOn: date('capture_starts_on').notNull(),
+ recoveryCursor: date('recovery_cursor').notNull(), revision: integer('revision').notNull().default(1),
+ dataRevision: bigint('data_revision', {mode:'number'}).notNull().default(1),
+});
+export const dailyTimezoneTransitions = pgTable('daily_timezone_transitions', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), fromTimezone: text('from_timezone').notNull(),
+ toTimezone: text('to_timezone').notNull(), previousDay: date('previous_day').notNull(), firstDay: date('first_day').notNull(),
+ requestedAt: timestamp('requested_at',{withTimezone:true}).notNull(), effectiveAt: timestamp('effective_at',{withTimezone:true}).notNull(),
+ status: text('status').$type<'pending'|'applied'>().notNull().default('pending'), revision: integer('revision').notNull().default(1),
+});
+export const routineScheduleVersions = pgTable('routine_schedule_versions', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), routineKey: uuid('routine_key').notNull(),
+ version: integer('version').notNull(), effectiveFrom: date('effective_from').notNull(), enabled: boolean('enabled').notNull(),
+ title: text('title').notNull(), description: text('description'), preferredTime: text('preferred_time'), category: text('category'),
+ schedule: jsonb('schedule').$type<{weekday:number;start:string|null;end:string|null}[]>().notNull(),
+ createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+}, t=>({versionUnique:uniqueIndex('routine_schedule_versions_user_id_routine_key_version_key').on(t.userId,t.routineKey,t.version)}));
+export const dailyRecords = pgTable('daily_records', {
+ id: uuid('id').notNull().unique().defaultRandom(), userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(),
+ timezone: text('timezone').notNull(), policyVersion: integer('policy_version').notNull().default(1),
+ evidence: text('evidence').$type<'verified'|'incomplete'>().notNull(), evidenceReason: text('evidence_reason'), expectedCount: integer('expected_count').notNull(),
+ closeStatus: text('close_status').$type<'open'|'closed'>().notNull().default('open'),
+ opensAt: timestamp('opens_at',{withTimezone:true}).notNull(), closesAt: timestamp('closes_at',{withTimezone:true}).notNull(),
+ materializedAt: timestamp('materialized_at',{withTimezone:true}).notNull(), closedAt: timestamp('closed_at',{withTimezone:true}),
+ revision: integer('revision').notNull().default(1),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey]})}));
+export const dailyRoutineRecords = pgTable('daily_routine_records', {
+ id: uuid('id').notNull().unique().defaultRandom(), userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(), routineKey: uuid('routine_key').notNull(),
+ scheduleVersionId: uuid('schedule_version_id').notNull().references(()=>routineScheduleVersions.id),
+ title: text('title').notNull(), description: text('description'), preferredTime: text('preferred_time'), category: text('category'),
+ status: text('status').$type<'pending'|'completed'|'skipped'|'missed'>().notNull().default('pending'),
+ completedAt: timestamp('completed_at',{withTimezone:true}), revision: integer('revision').notNull().default(1),
+ compatibilityOccurrenceId: uuid('compatibility_occurrence_id'), activityEventId: uuid('activity_event_id').notNull().defaultRandom(),
+ legacyConflict: boolean('legacy_conflict').notNull().default(false),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey,t.routineKey]})}));
+export const dailyMutationRequests = pgTable('daily_mutation_requests', {
+ userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(), payload: jsonb('payload').notNull(), result: jsonb('result').notNull(),
+ revision: integer('revision').notNull().default(1), createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export const dailyNotes = pgTable('daily_notes', {
+ userId: uuid('user_id').notNull(), dayKey: date('day_key').notNull(), body: text('body').notNull(), revision: integer('revision').notNull(),
+ updatedAt: timestamp('updated_at',{withTimezone:true}).notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.dayKey]})}));
+export type DailyRecord = typeof dailyRecords.$inferSelect;
+export type DailyRoutineRecord = typeof dailyRoutineRecords.$inferSelect;
+export type RoutineScheduleVersion = typeof routineScheduleVersions.$inferSelect;
+export type DailyMutationRequest = typeof dailyMutationRequests.$inferSelect;
+export type DailyNote = typeof dailyNotes.$inferSelect;
+export type DailyTrackingState = typeof dailyTrackingStates.$inferSelect;
+export type DailyTimezoneTransition = typeof dailyTimezoneTransitions.$inferSelect;
+
+// September crystal ledger; separate from all legacy hosted gamification objects.
+export const sep28CrystalPreferences = pgTable('sep28_crystal_preferences', {
+ userId: uuid('user_id').primaryKey(), enabled: boolean('enabled').notNull().default(true),
+ activatedAt: timestamp('activated_at',{withTimezone:true}).notNull(), enabledSince: timestamp('enabled_since',{withTimezone:true}).notNull(),
+ revision: integer('revision').notNull().default(1),
+});
+export type CrystalAwardKind = 'task'|'day'|'goal'|'assignment'|'spending';
+export const sep28CrystalAwards = pgTable('sep28_crystal_awards', {
+ userId: uuid('user_id').notNull().references(()=>sep28CrystalPreferences.userId,{onDelete:'cascade'}),
+ kind: text('kind').$type<CrystalAwardKind>().notNull(), sourceKey: text('source_key').notNull(),
+ eligible: boolean('eligible').notNull(), allowedSource: boolean('allowed_source').notNull().default(true),
+ balance: integer('balance').notNull(), revision: integer('revision').notNull(),
+},t=>({pk:primaryKey({columns:[t.userId,t.kind,t.sourceKey]})}));
+export const sep28CrystalEvents = pgTable('sep28_crystal_events', {
+ id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(), kind: text('kind').$type<CrystalAwardKind>().notNull(),
+ sourceKey: text('source_key').notNull(), revision: integer('revision').notNull(), delta: integer('delta').notNull(),
+ createdAt: timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({eventUnique:uniqueIndex('sep28_crystal_events_user_id_kind_source_key_revision_key').on(t.userId,t.kind,t.sourceKey,t.revision), ownerIdx:index('sep28_crystal_events_owner').on(t.userId), sourceFk:foreignKey({columns:[t.userId,t.kind,t.sourceKey],foreignColumns:[sep28CrystalAwards.userId,sep28CrystalAwards.kind,sep28CrystalAwards.sourceKey]}).onDelete('cascade')}));
+export const sep28CrystalMoments = pgTable('sep28_crystal_moments', {
+ userId: uuid('user_id').notNull().references(()=>sep28CrystalPreferences.userId,{onDelete:'cascade'}),
+ level: integer('level').notNull(), reachedAt: timestamp('reached_at',{withTimezone:true}).notNull(), claimedAt: timestamp('claimed_at',{withTimezone:true}),
+},t=>({pk:primaryKey({columns:[t.userId,t.level]})}));
+export type Sep28CrystalPreference = typeof sep28CrystalPreferences.$inferSelect;
+export type Sep28CrystalAward = typeof sep28CrystalAwards.$inferSelect;
+export type Sep28CrystalEvent = typeof sep28CrystalEvents.$inferSelect;
+export type Sep28CrystalMoment = typeof sep28CrystalMoments.$inferSelect;
+
+// Private owner-bound assignment identity tombstones: no application-role access.
+export const assignmentIdentities = pgSchema('crystrack_assignments').table('identities', {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id').notNull(),
+});
+export type AssignmentIdentity = typeof assignmentIdentities.$inferSelect;
+
+// Piece 6A local-only candidate: canonical NGN limits, owner SELECT/RPC writes.
+export const wealthMonthlyBudgets = pgTable('wealth_monthly_budgets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  month: date('month').notNull(),
+  category: text('category').notNull(),
+  currency: text('currency').notNull().default('NGN'),
+  limitAmount: decimal('limit_amount', { precision: 12, scale: 2 }).notNull(),
+  active: boolean('active').notNull().default(true),
+  revision: integer('revision').notNull().default(1),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  removedAt: timestamp('removed_at', { withTimezone: true }),
+}, t => ({ ownerMonthCategory: uniqueIndex('wealth_budget_owner_month_category_idx').on(t.userId,t.month,t.category) }));
+export const wealthBudgetRequests = pgSchema('crystrack_budgets').table('requests', {
+  userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(),
+  payload: jsonb('payload').notNull(), result: jsonb('result').notNull(),
+  createdAt: timestamp('created_at',{withTimezone:true}).notNull().defaultNow(),
+}, t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export type WealthMonthlyBudget = typeof wealthMonthlyBudgets.$inferSelect;
+export type WealthBudgetRequest = typeof wealthBudgetRequests.$inferSelect;
+
+
+// Piece 6B local-only bill plans, immutable occurrence/payment proof and private authority.
+export const wealthRecurringBills = pgTable('wealth_recurring_bills', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),title:text('title').notNull(),category:text('category').notNull(),merchant:text('merchant'),
+ amount:decimal('amount',{precision:12,scale:2}).notNull(),frequency:text('frequency').notNull(),firstDue:date('first_due').notNull(),endDate:date('end_date'),
+ status:text('status').notNull().default('active'),reminderEnabled:boolean('reminder_enabled').notNull().default(false),revision:integer('revision').notNull().default(1),
+ createdAt:timestamp('created_at',{withTimezone:true}).notNull(),updatedAt:timestamp('updated_at',{withTimezone:true}).notNull(),
+},t=>({owner:index('bill_owner_idx').on(t.userId,t.id),ownerIdentity:uniqueIndex('bill_owner_identity').on(t.id,t.userId)}));
+export const wealthBillOccurrences=pgTable('wealth_bill_occurrences',{
+ id:uuid('id').primaryKey().defaultRandom(),userId:uuid('user_id').notNull(),billId:uuid('bill_id').notNull(),dueDay:date('due_day').notNull(),timezone:text('timezone').notNull(),
+ title:text('title').notNull(),category:text('category').notNull(),merchant:text('merchant'),expectedAmount:decimal('expected_amount',{precision:12,scale:2}).notNull(),
+ status:text('status').notNull().default('pending'),revision:integer('revision').notNull().default(1),paidAt:timestamp('paid_at',{withTimezone:true}),actualAmount:decimal('actual_amount',{precision:12,scale:2}),entryId:uuid('entry_id').unique().references((): AnyPgColumn=>moneyEntries.id),
+},t=>({due:uniqueIndex('bill_due_unique').on(t.billId,t.dueDay),ownerDay:index('bill_occurrence_owner_day_idx').on(t.userId,t.dueDay,t.id),
+ owner:foreignKey({columns:[t.billId,t.userId],foreignColumns:[wealthRecurringBills.id,wealthRecurringBills.userId]})}));
+const billPrivate=pgSchema('crystrack_bills');
+export const billOwnerStates=billPrivate.table('states',{userId:uuid('user_id').primaryKey(),revision:bigint('revision',{mode:'bigint'}).notNull().default(BigInt(1))});
+export const billRequests=billPrivate.table('requests',{userId:uuid('user_id').notNull(),requestId:uuid('request_id').notNull(),payload:jsonb('payload').notNull(),result:jsonb('result').notNull()},t=>({pk:primaryKey({columns:[t.userId,t.requestId]})}));
+export const billEntryPermits=billPrivate.table('entry_permits',{entryId:uuid('entry_id').primaryKey(),userId:uuid('user_id').notNull(),billId:uuid('bill_id').notNull(),occurrenceId:uuid('occurrence_id').notNull().unique()});
+export type WealthRecurringBill=typeof wealthRecurringBills.$inferSelect;
+export type WealthBillOccurrence=typeof wealthBillOccurrences.$inferSelect;
+export type BillOwnerState=typeof billOwnerStates.$inferSelect;
+export type BillMutationRequest=typeof billRequests.$inferSelect;
+export type BillEntryPermit=typeof billEntryPermits.$inferSelect;
+
+// Piece 6C local-only immutable statement batches, selected normalized rows and private permits.
+export const wealthCsvBatches = pgTable('wealth_csv_batches', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),sourceKey:text('source_key').notNull(),fileHash:text('file_hash').notNull(),payloadHash:text('payload_hash').notNull(),timezone:text('timezone').notNull(),rowCount:integer('row_count').notNull(),incomeTotal:decimal('income_total').notNull(),expenseTotal:decimal('expense_total').notNull(),createdAt:timestamp('created_at',{withTimezone:true}).notNull(),
+},t=>({owner:uniqueIndex('csv_batch_owner_identity').on(t.id,t.userId),ownerIndex:index('csv_batch_owner_idx').on(t.userId,t.id)}));
+export const wealthCsvRows = pgTable('wealth_csv_rows', {
+ id:uuid('id').primaryKey(),userId:uuid('user_id').notNull(),batchId:uuid('batch_id').notNull(),sourceKey:text('source_key').notNull(),fileHash:text('file_hash').notNull(),rowNumber:integer('row_number').notNull(),referenceKey:text('reference_key'),entryId:uuid('entry_id').notNull().unique().references(():AnyPgColumn=>moneyEntries.id),reviewedRow:jsonb('reviewed_row').notNull(),
+},t=>({owner:foreignKey({columns:[t.batchId,t.userId],foreignColumns:[wealthCsvBatches.id,wealthCsvBatches.userId]}),identity:uniqueIndex('csv_file_row_unique').on(t.userId,t.sourceKey,t.fileHash,t.rowNumber),ownerIndex:index('csv_rows_owner_idx').on(t.userId,t.batchId)}));
+export const csvEntryPermits=pgSchema('crystrack_csv').table('permits',{entryId:uuid('entry_id').primaryKey(),userId:uuid('user_id').notNull(),batchId:uuid('batch_id').notNull(),rowId:uuid('row_id').notNull()});
+export type WealthCsvBatch=typeof wealthCsvBatches.$inferSelect;
+export type WealthCsvRow=typeof wealthCsvRows.$inferSelect;
+export type CsvEntryPermit=typeof csvEntryPermits.$inferSelect;
+
+// Issue #41 local-only consent authority; absent preferences mean AI OFF.
+export const aiPrivacyPreferences = pgTable('ai_privacy_preferences', {
+  userId: uuid('user_id').primaryKey(),
+  enabled: boolean('enabled').notNull().default(false),
+  wealthEnabled: boolean('wealth_enabled').notNull().default(false),
+  revision: integer('revision').notNull().default(0),
+  acceptedPolicy: text('accepted_policy'),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+const aiPrivacySchema = pgSchema('crystrack_ai');
+export const aiPrivacyMutations = aiPrivacySchema.table('mutations', {
+  userId: uuid('user_id').notNull(), requestId: uuid('request_id').notNull(),
+  payload: jsonb('payload').notNull(), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, table => ({ pk: primaryKey({ columns: [table.userId, table.requestId] }) }));
+export const aiPrivacyRequests = aiPrivacySchema.table('requests', {
+  id: uuid('id').primaryKey().defaultRandom(), userId: uuid('user_id').notNull(),
+  revision: integer('revision').notNull(), domain: text('domain').notNull(),
+  wealthEnabled: boolean('wealth_enabled').notNull(), createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  stored: boolean('stored').notNull().default(false), refs: jsonb('refs'),
+}, table => ({ ownerTime: index('ai_request_owner_time').on(table.userId, table.createdAt) }));
+export type AiPrivacyPreference = typeof aiPrivacyPreferences.$inferSelect;
+export type AiPrivacyMutation = typeof aiPrivacyMutations.$inferSelect;
+export type AiPrivacyRequest = typeof aiPrivacyRequests.$inferSelect;

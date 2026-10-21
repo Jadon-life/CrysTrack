@@ -1,0 +1,24 @@
+{
+  "day": "2026-10-20",
+  "timezone": "Africa/Lagos",
+  "checks": [
+    "Normal signed-in Today complete/undo/recomplete: 5/0/5; verified streak card preserved",
+    "Real goal check-in UI +25",
+    "Actual late-assignment completion UI +30, no deadline block",
+    "Genuine Wealth expense UI +5, exact stored decimal 2500.25",
+    "Expense commit-then-network-failure retries one submission; changed payload conflicts; concurrent duplicate HTTP POSTs persist one source/+5",
+    "Authoritative saved-zone closure books +50 once; yesterday joins streak",
+    "Real ledger total 500 → level 2 Raw; skippable moment never repeats on reload",
+    "Keyboard OFF hides nav/card, suppresses fresh task earning; ON no catch-up; numeric money records byte-for-byte unchanged",
+    "Real local sign-out/sign-in changes owner: second account starts at 0, not previous owner’s 500"
+  ],
+  "externalAttemptsBlocked": 40,
+  "financialSnapshot": {
+    "count": 78,
+    "sum": "2576.50"
+  },
+  "finalTotal": "500",
+  "closedDay": "2026-10-20",
+  "openDayAfterClosure": "2026-10-21",
+  "browserErrors": []
+}

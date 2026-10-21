@@ -1,0 +1,232 @@
+
+> crystrack@1.0.0 check
+> npm run test && npm run typecheck && npm run lint
+
+
+> crystrack@1.0.0 test
+> node --test tests/*.test.mjs
+
+✔ approved eight-photo daily rotation keeps exact local-time boundaries (2.2588ms)
+✔ all eight backgrounds are distinct local WebP assets with no photo API dependency (9.349784ms)
+✔ stability renderer mounts one still image without preload, decode, weather, or animation machinery (0.495338ms)
+✔ top navigation follows the approved information architecture (1.995302ms)
+✔ environment keeps local scenes while live weather and location services remain enabled (1.448607ms)
+✔ glass surfaces remain while the actual background image is explicitly unblurred (0.287083ms)
+✔ task accountability distinguishes completed, missed and skipped (0.431521ms)
+✔ reminders remain server-dispatched with delivery safeguards (0.302597ms)
+✔ goal intelligence remains intact (0.297609ms)
+✔ PWA and production configuration remain present (0.138659ms)
+✔ dashboard greeting follows local clock rather than solar phase (0.348036ms)
+✔ deadline input uses saved zone rather than machine clock; leap days round trip (21.951718ms)
+✔ DST gaps and folds are rejected, including half-hour transitions (20.902084ms)
+✔ today is a saved-zone calendar day, not the next 24 hours; now remains due (0.909974ms)
+✔ Finished Late compares instants, equality on time, regardless of display dates (0.182776ms)
+✔ strict bounded fields reject client rewards/identity and invalid reminders (4.963523ms)
+✔ bill recurrence clamps month ends without anchor drift, including leap/year/quarter/DST dates (3.852756ms)
+✔ bill envelopes reject client money coercion, owner/reward/timestamp fields and invalid revisions (4.13323ms)
+✔ paid UI cannot claim confirmation without source identity, payment timestamp and actual amount (16.185254ms)
+✔ mutation acknowledgement requires real identity, positive revision and an explicit nullable source field (0.638223ms)
+✔ budget money remains exact over cents, huge totals, negative remainder and display conversion (18.305224ms)
+✔ budget signals and percentages compare exact integer kobo and preserve overspending (0.476589ms)
+✔ strict budget writes reject owner/currency/mass assignment, floats, invalid limits and malformed months (4.918415ms)
+✔ unavailable or inconsistent aggregates cannot claim zero spend, unset limit or mixed currency (12.166777ms)
+✔ Calendar cells use small activity dots and desktop hover previews (1.392803ms)
+✔ selected calendar day has closed, collapsible activity groups (0.360093ms)
+✔ calendar still reads existing task, goal and assignment APIs (0.204318ms)
+✔ calendar grid stays aligned and uses only required month weeks (1.349498ms)
+✔ calendar keeps month cells compact with coloured category dots (0.333654ms)
+✔ routine intelligence includes timezone-aligned current-day state (3.795429ms)
+✔ task intelligence forces fresh analysis after task activity (0.756211ms)
+✔ September 2026 uses five rows and stops at October 3 (0.722631ms)
+✔ ceremony runtime and source are fully retired (1.288194ms)
+✔ ceremony settings control remains a non-rendering compatibility shim (0.352602ms)
+✔ dead ceremony preview trigger is absent from any retained compatibility module (0.174864ms)
+✔ original crystal segment thresholds: zero/499/500/1099/1100 (1.316918ms)
+✔ 20 percent growth rounds each integer segment UP; stages and cumulative boundaries exact (0.77466ms)
+✔ integer totals beyond JavaScript safe integers retain precise progress; invalid inputs fail (0.533406ms)
+✔ settings cannot carry a shard amount or another owner; malformed totals fail closed (2.063134ms)
+✔ migration is additive, isolated, no backfill, non-public private functions and no activity proof (0.707137ms)
+✔ outcome requests require explicit intent, revision and request ID; no implicit toggles/owner spoofing (3.996823ms)
+✔ daily date keys reject normalized/impossible dates; note cap counts Unicode characters (6.138637ms)
+✔ assembler produces one authoritative snapshot; partial, duplicate, conflicted, unclosed evidence is unknown (0.848922ms)
+✔ pagination fails closed on missing pages, changed revisions, duplicate cursors and malformed children (2.099439ms)
+✔ daily adapter preserves route names but never performs read-then-toggle or leaks SQL errors (0.890554ms)
+✔ notes are not added to AI, telemetry, or public/shared caching (0.420806ms)
+✔ HTTP conflicts are sanitized 409 responses; genuine unexpected failures stay unavailable (82.422496ms)
+✔ additive HTTP conflict migration only changes business SQLSTATEs and preserves the reviewed bodies (0.695771ms)
+✔ all done earns one day; the open current day is reported separately (17.524345ms)
+✔ partial, skipped, unskipped pending, undone pending and missed never earn success (5.870473ms)
+✔ verified zero-task days neither earn nor break continuity (0.505222ms)
+✔ unfinished or unavailable today does not break yesterday; missing yesterday is unknown (0.934701ms)
+✔ multiple missed days break current streak, while best observed is preserved (0.454196ms)
+✔ 20 routines and identical duplicates count each routine exactly once without mutation (0.429769ms)
+✔ conflicting duplicate outcomes and duplicate day records are unknown (0.564512ms)
+✔ missing days split observed streaks and mark coverage partial, never neutral (0.427044ms)
+✔ incomplete pagination cannot establish completion or an empty neutral day (0.638835ms)
+✔ incomplete earlier history qualifies best; a known break can still establish current (0.718114ms)
+✔ eligibility uses durable daily snapshots, including archived/deleted historical routines (0.536711ms)
+✔ unexpected routine outcomes are rejected as unknown, not used to fill a schedule (0.332622ms)
+✔ saved timezone determines local day across midnight without a device-time fallback (0.697793ms)
+✔ DST spring/fall, month/year and leap boundaries use calendar keys (0.579495ms)
+✔ shield stays disabled and never protects factual misses (0.737013ms)
+✔ invalid dates, timezones, clock and out-of-range evidence fail explicitly (0.755721ms)
+✔ no closed days reports zero only when the tracked beginning is verified (0.377409ms)
+✔ unordered verified history longer than a year is neither truncated nor input-order dependent (5.661477ms)
+✔ display name save persists profile and synchronizes auth metadata (1.316156ms)
+✔ auth provider can refresh visible signed-in user (0.300945ms)
+✔ settings refreshes display name after successful save (1.555869ms)
+✔ legacy Phase 2 moving-background renderer has been retired (1.227613ms)
+✔ Phase 2 glass correction remains preserved (0.407225ms)
+✔ final background renderer is a single static still-image surface (1.259832ms)
+✔ adaptive pool contains eight mood-based local-time slots (0.346493ms)
+✔ stability CSS override disables background animation and hides retired rich media (0.322767ms)
+✔ all eight daily backgrounds are packaged as local WebP files (1.550831ms)
+✔ History renders two levels of accessible native disclosures, initially closed (1.281795ms)
+✔ History pages older records while preserving existing dashboard API usage (0.273953ms)
+✔ History groups by month then day in reverse date order, retaining all records (21.564514ms)
+✔ History respects user timezone and task scheduled day (0.54288ms)
+✔ Invalid timestamps remain visible in an unknown-date section (4.33205ms)
+✔ final environment is still-image-only in stability mode (1.160182ms)
+✔ authenticated app layout no longer mounts immersive ceremonies (0.268285ms)
+✔ settings compatibility shim stays non-rendering (0.255736ms)
+✔ AI navigation is between Insights and Calendar (1.455868ms)
+✔ goal check-ins use database-backed occurrence keys (1.33131ms)
+✔ daily specific and weekly occurrence logic is explicit (0.236557ms)
+✔ Telegram success follows verified database persistence (0.4306ms)
+✔ AI chat is read only and conversations are user scoped (0.390871ms)
+✔ AI provider enforces verified OpenRouter ZDR routing (0.556139ms)
+✔ Wealth AI context excludes identity and sensitive private fields (0.302076ms)
+✔ domain AI is separate from main page loading (0.292571ms)
+✔ paid AI rate-limit messaging does not describe the model as free (0.328476ms)
+✔ domain insights require observations and cached insights are revalidated (0.498292ms)
+✔ routine guidance is optional and never presented as a best move (0.35074ms)
+✔ CI uses supported Node and verified OpenRouter models (0.509429ms)
+✔ local scripts reject all remote flags, arbitrary actions and argument passthrough (1.17903ms)
+✔ remote credentials, URLs, Docker contexts and tokens are not inherited (0.916834ms)
+✔ only the dedicated CLI container and loopback ports are accepted (0.485543ms)
+✔ local HTTP clients cannot target hosted services or other local ports (0.301104ms)
+✔ routine archive is a user-scoped soft archive (1.3982ms)
+✔ day backgrounds use approved local adaptive WebP assets (1.13942ms)
+✔ fallback phase ranges remain unchanged (0.267204ms)
+✔ scenic readability polish remains installed (0.188775ms)
+✔ tasks page still exposes the safe archive control (0.287423ms)
+✔ overdue goals are greyed and cannot be checked in (1.289637ms)
+✔ overdue assignments remain completable for September crystal rewards (1.266872ms)
+✔ task retirement preserves history; goal and assignment delete routes remain owner scoped (0.75471ms)
+✔ theme rocker is actual Three.js geometry with visible physical depth (2.778224ms)
+✔ 3D hardware derives its colours from the current CrysTrack theme (0.404471ms)
+✔ switch stays accessible, low-power, and leaves Adaptive in Settings (1.896232ms)
+✔ premium physical UI stylesheet is wired after the accepted globals (5.047119ms)
+✔ GlassCard provides substantial depth and pointer/tap liquid response (1.398412ms)
+✔ calendar opts into the deeper glass sheet without changing its data model (1.851425ms)
+✔ navigation collapses before tablet widths become crowded (1.371531ms)
+✔ premium UI CSS includes glass depth, safe nav margins and reduced-motion fallback (1.909953ms)
+✔ refinement loads after the September glass cascade and preserves theme tokens (1.054422ms)
+✔ refined glass has legibility, mobile, and accessibility fallbacks (0.330819ms)
+✔ Preview fails closed unless both server flag and build marker match; production ignores demo input (280.750826ms)
+✔ all inventoried writers and every integration/auth surface are blocked before route execution (46.340306ms)
+✔ browser, server, admin and middleware refuse construction before cookies, credentials or SDK use (48.337661ms)
+✔ synthetic navigation DTOs have no external URLs, credentials or mutable shared backing service (31.553264ms)
+✔ Preview Next build config blanks public bindings even when stale hosted values exist (1.288395ms)
+✔ push and weather execution cannot reach browser APIs or transport in Preview (28.706516ms)
+✔ writer inventory accounts for every current mutation route and auth callback (13.46023ms)
+✔ normal production profile API preserves authenticated writes (synthetic mock only) (135.27923ms)
+✔ all UI mutation endpoints exist (1.474796ms)
+✔ active Today dashboard and insights do not ship demo data (1.525553ms)
+✔ tasks bind checkbox and streak to real API state (0.33774ms)
+✔ active Today stat surfaces use discoverable Tailwind classes (0.210477ms)
+✔ retired dashboard components are not part of the application (0.169476ms)
+✔ navigation follows the consolidated product model (0.161553ms)
+✔ authenticated app shell fully retires the 3D background (0.222316ms)
+✔ database repair supplies required integrity primitives (0.243217ms)
+✔ profile picture upload bypasses Vercel function payload limits (1.06672ms)
+✔ avatar validation remains at five MB with real image signature checks (3.837378ms)
+✔ profile API only accepts avatar paths owned by the signed-in user (0.413314ms)
+✔ replacement switches metadata before best-effort cleanup of the old object (0.45667ms)
+✔ top navigation still listens for profile updates (0.306904ms)
+✔ maintenance API gate is inert by default, fails closed on typos, and never touches finance/auth/theme (24.541027ms)
+✔ release CLI requires an unmistakable confirmation and rejects every target override (0.375567ms)
+✔ barrier remains separate from build/bootstrap/migrations; no identity or GUC bypass is present (0.656832ms)
+✔ local REST cloning refuses hosted credentials targets, wrong project/network and connection overrides (0.737924ms)
+✔ All routines management is a collapsed-by-default, keyboard-accessible disclosure (1.388747ms)
+✔ archive, delete, and day filters remain in the expanded management area (1.679916ms)
+✔ Tasks uses the compact Today checklist and keeps scheduling separate (0.419203ms)
+✔ saved-timezone date wins over device/server clock near midnight (16.574621ms)
+✔ task totals are correct with skips and an empty schedule (0.505993ms)
+✔ completion and deliberate skip reverse safely (0.19183ms)
+✔ all scheduled tasks appear, grouped by time and sorted within groups (1.797433ms)
+✔ upcoming work only includes due-soon or overdue items, earliest first (0.29104ms)
+✔ Today all done is open; yesterday alone can earn closed-day streak; labels are bounded (19.736474ms)
+✔ unknown current is never rendered as zero; partial best and missing snapshots stay honest (2.245229ms)
+✔ verified empty is neutral; incomplete evidence, gaps, duplicates do not bridge success (6.180395ms)
+✔ pending, skipped, missed break only verified closed days; today never resets yesterday (21.718757ms)
+✔ strict response/context checks fail closed for invalid zones, bodies, changed boundaries and absent snapshots (2.979948ms)
+✔ only saved-zone context and assembled daily window are loaded; 401/missing RPC never invent values (3.312471ms)
+✔ malformed RPC pagination never reaches verified assembled history (1.129095ms)
+✔ all 1001 authoritative children count; missing child or conflicting child cannot earn (19.139362ms)
+✔ calendar stepping crosses leap/year boundaries and handles extreme saved zones (9.371197ms)
+✔ saved-zone midnight wake-up handles 23/25 hour DST days with no repeated polling (6.459591ms)
+✔ aborted old successes/errors cannot overwrite the newest read or unmounted card (0.364089ms)
+✔ Today integration preserves scenic components and never reads legacy streak or mutates finance (0.387364ms)
+✔ midnight between context and window gets exactly one fresh pair, never mixed-day evidence (3.977215ms)
+✔ Today uses its existing toggle and skip APIs without truncating the scheduled list (1.282016ms)
+✔ Today obtains profile timezone and keeps finance APIs unchanged (0.374115ms)
+✔ main screens avoid explicit Tailwind text sizes below 12px (3.849572ms)
+✔ navigation controls have accessible names and visible focus (0.464432ms)
+✔ Today retains September dashboard panels alongside the actionable checklist (1.102605ms)
+✔ previous CrysTrack logo remains restored (1.250959ms)
+✔ adaptive background uses the static eight-scene stability renderer (0.744674ms)
+✔ routine schedule area keeps dedicated readability treatment (0.747398ms)
+✔ Wealth backend remains real, not hardcoded (0.471712ms)
+✔ Sunday calendar weeks cross leap days, years and DST without elapsed-hour arithmetic (3.299551ms)
+✔ unknown and partial history cannot be displayed as a success, pending, or zero (20.547128ms)
+✔ verified empty is neutral; a captured closed-day pending outcome remains pending (2.432282ms)
+✔ only current open membership is writable; future plans never become outcomes (10.132216ms)
+✔ malformed/duplicate/shifted pages, impossible zones and unpinned cursors fail closed (5.264197ms)
+ℹ tests 177
+ℹ suites 0
+ℹ pass 177
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3282.112968
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+
+> crystrack@1.0.0 typecheck
+> tsc --noEmit
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+
+> crystrack@1.0.0 lint
+> eslint .
+
+
+/workspace/CrysTrack/crystrack/src/components/layout/environment-background.tsx
+  34:6  warning  React Hook React.useEffect has a missing dependency: 'environment'. Either include it or remove the dependency array                                                                                                                                                                     react-hooks/exhaustive-deps
+  38:5  warning  React Hook React.useMemo has a missing dependency: 'environment'. Either include it or remove the dependency array                                                                                                                                                                       react-hooks/exhaustive-deps
+  50:7  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/workspace/CrysTrack/crystrack/src/components/navigation/physical-theme-switch.tsx
+  57:5  warning  The attribute aria-description is not supported by the role switch  jsx-a11y/role-supports-aria-props
+
+✖ 4 problems (0 errors, 4 warnings)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

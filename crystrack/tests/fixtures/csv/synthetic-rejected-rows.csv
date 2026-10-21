@@ -1,0 +1,4 @@
+Date,Description,Amount,Currency,Category,Reference
+2026-10-01,Synthetic foreign currency,20.01,USD,Other,SYN-USD-REJECT
+2026-10-02,Synthetic negative zero,-0.00,NGN,Other,SYN-ZERO-REJECT
+2026-10-20,Synthetic future transaction,-1.00,NGN,Other,SYN-FUTURE-REJECT

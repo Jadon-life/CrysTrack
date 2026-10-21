@@ -2,8 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Bell, Camera, ChevronRight, Database, ExternalLink, Loader2, MapPin, Monitor, Moon, Palette, Send, Shield, Sun, Trash2, User, Zap,
+  Bell, Camera, ChevronRight, ExternalLink, Loader2, MapPin, Monitor, Moon, Palette, Send, Shield, Sun, Trash2, User, Zap,
 } from 'lucide-react';
+import Link from 'next/link';
+import { AiPrivacyControls } from '@/components/ai/ai-privacy';
+import {AccountExport} from '@/components/settings/account-export';
+import { CrystalSettings } from '@/components/crystals/crystal-card';
 import { GlassCard } from '@/components/shared/glass-card';
 import { ImmersiveIntroToggle } from '@/components/settings/immersive-intro-toggle';
 import { Button } from '@/components/ui/button';
@@ -12,6 +16,7 @@ import { useTheme } from '@/components/layout/theme-provider';
 import { enablePushNotifications, getPushSetupStatus, type PushSetupStatus } from '@/lib/push';
 import { weatherLabel } from '@/lib/environment';
 import { cn } from '@/lib/utils';
+import { isRestrictedPreview } from '@/lib/preview/mode';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import {
   AVATAR_BUCKET,
@@ -25,6 +30,7 @@ const sections = [
   { id: 'reminders', label: 'Reminders', icon: Bell },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'location', label: 'Location & Weather', icon: MapPin },
+  { id: 'rewards', label: 'Crystal rewards', icon: Zap },
   { id: 'privacy', label: 'Privacy & Data', icon: Shield },
 ];
 
@@ -39,9 +45,10 @@ const initialPrefs = {
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
-  const supabase = useMemo(() => createSupabaseClient(), []);
+  const supabase = useMemo(() => isRestrictedPreview() ? null : createSupabaseClient(), []);
   const { preference, setPreference, reducedMotion, setReducedMotion, environment, environmentLoading, locationPermission, requestLocation } = useTheme();
   const [active, setActive] = useState('profile');
+  useEffect(()=>{const privacy=()=>{if(window.location.hash==='#ai-privacy')setActive('privacy')};privacy();window.addEventListener('hashchange',privacy);return()=>window.removeEventListener('hashchange',privacy)},[]);
   const [prefs, setPrefs] = useState(initialPrefs);
   const [profile, setProfile] = useState<any>(null);
   const [status, setStatus] = useState('');
@@ -138,6 +145,7 @@ export default function SettingsPage() {
   };
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!supabase) { event.target.value = ''; setStatus('Uploads are disabled in the synthetic demo.'); return; }
     const file = event.target.files?.[0] || null;
     event.target.value = '';
     if (!file) return;
@@ -242,6 +250,7 @@ export default function SettingsPage() {
   };
 
   const removeAvatar = async () => {
+    if (!supabase) { setStatus('Storage changes are disabled in the synthetic demo.'); return; }
     if (avatarUploading || !user) return;
 
     const oldPath = profile?.avatar_url || null;
@@ -456,14 +465,15 @@ export default function SettingsPage() {
             <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-5">Reminder defaults</h2><div className="space-y-5"><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Default channel</label><select value={defaultChannel} onChange={(e) => setDefaultChannel(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white"><option value="push" className="bg-slate-950">Web Push</option><option value="telegram" className="bg-slate-950">Telegram</option><option value="both" className="bg-slate-950">Both</option></select></div><div className="grid sm:grid-cols-2 gap-4"><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Untimed task reminder</label><input type="time" value={prefs.untimed_task_reminder_time} onChange={(e) => setPrefs((current: any) => ({ ...current, untimed_task_reminder_time: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white" /></div><div><label className="block text-xs text-[var(--theme-text-muted)] mb-1.5">Incomplete task reminder</label><input type="time" value={prefs.incomplete_task_reminder_time} onChange={(e) => setPrefs((current: any) => ({ ...current, incomplete_task_reminder_time: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white" /></div></div><div className="border-t border-white/10 pt-4"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-white">Do Not Disturb</p><p className="text-xs text-[var(--theme-text-muted)]">Urgent assignments may bypass DND; ordinary alerts wait.</p></div><button type="button" onClick={() => setPrefs((current: any) => ({ ...current, dnd_enabled: !current.dnd_enabled }))} className={cn('w-11 h-6 rounded-full relative transition-colors', prefs.dnd_enabled ? 'bg-[var(--theme-primary)]' : 'bg-white/10')}><span className={cn('absolute top-1 w-4 h-4 rounded-full bg-white transition-all', prefs.dnd_enabled ? 'left-6' : 'left-1')} /></button></div>{prefs.dnd_enabled && <div className="grid grid-cols-2 gap-3 mt-3"><input type="time" value={prefs.dnd_start_time} onChange={(e) => setPrefs((current: any) => ({ ...current, dnd_start_time: e.target.value }))} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" /><input type="time" value={prefs.dnd_end_time} onChange={(e) => setPrefs((current: any) => ({ ...current, dnd_end_time: e.target.value }))} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" /></div>}</div><Button variant="primary" onClick={() => void savePrefs()}>Save reminder settings</Button></div></GlassCard>
           </div>}
 
-          {active === 'appearance' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-5">Appearance</h2><div className="grid grid-cols-3 gap-3">{[{ id: 'adaptive', label: 'Adaptive', icon: Monitor }, { id: 'light', label: 'Light', icon: Sun }, { id: 'dark', label: 'Dark', icon: Moon }].map(({ id, label, icon: Icon }) => <button key={id} onClick={() => void setPreference(id as any)} className={cn('rounded-xl border p-4 flex flex-col items-center gap-2', preference === id ? 'border-[var(--theme-primary)] bg-white/10 text-white' : 'border-white/10 text-[var(--theme-text-muted)]')}><Icon className="w-5 h-5" /><span className="text-xs font-medium">{label}</span></button>)}</div><div className="flex items-center justify-between mt-6 pt-5 border-t border-white/10"><div><p className="text-sm font-medium text-white">Reduced motion</p><p className="text-xs text-[var(--theme-text-muted)]">Reduce environmental and interface motion.</p></div><button type="button" onClick={() => setReducedMotion(!reducedMotion)} className={cn('w-11 h-6 rounded-full relative transition-colors', reducedMotion ? 'bg-[var(--theme-primary)]' : 'bg-white/10')}><span className={cn('absolute top-1 w-4 h-4 rounded-full bg-white transition-all', reducedMotion ? 'left-6' : 'left-1')} /></button></div><ImmersiveIntroToggle /></GlassCard>}
+          {active === 'appearance' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-2">Appearance</h2><p className="mb-5 text-sm text-[var(--theme-text-muted)]">The physical switch in the top bar controls Light and Dark. Choose Adaptive here to restore automatic time-of-day appearance.</p><div className="grid grid-cols-3 gap-3">{[{ id: 'adaptive', label: 'Adaptive', icon: Monitor }, { id: 'light', label: 'Light', icon: Sun }, { id: 'dark', label: 'Dark', icon: Moon }].map(({ id, label, icon: Icon }) => <button key={id} onClick={() => void setPreference(id as any)} className={cn('rounded-xl border p-4 flex flex-col items-center gap-2', preference === id ? 'border-[var(--theme-primary)] bg-white/10 text-white' : 'border-white/10 text-[var(--theme-text-muted)]')}><Icon className="w-5 h-5" /><span className="text-xs font-medium">{label}</span></button>)}</div><div className="flex items-center justify-between mt-6 pt-5 border-t border-white/10"><div><p className="text-sm font-medium text-white">Reduced motion</p><p className="text-xs text-[var(--theme-text-muted)]">Reduce environmental and interface motion.</p></div><button type="button" onClick={() => setReducedMotion(!reducedMotion)} className={cn('w-11 h-6 rounded-full relative transition-colors', reducedMotion ? 'bg-[var(--theme-primary)]' : 'bg-white/10')}><span className={cn('absolute top-1 w-4 h-4 rounded-full bg-white transition-all', reducedMotion ? 'left-6' : 'left-1')} /></button></div><ImmersiveIntroToggle /></GlassCard>}
 
-          {active === 'location' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white">Location & weather</h2><p className="text-xs text-[var(--theme-text-muted)] mt-1 mb-5">CrysTrack uses the current device location to adapt local time, sunrise/sunset, weather and routine reminders. Precise coordinates are not stored in your CrysTrack database; the browser sends them directly to the weather/location services and CrysTrack saves only the current city/timezone for reminders.</p><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-white">{environment.city || 'Approximate location'}{environment.countryCode ? `, ${environment.countryCode}` : ''}</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">{environment.timezone} · {environment.temperatureC == null ? '--' : `${Math.round(environment.temperatureC)}°C`} · {weatherLabel(environment.weather)}</p><p className="text-[11px] text-[var(--theme-text-muted)] mt-1">Permission: {locationPermission} · Source: {environment.locationSource}
+          {active === 'location' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white">Location & weather</h2><p className="text-xs text-[var(--theme-text-muted)] mt-1 mb-5">CrysTrack uses the current device location to adapt local time, sunrise/sunset, weather and routine reminders. Precise coordinates are not stored in your CrysTrack database; the browser sends them directly to the weather/location services and CrysTrack saves only the current city/timezone for reminders.</p><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex items-center justify-between gap-4"><div><p className="text-sm font-semibold text-white">{environment.city || 'Approximate location'}{environment.countryCode ? `, ${environment.countryCode}` : ''}</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">{environment.timezone} · {environment.temperatureC == null ? '--' : `${Math.round(environment.temperatureC)}°C`} · {weatherLabel(environment.weather)}</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">Permission: {locationPermission} · Source: {environment.locationSource}
 {environment.locationAccuracyM != null
   ? ` · Accuracy ±${Math.round(environment.locationAccuracyM)} m`
-  : ''} </p></div><Button variant="default" onClick={() => void requestLocation({ prompt: true })}>{environmentLoading ? 'Updating…' : 'Use current location'}</Button></div></div><p className="text-[11px] text-slate-500 mt-4">When you travel, CrysTrack can update after you open the site and location access succeeds. A website cannot continue tracking your physical location after it is closed.</p></GlassCard>}
+  : ''} </p></div><Button variant="default" onClick={() => void requestLocation({ prompt: true })}>{environmentLoading ? 'Updating…' : 'Use current location'}</Button></div></div><p className="text-xs text-slate-500 mt-4">When you travel, CrysTrack can update after you open the site and location access succeeds. A website cannot continue tracking your physical location after it is closed.</p></GlassCard>}
 
-          {active === 'privacy' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-4">Privacy & data</h2><div className="space-y-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex gap-2"><Shield className="w-4 h-4 text-emerald-300" /><div><p className="text-sm font-medium text-white">Private-first location</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack does not persist precise GPS coordinates in your database. Location requests are sent directly from your browser to the configured weather/geocoding services.</p></div></div></div><Button variant="outline" className="w-full justify-start"><Database className="w-4 h-4 mr-2" /> Export data</Button></div></GlassCard>}
+          {active === 'rewards' && <CrystalSettings />}
+          {active === 'privacy' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-4">Privacy & data</h2><div className="space-y-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex gap-2"><Shield className="w-4 h-4 text-emerald-300" /><div><p className="text-sm font-medium text-white">Private-first location</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack does not persist precise GPS coordinates in your database. Location requests are sent directly from your browser to the configured weather/geocoding services.</p></div></div></div><AiPrivacyControls/><AccountExport/></div></GlassCard>}
         </div>
       </div>
     </div>

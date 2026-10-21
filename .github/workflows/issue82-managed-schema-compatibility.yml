@@ -1,0 +1,63 @@
+name: Issue 82 synthetic legacy schema compatibility
+
+on:
+  pull_request:
+    branches:
+      - feat/crystrack-premium-sep28
+    paths:
+      - ".github/workflows/issue82-managed-schema-compatibility.yml"
+      - "crystrack/src/db/migrations/**"
+      - "crystrack/src/lib/account-export/**"
+      - "crystrack/scripts/generate-account-export.mjs"
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-migration-compatibility:
+    if: github.event.pull_request.head.ref == 'fix/issue82-managed-schema-collision-resolution'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    defaults:
+      run:
+        working-directory: crystrack
+    env:
+      # Tests must NEVER inherit or contact any connected hosted account.
+      NEXT_PUBLIC_SUPABASE_URL: ""
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+      SUPABASE_SECRET_KEY: ""
+      SUPABASE_SERVICE_ROLE_KEY: ""
+      DATABASE_URL: ""
+      SUPABASE_ACCESS_TOKEN: ""
+      OPENROUTER_API_KEY: ""
+      CRON_SECRET: ""
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_WEBHOOK_SECRET: ""
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@v4
+      - name: Fetch pinned old client shape for isolated tests
+        working-directory: .
+        run: |
+          git fetch --no-tags --depth=1 origin cccdb56edb14463030a9ce9b2aed8fbcd07579a3
+          git cat-file -e 'cccdb56edb14463030a9ce9b2aed8fbcd07579a3:crystrack/src/app/api/tasks/route.ts'
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: crystrack/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install pinned local Supabase CLI
+        run: python3 scripts/install-local-supabase.py
+      - name: Start disposable loopback synthetic Supabase
+        run: npm run local:start
+      - name: Run complete local SQL migration/legacy-client barrier rehearsal
+        env:
+          CRYSTRACK_RELEASE_REHEARSAL: ISSUE19-SYNTHETIC-ONLY
+        run: node --test tests/task-release-barrier.integration.mjs
+      - name: Shut down disposable loopback stack
+        if: always()
+        run: npm run local:stop || true

@@ -1,0 +1,29 @@
+✔ opted-in queue retains only a strict minimal owner-bound projection, no sensitive response fields (5.641896ms)
+✔ unsent complete skip undo coalesce to one original revision and stable request ID (15.395125ms)
+✔ attempted and conflict intents cannot mutate, rebase or receive a replacement UUID (1.632937ms)
+✔ snapshot TTL, queue TTL, saved local day and closed boundary fail closed (0.896866ms)
+✔ unscheduled routines and fabricated snapshot versions cannot be staged (0.789914ms)
+✔ owner isolation rejects other account projection and duplicated receipts/routines (0.808392ms)
+✔ bounded queue caps actions and serialized bytes (25.380585ms)
+✔ source comparison rejects owner context/day/timezone/version/revision changes without rebase (0.551563ms)
+✔ historical receipts are never current completion; refreshed source must match receipt precisely (0.529761ms)
+✔ storage and queue perform no reward writes or API/HTML caching; Preview guard precedes activation (0.619336ms)
+✔ malformed device intent cannot relabel or retarget an otherwise valid verified projection (1.623944ms)
+✔ an existing uncertain online Week Grid retry is never retagged as a new offline intent (0.241606ms)
+✔ source identifiers come from authenticated raw daily/version reads; output excludes descriptions and history (149.412533ms)
+✔ changed definition/outcome/context token rejects the entire snapshot (80.229202ms)
+✔ missing or malformed authoritative IDs are never synthesized (67.31699ms)
+✔ incomplete/conflicted/closed/duplicate or oversized snapshots fail closed (112.328632ms)
+✔ archived/deleted/disabled definitions remain online-capable but are absent from offline eligible projection (49.65528ms)
+✔ no migration or privileged server capability is added for source acquisition (0.527658ms)
+✔ offline transport consumes JSON without caching and leaves HTTP classification to the caller (21.950311ms)
+✔ a stalled delivery aborts within its deadline instead of holding a device lock forever (10.036298ms)
+✔ deadline also covers body consumption after headers, and external session fences cancel it (28.719206ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 757.627221

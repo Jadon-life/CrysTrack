@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { goalCheckinAccountability, goalCheckinState } from '@/lib/goals/checkin-occurrence';
-import { summarizeWealth } from '@/lib/wealth';
+import { readWealthReport } from '@/lib/wealth-report-server';
+import { localDay } from '@/lib/wealth-report';
 
 export type IntelligenceDomain = 'tasks' | 'goals' | 'assignments' | 'wealth' | 'overview';
 
@@ -401,93 +402,32 @@ async function assignmentsContext(supabase: any, userId: string) {
   };
 }
 
-async function loadMoneyEntries(supabase: any, userId: string) {
-  const rows: any[] = [];
-  const pageSize = 1000;
-  const maxRows = 12000;
-  for (let from = 0; from < maxRows; from += pageSize) {
-    const { data, error } = await supabase
-      .from('money_entries')
-      .select('type, flow_kind, amount, date, source, category, debt_id, expected_flow_id')
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
-      .range(from, from + pageSize - 1);
-    if (error) throw error;
-    const batch = data || [];
-    rows.push(...batch);
-    if (batch.length < pageSize) return { rows, truncated: false };
-  }
-  return { rows, truncated: true };
-}
-
-function monthlyLedger(entries: any[]) {
-  const months = new Map<string, Record<string, number>>();
-  for (const entry of entries) {
-    const month = String(entry.date || '').slice(0, 7);
-    if (!/^\d{4}-\d{2}$/.test(month)) continue;
-    const kind = String(entry.flow_kind || entry.type || 'other');
-    const bucket = months.get(month) || {};
-    bucket[kind] = (bucket[kind] || 0) + number(entry.amount);
-    months.set(month, bucket);
-  }
-  return Array.from(months.entries()).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 18).map(([month, totals]) => ({ month, totals }));
-}
-
 async function wealthContext(supabase: any, userId: string) {
-  const [entriesResult, targetsResult, debtsResult, expectedResult] = await Promise.all([
-    loadMoneyEntries(supabase, userId),
-    supabase.from('finance_targets').select('title, target_amount, current_amount, deadline, status').eq('user_id', userId).order('created_at', { ascending: false }),
-    supabase.from('wealth_debts').select('kind, original_amount, outstanding_amount, due_date, status').eq('user_id', userId).order('created_at', { ascending: false }),
-    supabase.from('wealth_expected_flows').select('direction, title, category, amount_min, amount_max, frequency, expected_on, timing_hint, status, last_actual_amount, last_confirmed_at').eq('user_id', userId).order('created_at', { ascending: false }),
-  ]);
-
-  const firstError = targetsResult.error || debtsResult.error || expectedResult.error;
-  if (firstError) throw firstError;
-
-  const entries = entriesResult.rows;
-  const debts = debtsResult.data || [];
-  const expected = expectedResult.data || [];
-  const summary = summarizeWealth(entries as any, debts as any, expected as any);
-
+  const r = await readWealthReport(supabase, userId);
   return {
-    ledger_rows_processed: entries.length,
-    ledger_truncated_for_safety: entriesResult.truncated,
-    accounting_summary: summary,
-    monthly_ledger: monthlyLedger(entries),
-    recent_transactions: entries.slice(0, 120).map((entry: any) => ({
-      date: String(entry.date || '').slice(0, 10),
-      kind: entry.flow_kind || entry.type,
-      amount_ngn: number(entry.amount),
-      category: cleanText(entry.category, 80) || 'Other',
+    ledger_rows_processed: r.reporting.ledgerCount,
+    ledger_truncated_for_safety: false,
+    reporting: r.reporting,
+    accounting_summary: r.summary,
+    monthly_ledger: r.cashflow,
+    recent_transactions: r.entries.map(e => ({
+      date: localDay(e.date, r.reporting.timezone), kind: e.flow_kind || e.type,
+      amount_ngn: e.amount, category: cleanText(e.category, 80) || 'Other',
     })),
-    savings_targets: (targetsResult.data || []).slice(0, 30).map((target: any) => ({
-      title: cleanText(target.title),
-      target_amount_ngn: number(target.target_amount),
-      current_amount_ngn: number(target.current_amount),
-      deadline: target.deadline,
-      status: target.status,
+    savings_targets: r.targets.slice(0, 30).map(t => ({
+      title: cleanText(t.title), target_amount_ngn: t.target_amount,
+      current_amount_ngn: t.current_amount, deadline: t.deadline, status: t.status,
     })),
-    debts: debts.slice(0, 50).map((debt: any) => ({
-      kind: debt.kind,
-      original_amount_ngn: number(debt.original_amount),
-      outstanding_amount_ngn: number(debt.outstanding_amount),
-      due_date: debt.due_date,
-      status: debt.status,
+    debts: r.debts.slice(0, 50).map(d => ({
+      kind: d.kind, original_amount_ngn: d.original_amount,
+      outstanding_amount_ngn: d.outstanding_amount, due_date: d.due_date, status: d.status,
     })),
-    expected_flows: expected.slice(0, 60).map((flow: any) => ({
-      direction: flow.direction,
-      title: cleanText(flow.title, 100),
-      category: cleanText(flow.category, 80),
-      amount_min_ngn: number(flow.amount_min),
-      amount_max_ngn: flow.amount_max == null ? null : number(flow.amount_max),
-      frequency: flow.frequency,
-      expected_on: flow.expected_on,
-      timing_hint: cleanText(flow.timing_hint, 100),
-      status: flow.status,
-      last_actual_amount_ngn: flow.last_actual_amount == null ? null : number(flow.last_actual_amount),
-      last_confirmed_at: flow.last_confirmed_at,
+    expected_flows: r.expectedFlows.slice(0, 60).map(f => ({
+      direction: f.direction, amount_min_ngn: f.amount_min, amount_max_ngn: f.amount_max,
+      frequency: f.frequency, expected_on: f.expected_on, status: f.status,
+      last_confirmed_at: f.last_confirmed_at,
     })),
-    privacy_note: 'Identity, credentials, account numbers, transaction notes and debt counterparties are excluded. All loaded ledger rows are processed deterministically; the model receives compact trends plus recent transaction dates, amounts, flow kinds and categories.',
+    privacy_note: 'Identity, credentials, transaction notes and debt counterparties are excluded. Complete owner-scoped accounting aggregates; money is exact NGN decimal text. Six monthly chart buckets and up to fourteen recent dates/kinds/amounts/categories are shown. Side item previews are bounded; their financial aggregates are complete. No transaction descriptions, notes, references, accounts, credentials or counterparties.',
   };
 }
 
@@ -555,13 +495,10 @@ export async function buildIntelligenceContext(supabase: any, userId: string, do
   }
 
   if (domain === 'wealth') {
+    const wealth = await wealthContext(supabase, userId);
     return {
-      ...base,
-      wealth:
-        await wealthContext(
-          supabase,
-          userId,
-        ),
+      ...base, timezone: wealth.reporting.timezone, as_of_date: wealth.reporting.today,
+      as_of_weekday: new Date(wealth.reporting.today + 'T12:00:00Z').getUTCDay(), wealth,
     };
   }
 
