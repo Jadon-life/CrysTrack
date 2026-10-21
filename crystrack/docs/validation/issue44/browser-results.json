@@ -1,0 +1,86 @@
+[
+  {
+    "suite": "account-export",
+    "exitCode": 0,
+    "signal": null,
+    "finalRerun": "Native types, 2008 ledger rows, paid bill/CSV provenance and clean five-width captures verified; see browser-account-export.log"
+  },
+  {
+    "suite": "offline-guard",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 19
+  },
+  {
+    "suite": "assignments",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 92
+  },
+  {
+    "suite": "today-streak",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 13
+  },
+  {
+    "suite": "crystals",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 22
+  },
+  {
+    "suite": "week-grid",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 23
+  },
+  {
+    "suite": "budgets",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 26
+  },
+  {
+    "suite": "bills",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 71
+  },
+  {
+    "suite": "csv",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 58
+  },
+  {
+    "suite": "money-presentation",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 44
+  },
+  {
+    "suite": "overview",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 66
+  },
+  {
+    "suite": "ai-privacy",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 198
+  },
+  {
+    "suite": "offline-queue",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 70
+  },
+  {
+    "suite": "calm",
+    "exitCode": 0,
+    "signal": null,
+    "seconds": 134
+  }
+]

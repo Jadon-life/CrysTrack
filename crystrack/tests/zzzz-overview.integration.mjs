@@ -41,15 +41,14 @@ const json = (u, s) =>
       .split('\n')
       .at(-1),
   );
-const clock = (n) =>
-  localSql(
-    `CREATE OR REPLACE FUNCTION crystrack_overview.clock() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path='' AS $$SELECT ${q(n)}::timestamptz$$`,
-  );
-after(() =>
-  localSql(
-    "CREATE OR REPLACE FUNCTION crystrack_overview.clock() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path='' AS $$SELECT clock_timestamp()$$",
-  ),
-);
+const clock = (n) => {
+  for (const schema of ['crystrack_overview','crystrack_bills'])
+    localSql(`CREATE OR REPLACE FUNCTION ${schema}.clock() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path='' AS $$SELECT ${q(n)}::timestamptz$$`);
+};
+after(() => {
+  for (const schema of ['crystrack_overview','crystrack_bills'])
+    localSql(`CREATE OR REPLACE FUNCTION ${schema}.clock() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path='' AS $$SELECT clock_timestamp()$$`);
+});
 const fixture = (zone = 'Africa/Lagos') => {
   clock('2026-10-20T12:00Z');
   const u = randomUUID();

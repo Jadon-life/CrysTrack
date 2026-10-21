@@ -1,0 +1,279 @@
+
+> crystrack@1.0.0 audit:preview-writes
+> node scripts/preview-write-audit.mjs
+
+[
+  {
+    "file": "src/app/api/account/export/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/ai/chat/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/ai/conversations/[id]/route.ts",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/ai/conversations/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/ai/domain/[domain]/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/ai/privacy/route.ts",
+    "methods": [
+      "PUT",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/assignments/[id]/complete/route.ts",
+    "methods": [
+      "PATCH"
+    ]
+  },
+  {
+    "file": "src/app/api/assignments/[id]/route.ts",
+    "methods": [
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/assignments/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/auth/callback/route.ts",
+    "methods": [
+      "GET"
+    ]
+  },
+  {
+    "file": "src/app/api/crystals/moment/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/crystals/route.ts",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "src/app/api/daily-notes/[date]/route.ts",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "src/app/api/daily-records/timezone/route.ts",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "src/app/api/finance/entries/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/finance/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/finance/targets/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/goals/[id]/analyze/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/goals/[id]/checkins/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/goals/[id]/route.ts",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/goals/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/preferences/route.ts",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "src/app/api/profile/avatar/route.ts",
+    "methods": [
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/profile/route.ts",
+    "methods": [
+      "PUT"
+    ]
+  },
+  {
+    "file": "src/app/api/push/subscribe/route.ts",
+    "methods": [
+      "POST",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/reminders/dispatch/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/tasks/[taskId]/archive/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/tasks/[taskId]/occurrences/[date]/skip/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/tasks/[taskId]/occurrences/[date]/toggle/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/tasks/[taskId]/route.ts",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/tasks/offline/receipt/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/tasks/offline/replay/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/tasks/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/telegram/connect/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/telegram/setup/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/telegram/status/route.ts",
+    "methods": [
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/telegram/webhook/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/wealth/bills/route.ts",
+    "methods": [
+      "POST",
+      "PATCH"
+    ]
+  },
+  {
+    "file": "src/app/api/wealth/budgets/route.ts",
+    "methods": [
+      "POST",
+      "PATCH",
+      "DELETE"
+    ]
+  },
+  {
+    "file": "src/app/api/wealth/csv/imports/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/wealth/csv/review/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
+    "file": "src/app/api/wealth/debts/route.ts",
+    "methods": [
+      "POST",
+      "PATCH"
+    ]
+  },
+  {
+    "file": "src/app/api/wealth/expected/route.ts",
+    "methods": [
+      "POST",
+      "PATCH"
+    ]
+  },
+  {
+    "file": "src/app/api/wealth/insight/route.ts",
+    "methods": [
+      "POST"
+    ]
+  }
+]

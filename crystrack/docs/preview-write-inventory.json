@@ -1,5 +1,11 @@
 [
   {
+    "file": "src/app/api/account/export/route.ts",
+    "methods": [
+      "POST"
+    ]
+  },
+  {
     "file": "src/app/api/ai/chat/route.ts",
     "methods": [
       "POST"
