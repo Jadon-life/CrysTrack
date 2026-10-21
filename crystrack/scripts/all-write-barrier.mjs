@@ -43,7 +43,7 @@ function guardedCount() {
 function assertHooks(active) {
   const hookQuery = "SELECT count(*) FROM pg_event_trigger " +
     "WHERE evtname='crys_complete_new_table' AND evtevent='ddl_command_end' " +
-    "AND evtenabled='A' AND evtags=ARRAY['CREATE TABLE'] " +
+    "AND evtenabled='A' AND evttags=ARRAY['CREATE TABLE'] " +
     "AND evtfoid='crystrack_release_complete.on_new_table()'::regprocedure";
   const checked = raw(hookQuery,{allowFailure:true});
   if (checked.status !== 0) {
