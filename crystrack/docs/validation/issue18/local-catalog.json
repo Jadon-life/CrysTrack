@@ -1,0 +1,58 @@
+{
+  "target": "fixed-loopback-crystrack-local-free",
+  "engine": "15.8",
+  "orderedCandidates": [
+    {
+      "name": "0013_daily_records.sql",
+      "hash": "23e1066ba1a8f506cba35901dd3c6794321b9b8531c45154ae4dbdac82aba5d1"
+    },
+    {
+      "name": "0014_daily_http_conflicts.sql",
+      "hash": "533e37e0a4371928462f9110f63ee5d3da91411696036b6ef066f4e5006ffa5d"
+    },
+    {
+      "name": "0015_sep28_crystal_shards.sql",
+      "hash": "1b882c2bcd54b316c9d55d9e595b017152e9d2c049331fb720cd18e90c547b50"
+    },
+    {
+      "name": "0016_assignment_lifecycle.sql",
+      "hash": "8cd6d07b79056d0f594716a540159fc2c7ae3342599e99a0b36cc81e78ec5a97"
+    },
+    {
+      "name": "0017_task_week_grid.sql",
+      "hash": "c69321e6f99ff9260b65d6a093871c7965b3fc40cf7b29be223ab8724085b4b5"
+    },
+    {
+      "name": "0018_wealth_monthly_budgets.sql",
+      "hash": "fd8cc05eb7b8c2231365f85b3f2c81067ed060cb2d25615f7e554c4c401ab14c"
+    },
+    {
+      "name": "0019_wealth_recurring_bills.sql",
+      "hash": "032edf162a9a8e89f93708510f7b9a647ab9fd6673c69a04b4837d44d205f859"
+    },
+    {
+      "name": "0020_wealth_csv_statements.sql",
+      "hash": "5e63dabb2c006c614952226313e154c40bd03745d3f86a42efb40e81f2048014"
+    },
+    {
+      "name": "0021_wealth_overview_read.sql",
+      "hash": "01ec3ad4f4ca1b0d509fb34229c2c3b38d8c00e42050151617e798f63ec4b937"
+    },
+    {
+      "name": "0022_ai_privacy_consent.sql",
+      "hash": "6f1ab2d3a6f9dc3a6fe324fcf04a2bb30997115a979ceb3237dcf6faf014cdc3"
+    },
+    {
+      "name": "0023_offline_outcome_guard.sql",
+      "hash": "66cf69111e8c38bdfb8db5b014d3a0fc7654e81d84efcbf446c4c228ff428574"
+    },
+    {
+      "name": "0024_private_account_export.sql",
+      "hash": "a1ec38c9df594ebf7a184002a41afe2286f2e61de87ad78fb3484ea4ff34668d"
+    }
+  ],
+  "rlsTables": 25,
+  "functionGrants": 23,
+  "protectedTriggers": 8,
+  "hostedCompatibility": "UNKNOWN"
+}

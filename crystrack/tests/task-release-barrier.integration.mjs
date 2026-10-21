@@ -2,7 +2,8 @@
 import {createServer} from 'node:http';import {once} from 'node:events';
 import test,{before,after} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {randomUUID} from 'node:crypto';import {spawn,execFileSync} from 'node:child_process';import {createClient} from '@supabase/supabase-js';import ts from 'typescript';import {createRequire} from 'node:module';
 import {prepare,destroy,action,sql,raw,startRest,stopRest,DATABASE,PORT,CONFIRM,preflightSql} from '../scripts/task-release-barrier.mjs';
-import {readLocalKeys,ROOT} from '../scripts/local-supabase.mjs';import {DOCKER_SOCKET,PROJECT,localEnvironment} from '../scripts/local-supabase-policy.mjs';
+import {readLocalKeys,ROOT} from '../scripts/local-supabase.mjs';
+import {rehearseSyntheticRestore,CONFIRM_RESTORE} from '../scripts/issue18-synthetic-backup-restore.mjs';import {DOCKER_SOCKET,PROJECT,localEnvironment} from '../scripts/local-supabase-policy.mjs';
 const require=createRequire(import.meta.url);let owned=false,client,admin,uid,task,legacy,baseline;
 const taskActivityTypes=['task_completed','task_missed','task_skipped'];
 const events={activity:{},finance:randomUUID(),taskEntity:randomUUID(),award:randomUUID(),expense:randomUUID(),taskKind:randomUUID()};
@@ -11,6 +12,8 @@ const role=(query,who='authenticated')=>`BEGIN; SET LOCAL ROLE ${who}; SET LOCAL
 const deny=query=>{const value=raw(query,{allowFailure:true});assert.notEqual(value.status,0);assert.match(value.stderr,/PT503|42501/);};
 const clock=iso=>sql(`CREATE OR REPLACE FUNCTION crystrack_daily.clock() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path='' AS $$ SELECT '${iso}'::timestamptz $$`);
 const rpc=(name,args,c=client)=>c.rpc(name,args).abortSignal(AbortSignal.timeout(3000));
+// A large DDL sequence can briefly make the local REST adapter slow to respond.
+const postDdlRpc=(name,args,c=client)=>c.rpc(name,args).abortSignal(AbortSignal.timeout(12000));
 function digest(){const tables=['profiles','recurring_tasks','task_schedules','task_occurrences','task_timeboxes','task_focus_sessions','daily_rituals','activity_events','reminders','reminder_deliveries','gamification_events','money_entries','finance_targets','wealth_debts','wealth_expected_flows',...['daily_tracking_states','daily_timezone_transitions','routine_schedule_versions','daily_records','daily_routine_records','daily_mutation_requests','daily_notes'].filter(t=>sql(`SELECT to_regclass('public.${t}') IS NOT NULL`)==='t')];return tables.map(t=>sql(`SELECT md5(coalesce(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text)::text,'[]')) FROM public.${t} x`)).join('|');}
 function metadata(){return sql(`SELECT jsonb_build_object('triggers',(SELECT jsonb_agg(pg_get_triggerdef(oid)||tgenabled::text ORDER BY oid) FROM pg_trigger WHERE NOT tgisinternal AND tgname NOT LIKE 'crys_release_%'),'acl',(SELECT jsonb_agg(jsonb_build_array(relname,relacl,relrowsecurity) ORDER BY relname) FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind='r'),'rpc',(SELECT jsonb_agg(jsonb_build_array(proname,proowner,proacl,prosecdef,proconfig) ORDER BY oid) FROM pg_proc WHERE pronamespace IN ('public'::regnamespace,to_regnamespace('crystrack_daily'))))`);}
 function asyncSql(query){return new Promise(resolve=>{const p=spawn('docker',['--host',DOCKER_SOCKET,'exec','-i','supabase_db_'+PROJECT,'psql','-h','127.0.0.1','-U','postgres','-d',DATABASE,'-v','ON_ERROR_STOP=1','-v','VERBOSITY=sqlstate','-Atq'],{env:localEnvironment(process.env),stdio:['pipe','pipe','pipe']});let err='';p.stdout.resume();p.stderr.on('data',d=>err+=d);p.on('exit',code=>resolve({code,err}));p.stdin.end(query);});}
@@ -170,7 +173,7 @@ test('genuine financial activity and expense awards retain SQL/HTTP create, upda
  assert.equal(digest(),before);
 });
 
-test('failed migration rolls back its new-table hook; exact 0013 then 0014 install while every daily writer remains frozen',async()=>{
+test('failed 0013 and 0020 roll back; exact 0013–0024 sequence installs while every daily writer remains frozen',async()=>{
  const before=digest();
  const candidate=fs.readFileSync('src/db/migrations/0013_daily_records.sql','utf8');
  // Fault injection changes only this in-memory test string, never the reviewed file.
@@ -180,11 +183,32 @@ test('failed migration rolls back its new-table hook; exact 0013 then 0014 insta
  assert.equal(sql("SELECT to_regclass('public.daily_notes') IS NULL"),'t');
  assert.equal(sql("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='scheduling_timezone'"),'0');
  assert.equal(action('check'),true);assert.equal(digest(),before);
- for(const name of ['0013_daily_records.sql','0014_daily_http_conflicts.sql'])sql(fs.readFileSync('src/db/migrations/'+name,'utf8'));
+ // Rehearse the full reviewed candidate order while the old-writer gate remains
+ // active. No file is altered and this database contains synthetic rows only.
+ for(const name of ['0013_daily_records.sql','0014_daily_http_conflicts.sql',
+  '0015_sep28_crystal_shards.sql','0016_assignment_lifecycle.sql','0017_task_week_grid.sql',
+  '0018_wealth_monthly_budgets.sql','0019_wealth_recurring_bills.sql',
+  '0020_wealth_csv_statements.sql','0021_wealth_overview_read.sql',
+  '0022_ai_privacy_consent.sql','0023_offline_outcome_guard.sql',
+  '0024_private_account_export.sql']) {
+  if(name==='0020_wealth_csv_statements.sql') {
+   const original=sql("SELECT prosrc FROM pg_proc WHERE oid='crystrack_sep28_crystals.ordinary_source()'::regprocedure");
+   const csv=fs.readFileSync('src/db/migrations/'+name,'utf8');
+   const interrupted=csv.replace(/COMMIT;\s*$/,'SELECT 1/0;\nCOMMIT;');
+   assert.notEqual(interrupted,csv);
+   const failed=raw(interrupted,{allowFailure:true});assert.notEqual(failed.status,0);assert.match(failed.stderr,/22012/);
+   assert.equal(sql("SELECT to_regclass('public.wealth_csv_batches') IS NULL"),'t');
+   assert.equal(sql("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='money_entries' AND column_name='import_batch_id'"),'0');
+   assert.equal(sql("SELECT prosrc FROM pg_proc WHERE oid='crystrack_sep28_crystals.ordinary_source()'::regprocedure"),original);
+   assert.equal(action('check'),true);
+  }
+  sql(fs.readFileSync('src/db/migrations/'+name,'utf8'));
+  assert.equal(action('check'),true,`barrier after ${name}`);
+ }
  assert.equal(action('check'),true);
  const frozen=digest();
  for(const [name,args,c] of [['daily_context',undefined,client],['daily_create_routine',{p_payload:{title:'Denied',schedules:[1]}},client],['daily_retire_routine',{p_routine:task},client],['daily_set_outcome',{p_day:'2026-09-21',p_routine:task,p_status:'completed',p_expected_revision:1,p_request_id:randomUUID()},client],['daily_save_note',{p_day:'2026-09-21',p_body:'Denied',p_expected_revision:0},client],['daily_request_timezone',{p_timezone:'America/New_York',p_expected_revision:1},client],['daily_read_window',{p_from:'2026-09-21',p_to:'2026-09-22'},client],['recover_daily_records',{p_user_id:uid,p_limit:31},admin]]){
-  const result=await rpc(name,args,c);assert.equal(result.status,503,name);assert.equal(result.error.code,'PT503');
+  const result=await postDdlRpc(name,args,c);assert.equal(result.status,503,`${name}: ${result.error?.code??'no-code'}`);assert.equal(result.error.code,'PT503');
  }
  assert.equal(digest(),frozen);
 
@@ -194,6 +218,19 @@ test('failed migration rolls back its new-table hook; exact 0013 then 0014 insta
  assert.equal(sql("SELECT has_table_privilege('authenticated','public.task_occurrences','INSERT')"),'f');
  assert.equal(sql("SELECT has_function_privilege('authenticated','public.recover_daily_records(uuid,integer)','EXECUTE')"),'f');
  assert.equal(sql("SELECT has_function_privilege('service_role','public.recover_daily_records(uuid,integer)','EXECUTE')"),'t');
+});
+test('actual local synthetic logical backup restores protected data and fails closed on a damaged dump',()=>{
+  assert.equal(action('check'),true);
+  const result=rehearseSyntheticRestore(CONFIRM_RESTORE);
+  assert.equal(result.hostedRecoveryVerified,false);
+  assert.equal(result.ownerRlsChecked,true);
+  assert.equal(result.foreignOwnerDenied,true);
+  assert.equal(result.corruptRestoreRejected,true);
+  assert.match(result.archiveSha256,/^[a-f0-9]{64}$/);
+  assert.ok(result.archiveBytes>256 && result.restoreDurationMs>=0);
+  assert.equal(action('check'),true);
+  // No backup or synthetic private rows in CI or Git evidence.
+  console.log('Issue #18 synthetic restore',JSON.stringify(result));
 });
 test('schema/guard drift and wrong database fail closed; private controls cannot be invoked by API roles',()=>{
  sql("UPDATE crystrack_sandbox_identity.marker SET value='wrong'");assert.throws(()=>action('disable'));sql("UPDATE crystrack_sandbox_identity.marker SET value='ISSUE19-SYNTHETIC-ONLY'");
