@@ -32,10 +32,12 @@ test('date-only deadlines retain the civil date, rather than shifting from UTC m
   assert.equal(calendarDeadlineDay('2026-10-21', 'Pacific/Auckland'), '2026-10-21');
   assert.equal(calendarDeadlineDay('2026-02-30', 'Africa/Lagos'), null);
   assert.equal(calendarDeadlineDay('2026-13-01', 'Africa/Lagos'), null);
+  assert.equal(calendarDeadlineDay('2026-04-31', 'Africa/Lagos'), null);
+  assert.equal(calendarDeadlineDay('0099-01-02', 'Africa/Lagos'), '0099-01-02');
 });
 
 test('malformed and offset-less timestamps fail closed rather than use browser timezone', () => {
-  for (const input of [null, undefined, '', 'not-a-date', '2026-10-21T23:30:00', '2026-10-21T23:30:00foo', '2026-02-30T99:00:00Z']) {
+  for (const input of [null, undefined, '', 'not-a-date', '2026-10-21T23:30:00', '2026-10-21T23:30:00foo', '2026-02-30T99:00:00Z', '2026-02-30T12:00:00Z', '2026-04-31T12:00:00+01:00']) {
     assert.equal(calendarDeadlineDay(input, 'Africa/Lagos'), null);
   }
 });
