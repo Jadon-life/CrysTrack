@@ -57,6 +57,16 @@ export function validateSnapshot(raw:unknown,owner:string,selected:ExportCategor
       const id=JSON.stringify(d.order.map(k=>row[k]));if(ids.has(id))throw Error('EXPORT_DUPLICATE');ids.add(id);
     }
   }
+  if(!countsOnly&&selected.includes('ai')){
+    const conversations=new Set(s.data.ai_conversations.map(r=>r.id));
+    if(s.data.ai_messages.some(r=>!conversations.has(r.conversation_id)))throw Error('EXPORT_AI_RELATION');
+  }
+  if(!countsOnly&&selected.includes('tasks')){
+    const headers=new Map(s.data.daily_records.map(r=>[r.day_key,r])),versions=new Map(s.data.routine_schedule_versions.map(r=>[r.id,r]));
+    const perDay=new Map<unknown,number>();
+    for(const row of s.data.daily_routine_records){const version=versions.get(row.schedule_version_id);if(!headers.has(row.day_key)||!version||version.routine_key!==row.routine_key)throw Error('EXPORT_DAILY_RELATION');perDay.set(row.day_key,(perDay.get(row.day_key)??0)+1);}
+    for(const row of s.data.daily_records)if(row.evidence==='verified'&&row.expected_count!==(perDay.get(row.day_key)??0))throw Error('EXPORT_DAILY_COUNT');
+  }
   if(total>25000||bytes>8388608)throw Error('EXPORT_SIZE');
   if(selected.includes('ai')?s.aiRevision===null:s.aiRevision!==null)throw Error('EXPORT_AI_SCOPE');
   return s;

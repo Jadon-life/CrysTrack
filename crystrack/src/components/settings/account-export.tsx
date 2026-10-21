@@ -29,12 +29,13 @@ export function AccountExport(){
   const current=()=>epoch===generation.current&&owner.current===id&&!abort.signal.aborted;
   const readOwner=()=>new Promise<Awaited<ReturnType<NonNullable<typeof client>['auth']['getUser']>>>((resolve,reject)=>{const fail=()=>reject(Error('ABORT'));if(abort.signal.aborted){fail();return;}abort.signal.addEventListener('abort',fail,{once:true});client!.auth.getUser().then(resolve,reject).finally(()=>abort.signal.removeEventListener('abort',fail));});
   try{
-   const {data:{user:who},error:whoError}=await readOwner();if(whoError||!current()||who?.id!==id)throw Error('AUTH');
+   if(!navigator.onLine)throw Error('OFFLINE');
+   const {data:{user:who},error:whoError}=await readOwner();if(whoError)throw Error(whoError.status===401||whoError.status===403?'AUTH':'UNAVAILABLE');if(!current()||who?.id!==id)throw Error('AUTH');
    const response=await fetch('/api/account/export',{method:'POST',cache:'no-store',signal:abort.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:download?'download':'review',categories:selected,...download?{confirm:'EXPORT_PRIVATE_INFORMATION'}:{}})});
    if(!response.ok){if(response.status===401)throw Error('AUTH');if(response.status===413)throw Error('SIZE');if(response.status===403||response.status===409)throw Error('CONSENT');throw Error('UNAVAILABLE');}
    if(!download){const data=validateSnapshot(await response.json(),id,selected,true);if(!current())return;setReview(data);setConfirm(false);setNotice('Review the estimated scope, then confirm your download. Counts may change before the final snapshot.');return;}
    const {blob,raw}=await readArchive(response,abort.signal),archive=await verifyArchive(raw,id,selected);
-   const {data:{user:checked},error:checkedError}=await readOwner();if(checkedError||!current()||checked?.id!==id)throw Error('AUTH');
+   const {data:{user:checked},error:checkedError}=await readOwner();if(checkedError)throw Error(checkedError.status===401||checkedError.status===403?'AUTH':'UNAVAILABLE');if(!current()||checked?.id!==id)throw Error('AUTH');
    if(selected.includes('ai')){const r=await fetch('/api/ai/privacy',{cache:'no-store',signal:abort.signal});if(!r.ok)throw Error('CONSENT');const p=await r.json();if(!p.enabled||p.revision!==archive.manifest.aiRevision)throw Error('CONSENT');}
    if(!current())return;
    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='crystrack-account-v1.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
