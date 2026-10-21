@@ -12,7 +12,7 @@ import { useAuth } from './auth-provider';
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isAuthPage = pathname === '/auth';
+  const isAuthPage = pathname === '/auth' || pathname === '/auth/reset-password';
   const { theme, requestLocation } = useTheme();
   const { user, loading } = useAuth();
 
