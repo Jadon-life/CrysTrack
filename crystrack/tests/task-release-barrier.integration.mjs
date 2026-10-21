@@ -170,7 +170,7 @@ test('genuine financial activity and expense awards retain SQL/HTTP create, upda
  assert.equal(digest(),before);
 });
 
-test('failed migration rolls back its new-table hook; exact 0013 then 0014 install while every daily writer remains frozen',async()=>{
+test('failed 0013 and 0020 roll back; exact 0013–0024 sequence installs while every daily writer remains frozen',async()=>{
  const before=digest();
  const candidate=fs.readFileSync('src/db/migrations/0013_daily_records.sql','utf8');
  // Fault injection changes only this in-memory test string, never the reviewed file.
@@ -180,7 +180,28 @@ test('failed migration rolls back its new-table hook; exact 0013 then 0014 insta
  assert.equal(sql("SELECT to_regclass('public.daily_notes') IS NULL"),'t');
  assert.equal(sql("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='scheduling_timezone'"),'0');
  assert.equal(action('check'),true);assert.equal(digest(),before);
- for(const name of ['0013_daily_records.sql','0014_daily_http_conflicts.sql'])sql(fs.readFileSync('src/db/migrations/'+name,'utf8'));
+ // Rehearse the full reviewed candidate order while the old-writer gate remains
+ // active. No file is altered and this database contains synthetic rows only.
+ for(const name of ['0013_daily_records.sql','0014_daily_http_conflicts.sql',
+  '0015_sep28_crystal_shards.sql','0016_assignment_lifecycle.sql','0017_task_week_grid.sql',
+  '0018_wealth_monthly_budgets.sql','0019_wealth_recurring_bills.sql',
+  '0020_wealth_csv_statements.sql','0021_wealth_overview_read.sql',
+  '0022_ai_privacy_consent.sql','0023_offline_outcome_guard.sql',
+  '0024_private_account_export.sql']) {
+  if(name==='0020_wealth_csv_statements.sql') {
+   const original=sql("SELECT prosrc FROM pg_proc WHERE oid='crystrack_sep28_crystals.ordinary_source()'::regprocedure");
+   const csv=fs.readFileSync('src/db/migrations/'+name,'utf8');
+   const interrupted=csv.replace(/COMMIT;\s*$/,'SELECT 1/0;\nCOMMIT;');
+   assert.notEqual(interrupted,csv);
+   const failed=raw(interrupted,{allowFailure:true});assert.notEqual(failed.status,0);assert.match(failed.stderr,/22012/);
+   assert.equal(sql("SELECT to_regclass('public.wealth_csv_batches') IS NULL"),'t');
+   assert.equal(sql("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='money_entries' AND column_name='import_batch_id'"),'0');
+   assert.equal(sql("SELECT prosrc FROM pg_proc WHERE oid='crystrack_sep28_crystals.ordinary_source()'::regprocedure"),original);
+   assert.equal(action('check'),true);
+  }
+  sql(fs.readFileSync('src/db/migrations/'+name,'utf8'));
+  assert.equal(action('check'),true,`barrier after ${name}`);
+ }
  assert.equal(action('check'),true);
  const frozen=digest();
  for(const [name,args,c] of [['daily_context',undefined,client],['daily_create_routine',{p_payload:{title:'Denied',schedules:[1]}},client],['daily_retire_routine',{p_routine:task},client],['daily_set_outcome',{p_day:'2026-09-21',p_routine:task,p_status:'completed',p_expected_revision:1,p_request_id:randomUUID()},client],['daily_save_note',{p_day:'2026-09-21',p_body:'Denied',p_expected_revision:0},client],['daily_request_timezone',{p_timezone:'America/New_York',p_expected_revision:1},client],['daily_read_window',{p_from:'2026-09-21',p_to:'2026-09-22'},client],['recover_daily_records',{p_user_id:uid,p_limit:31},admin]]){
