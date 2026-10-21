@@ -171,11 +171,11 @@ BEGIN
  ELSE
   -- Mark origin at INSERT: FK clearing/editing an automatic row can never make it manual.
   manual:=auth.uid()=u AND auth.role()='authenticated' AND rowdata->>'debt_id' IS NULL
-   AND rowdata->>'expected_flow_id' IS NULL AND rowdata->>'parent_entry_id' IS NULL AND rowdata->>'bill_id' IS NULL;
+   AND rowdata->>'expected_flow_id' IS NULL AND rowdata->>'parent_entry_id' IS NULL AND rowdata->>'bill_id' IS NULL AND rowdata->>'sep28_bill_id' IS NULL;
   valid:=rowdata->>'type'='expense' AND coalesce(rowdata->>'flow_kind',rowdata->>'type')='expense'
    AND (rowdata->>'amount')::numeric>0 AND rowdata->>'deleted_at' IS NULL
    AND rowdata->>'debt_id' IS NULL AND rowdata->>'expected_flow_id' IS NULL
-   AND rowdata->>'parent_entry_id' IS NULL AND rowdata->>'bill_id' IS NULL;
+   AND rowdata->>'parent_entry_id' IS NULL AND rowdata->>'bill_id' IS NULL AND rowdata->>'sep28_bill_id' IS NULL;
  END IF;
  PERFORM crystrack_sep28_crystals.reconcile(u,k,s,coalesce(valid,false),
   TG_OP='INSERT' OR (k='assignment' AND TG_OP='UPDATE' AND (to_jsonb(OLD)->>'status') IS DISTINCT FROM (rowdata->>'status')),
