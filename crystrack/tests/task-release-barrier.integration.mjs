@@ -12,6 +12,8 @@ const role=(query,who='authenticated')=>`BEGIN; SET LOCAL ROLE ${who}; SET LOCAL
 const deny=query=>{const value=raw(query,{allowFailure:true});assert.notEqual(value.status,0);assert.match(value.stderr,/PT503|42501/);};
 const clock=iso=>sql(`CREATE OR REPLACE FUNCTION crystrack_daily.clock() RETURNS timestamptz LANGUAGE sql VOLATILE SET search_path='' AS $$ SELECT '${iso}'::timestamptz $$`);
 const rpc=(name,args,c=client)=>c.rpc(name,args).abortSignal(AbortSignal.timeout(3000));
+// A large DDL sequence can briefly make the local REST adapter slow to respond.
+const postDdlRpc=(name,args,c=client)=>c.rpc(name,args).abortSignal(AbortSignal.timeout(12000));
 function digest(){const tables=['profiles','recurring_tasks','task_schedules','task_occurrences','task_timeboxes','task_focus_sessions','daily_rituals','activity_events','reminders','reminder_deliveries','gamification_events','money_entries','finance_targets','wealth_debts','wealth_expected_flows',...['daily_tracking_states','daily_timezone_transitions','routine_schedule_versions','daily_records','daily_routine_records','daily_mutation_requests','daily_notes'].filter(t=>sql(`SELECT to_regclass('public.${t}') IS NOT NULL`)==='t')];return tables.map(t=>sql(`SELECT md5(coalesce(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text)::text,'[]')) FROM public.${t} x`)).join('|');}
 function metadata(){return sql(`SELECT jsonb_build_object('triggers',(SELECT jsonb_agg(pg_get_triggerdef(oid)||tgenabled::text ORDER BY oid) FROM pg_trigger WHERE NOT tgisinternal AND tgname NOT LIKE 'crys_release_%'),'acl',(SELECT jsonb_agg(jsonb_build_array(relname,relacl,relrowsecurity) ORDER BY relname) FROM pg_class WHERE relnamespace='public'::regnamespace AND relkind='r'),'rpc',(SELECT jsonb_agg(jsonb_build_array(proname,proowner,proacl,prosecdef,proconfig) ORDER BY oid) FROM pg_proc WHERE pronamespace IN ('public'::regnamespace,to_regnamespace('crystrack_daily'))))`);}
 function asyncSql(query){return new Promise(resolve=>{const p=spawn('docker',['--host',DOCKER_SOCKET,'exec','-i','supabase_db_'+PROJECT,'psql','-h','127.0.0.1','-U','postgres','-d',DATABASE,'-v','ON_ERROR_STOP=1','-v','VERBOSITY=sqlstate','-Atq'],{env:localEnvironment(process.env),stdio:['pipe','pipe','pipe']});let err='';p.stdout.resume();p.stderr.on('data',d=>err+=d);p.on('exit',code=>resolve({code,err}));p.stdin.end(query);});}
@@ -206,7 +208,7 @@ test('failed 0013 and 0020 roll back; exact 0013–0024 sequence installs while 
  assert.equal(action('check'),true);
  const frozen=digest();
  for(const [name,args,c] of [['daily_context',undefined,client],['daily_create_routine',{p_payload:{title:'Denied',schedules:[1]}},client],['daily_retire_routine',{p_routine:task},client],['daily_set_outcome',{p_day:'2026-09-21',p_routine:task,p_status:'completed',p_expected_revision:1,p_request_id:randomUUID()},client],['daily_save_note',{p_day:'2026-09-21',p_body:'Denied',p_expected_revision:0},client],['daily_request_timezone',{p_timezone:'America/New_York',p_expected_revision:1},client],['daily_read_window',{p_from:'2026-09-21',p_to:'2026-09-22'},client],['recover_daily_records',{p_user_id:uid,p_limit:31},admin]]){
-  const result=await rpc(name,args,c);assert.equal(result.status,503,name);assert.equal(result.error.code,'PT503');
+  const result=await postDdlRpc(name,args,c);assert.equal(result.status,503,`${name}: ${result.error?.code??'no-code'}`);assert.equal(result.error.code,'PT503');
  }
  assert.equal(digest(),frozen);
 
