@@ -41,10 +41,17 @@ function guardedCount() {
 }
 
 function assertHooks(active) {
-  const hook = sql("SELECT count(*) FROM pg_event_trigger " +
+  const hookQuery = "SELECT count(*) FROM pg_event_trigger " +
     "WHERE evtname='crys_complete_new_table' AND evtevent='ddl_command_end' " +
     "AND evtenabled='A' AND evtags=ARRAY['CREATE TABLE'] " +
-    "AND evtfoid='crystrack_release_complete.on_new_table()'::regprocedure");
+    "AND evtfoid='crystrack_release_complete.on_new_table()'::regprocedure";
+  const checked = raw(hookQuery,{allowFailure:true});
+  if (checked.status !== 0) {
+    // Only the static pg_catalog query is involved; redact all other output.
+    const state = checked.stderr.match(/(?:ERROR|FATAL):?[^\n]{0,120}/)?.[0] || 'unknown SQLSTATE';
+    throw Error('Synthetic event hook catalog assertion failed: ' + state);
+  }
+  const hook = checked.stdout.trim();
   const other = sql("SELECT count(*) FROM pg_event_trigger WHERE evtname <> 'crys_complete_new_table'");
   if (other !== '0' || hook !== (active ? '1' : '0')) {
     throw Error('Unexpected or missing event trigger — abort');
