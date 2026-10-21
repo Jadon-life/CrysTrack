@@ -37,6 +37,11 @@ jobs:
     steps:
       - name: Checkout exact PR commit
         uses: actions/checkout@v4
+      - name: Fetch pinned legacy test-only Git object (no checkout or merge)
+        working-directory: .
+        run: |
+          git fetch --no-tags --depth=1 origin cccdb56edb14463030a9ce9b2aed8fbcd07579a3
+          git cat-file -e 'cccdb56edb14463030a9ce9b2aed8fbcd07579a3:crystrack/src/app/api/tasks/route.ts'
       - name: Install Node
         uses: actions/setup-node@v4
         with:
