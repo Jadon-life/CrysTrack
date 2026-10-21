@@ -9,6 +9,7 @@ on:
       - "crystrack/release/all-domain-write-barrier/**"
       - "crystrack/scripts/task-release-barrier.mjs"
       - "crystrack/tests/task-release-barrier.integration.mjs"
+      - "crystrack/tests/issue55-full-sequence.integration.mjs"
 
 permissions:
   contents: read
@@ -57,7 +58,9 @@ jobs:
       - name: Execute Issue 55 local all-domain write barrier and restore tests
         env:
           CRYSTRACK_RELEASE_REHEARSAL: ISSUE19-SYNTHETIC-ONLY
-        run: node --test tests/task-release-barrier.integration.mjs
+        run: |
+          node --test tests/task-release-barrier.integration.mjs
+          node --test tests/issue55-full-sequence.integration.mjs
       - name: Stop local synthetic Supabase (no hosted calls)
         if: always()
         run: npm run local:stop || true
