@@ -35,7 +35,22 @@ export function useWealthCurrency() {
   const [loadingRate, setLoadingRate] = useState(true);
 
   useEffect(() => {
-    if (isRestrictedPreview()) { queueMicrotask(() => setLoadingRate(false)); return; }
+    if (isRestrictedPreview()) {
+      // Read-only example for the Wealth display toggle; never call a live FX
+      // service or persist a demo rate to the browser's ordinary user cache.
+      queueMicrotask(() => {
+        setRate({
+          usdNgn: 1600,
+          ngnUsd: 1 / 1600,
+          provider: 'Synthetic demonstration — not a live exchange rate',
+          updatedAt: null,
+          nextUpdateAt: null,
+          stale: false,
+        });
+        setLoadingRate(false);
+      });
+      return;
+    }
     const storedCurrency = window.localStorage.getItem(CURRENCY_KEY);
     const cached = readCachedRate();
 
