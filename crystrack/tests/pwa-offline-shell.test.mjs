@@ -122,7 +122,7 @@ test('public offline HTML contains no owner data, scripts or requests; Preview S
   assert.match(middleware, /'\/offline.html'/);
   const preview = fs.readFileSync('src/lib/preview/request.ts', 'utf8');
   assert.match(preview, /pathname === '\/sw.js'/);
-  assert.match(preview, /this\.registration\.unregister\(\)/);
+  assert.match(preview, /self\.registration\.unregister\(\)/);
   const manifest = fs.readFileSync('src/app/manifest.ts', 'utf8');
   assert.match(manifest, /shortcuts/);
   assert.match(manifest, /url: '\/finance'/);
