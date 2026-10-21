@@ -13,7 +13,7 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
             boxSizing: 'border-box', textAlign: 'center',
           }}>
             <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: '#93d5ff' }}>CRYSTRACK</p>
-            <h1 style={{ fontSize: 24, margin: '16px 0 0' }}>CrysTrack couldn't open</h1>
+            <h1 style={{ fontSize: 24, margin: '16px 0 0' }}>CrysTrack couldn&apos;t open</h1>
             <p style={{ margin: '12px 0 0', fontSize: 14, lineHeight: 1.7, color: '#d3dce5' }}>
               Please try again. If this continues, you can reopen CrysTrack in your browser.
             </p>
