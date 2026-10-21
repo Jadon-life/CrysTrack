@@ -18,10 +18,10 @@ BEGIN
    OR coalesce(e.flow_kind,e.type::text) NOT IN('income','expense','saving','savings_release','transfer','borrow','lend','receivable_repayment','liability_repayment')
    OR (e.debt_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.wealth_debts x WHERE x.id=e.debt_id AND x.user_id=u))
    OR (e.expected_flow_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.wealth_expected_flows x WHERE x.id=e.expected_flow_id AND x.user_id=u))
-   OR ((e.bill_id IS NULL)<>(e.bill_occurrence_id IS NULL)) OR ((e.import_batch_id IS NULL)<>(e.import_row_id IS NULL))
-   OR (e.bill_id IS NOT NULL AND (e.import_batch_id IS NOT NULL OR NOT EXISTS(
+   OR ((e.sep28_bill_id IS NULL)<>(e.bill_occurrence_id IS NULL)) OR ((e.import_batch_id IS NULL)<>(e.import_row_id IS NULL))
+   OR (e.sep28_bill_id IS NOT NULL AND (e.import_batch_id IS NOT NULL OR NOT EXISTS(
     SELECT 1 FROM public.wealth_bill_occurrences o JOIN public.wealth_recurring_bills b ON b.id=o.bill_id AND b.user_id=u
-    WHERE o.id=e.bill_occurrence_id AND o.user_id=u AND o.bill_id=e.bill_id AND o.entry_id=e.id AND o.status='paid'
+    WHERE o.id=e.bill_occurrence_id AND o.user_id=u AND o.bill_id=e.sep28_bill_id AND o.entry_id=e.id AND o.status='paid'
      AND o.actual_amount=e.amount AND coalesce(e.flow_kind,e.type::text)='expense')))
    OR (e.import_batch_id IS NOT NULL AND (e.debt_id IS NOT NULL OR e.expected_flow_id IS NOT NULL OR NOT EXISTS(
     SELECT 1 FROM public.wealth_csv_rows r JOIN public.wealth_csv_batches b ON b.id=r.batch_id AND b.user_id=u
@@ -30,7 +30,7 @@ BEGIN
  )) THEN RAISE EXCEPTION 'Ledger requires verification';END IF;
  -- Reverse protected references must not disappear from reports either.
  IF EXISTS(SELECT 1 FROM public.wealth_bill_occurrences o WHERE o.user_id=u AND o.status='paid' AND NOT EXISTS(
-   SELECT 1 FROM public.money_entries e WHERE e.id=o.entry_id AND e.user_id=u AND e.bill_occurrence_id=o.id AND e.bill_id=o.bill_id))
+   SELECT 1 FROM public.money_entries e WHERE e.id=o.entry_id AND e.user_id=u AND e.bill_occurrence_id=o.id AND e.sep28_bill_id=o.bill_id))
  OR EXISTS(SELECT 1 FROM public.wealth_csv_rows r WHERE r.user_id=u AND NOT EXISTS(
    SELECT 1 FROM public.money_entries e WHERE e.id=r.entry_id AND e.user_id=u AND e.import_row_id=r.id AND e.import_batch_id=r.batch_id))
  THEN RAISE EXCEPTION 'Protected source requires verification';END IF;

@@ -298,6 +298,7 @@
       "debt_id",
       "expected_flow_id",
       "bill_id",
+      "sep28_bill_id",
       "bill_occurrence_id",
       "import_batch_id",
       "import_row_id"
@@ -313,7 +314,8 @@
       "target_id": "finance_targets",
       "debt_id": "wealth_debts",
       "expected_flow_id": "wealth_expected_flows",
-      "bill_id": "wealth_recurring_bills",
+      "bill_id": "wealth_bills",
+      "sep28_bill_id": "wealth_recurring_bills",
       "bill_occurrence_id": "wealth_bill_occurrences",
       "import_batch_id": "wealth_csv_batches",
       "import_row_id": "wealth_csv_rows"

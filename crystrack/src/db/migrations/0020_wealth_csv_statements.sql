@@ -48,7 +48,7 @@ BEGIN
  IF TG_OP<>'DELETE' AND (NEW.import_batch_id IS NOT NULL OR NEW.import_row_id IS NOT NULL) THEN
   IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'Immutable statement origin' USING ERRCODE='42501';END IF;
   DELETE FROM crystrack_csv.permits WHERE entry_id=NEW.id AND user_id=NEW.user_id AND batch_id=NEW.import_batch_id AND row_id=NEW.import_row_id RETURNING entry_id INTO permit;
-  IF permit IS NULL OR NEW.type::text NOT IN('income','expense') OR NEW.flow_kind IS DISTINCT FROM NEW.type::text OR NEW.bill_id IS NOT NULL OR NEW.bill_occurrence_id IS NOT NULL OR NEW.debt_id IS NOT NULL OR NEW.expected_flow_id IS NOT NULL OR NEW.target_id IS NOT NULL THEN RAISE EXCEPTION 'Statement origin unavailable' USING ERRCODE='42501';END IF;
+  IF permit IS NULL OR NEW.type::text NOT IN('income','expense') OR NEW.flow_kind IS DISTINCT FROM NEW.type::text OR (NEW.bill_id IS NOT NULL OR NEW.sep28_bill_id IS NOT NULL) OR NEW.bill_occurrence_id IS NOT NULL OR NEW.debt_id IS NOT NULL OR NEW.expected_flow_id IS NOT NULL OR NEW.target_id IS NOT NULL THEN RAISE EXCEPTION 'Statement origin unavailable' USING ERRCODE='42501';END IF;
  END IF;
  RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END;
 END $$;
@@ -89,7 +89,7 @@ BEGIN
   t:=crystrack_csv.instant(r->>'date',z,n);a:=(r->>'amount')::numeric;direction:=r->>'type';ref:=lower(btrim(r->>'reference'));v_day:=(t AT TIME ZONE z)::date;
   hard:=EXISTS(SELECT 1 FROM public.wealth_csv_rows c WHERE c.user_id=u AND c.source_key=s AND ((c.file_hash=f AND c.row_number=(r->>'row')::integer) OR (ref IS NOT NULL AND c.reference_key=ref)))
    OR (ref IS NOT NULL AND (SELECT count(*) FROM jsonb_array_elements(rows) x WHERE lower(btrim(x->>'reference'))=ref)>1);
-  SELECT count(*),coalesce(bool_or(e.bill_id IS NOT NULL),false) INTO matches,bill FROM public.money_entries e
+  SELECT count(*),coalesce(bool_or((e.bill_id IS NOT NULL OR e.sep28_bill_id IS NOT NULL)),false) INTO matches,bill FROM public.money_entries e
   WHERE e.user_id=u AND coalesce(e.flow_kind,e.type::text)=direction AND e.amount=a AND e.date>=v_day::timestamp AT TIME ZONE z AND e.date<(v_day+1)::timestamp AT TIME ZONE z AND lower(btrim(coalesce(e.source,'')))=lower(btrim(r->>'description'));
   -- Identical lines in this same file are warnings too, never silently collapsed.
   matches:=matches+(SELECT count(*) FROM jsonb_array_elements(rows) x WHERE x->>'row'<>r->>'row' AND x->>'type'=direction AND (x->>'amount')::numeric=a AND (crystrack_csv.instant(x->>'date',z,n) AT TIME ZONE z)::date=v_day AND lower(btrim(x->>'description'))=lower(btrim(r->>'description')));
@@ -141,7 +141,7 @@ BEGIN
  SELECT count(*) INTO n FROM (SELECT id FROM public.money_entries WHERE user_id=u AND date>=p_from::timestamp AT TIME ZONE z AND date<(p_to+1)::timestamp AT TIME ZONE z LIMIT 10001) bounded;
  IF n>10000 THEN RAISE EXCEPTION 'Export exceeds 10000 entries; narrow dates' USING ERRCODE='P0001';END IF;
  IF EXISTS(SELECT 1 FROM public.money_entries WHERE user_id=u AND date>=p_from::timestamp AT TIME ZONE z AND date<(p_to+1)::timestamp AT TIME ZONE z AND (amount<=0 OR amount IS NULL OR (p_notes AND octet_length(note)>4096))) THEN RAISE EXCEPTION 'Export values exceed supported scope' USING ERRCODE='P0001';END IF;
- SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'date',date,'type',coalesce(flow_kind,type::text),'amount',amount::text,'category',coalesce(category,''),'source',coalesce(source,''),'origin',CASE WHEN bill_id IS NOT NULL THEN 'bill' WHEN import_batch_id IS NOT NULL THEN 'csv' WHEN expected_flow_id IS NOT NULL THEN 'expected' WHEN debt_id IS NOT NULL THEN 'debt' ELSE 'manual' END)||CASE WHEN p_notes THEN jsonb_build_object('note',coalesce(note,'')) ELSE '{}' END ORDER BY date,id),'[]') INTO result
+ SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'date',date,'type',coalesce(flow_kind,type::text),'amount',amount::text,'category',coalesce(category,''),'source',coalesce(source,''),'origin',CASE WHEN bill_id IS NOT NULL OR sep28_bill_id IS NOT NULL THEN 'bill' WHEN import_batch_id IS NOT NULL THEN 'csv' WHEN expected_flow_id IS NOT NULL THEN 'expected' WHEN debt_id IS NOT NULL THEN 'debt' ELSE 'manual' END)||CASE WHEN p_notes THEN jsonb_build_object('note',coalesce(note,'')) ELSE '{}' END ORDER BY date,id),'[]') INTO result
  FROM public.money_entries WHERE user_id=u AND date>=p_from::timestamp AT TIME ZONE z AND date<(p_to+1)::timestamp AT TIME ZONE z;
  IF octet_length(result::text)>8388608 THEN RAISE EXCEPTION 'Export payload too large; narrow dates' USING ERRCODE='P0001';END IF;
  RETURN result;
@@ -183,12 +183,12 @@ BEGIN
  ELSE
   -- Mark origin at INSERT: FK clearing/editing an automatic row can never make it manual.
   manual:=auth.uid()=u AND auth.role()='authenticated' AND rowdata->>'debt_id' IS NULL
-   AND rowdata->>'expected_flow_id' IS NULL AND rowdata->>'parent_entry_id' IS NULL AND rowdata->>'bill_id' IS NULL
+   AND rowdata->>'expected_flow_id' IS NULL AND rowdata->>'parent_entry_id' IS NULL AND rowdata->>'bill_id' IS NULL AND rowdata->>'sep28_bill_id' IS NULL
    AND rowdata->>'import_batch_id' IS NULL AND rowdata->>'import_row_id' IS NULL;
   valid:=rowdata->>'type'='expense' AND coalesce(rowdata->>'flow_kind',rowdata->>'type')='expense'
    AND (rowdata->>'amount')::numeric>0 AND rowdata->>'deleted_at' IS NULL
    AND rowdata->>'debt_id' IS NULL AND rowdata->>'expected_flow_id' IS NULL
-   AND rowdata->>'parent_entry_id' IS NULL AND rowdata->>'bill_id' IS NULL
+   AND rowdata->>'parent_entry_id' IS NULL AND rowdata->>'bill_id' IS NULL AND rowdata->>'sep28_bill_id' IS NULL
    AND rowdata->>'import_batch_id' IS NULL AND rowdata->>'import_row_id' IS NULL;
  END IF;
  PERFORM crystrack_sep28_crystals.reconcile(u,k,s,coalesce(valid,false),

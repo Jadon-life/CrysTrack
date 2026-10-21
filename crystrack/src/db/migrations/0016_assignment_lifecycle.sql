@@ -1,8 +1,15 @@
 -- Piece 4 candidate. Disposable LOCAL testing only; hosted history/compatibility UNKNOWN.
 -- Requires approved September 0000–0005, 0013–0015. No historical outcome/reward backfill.
 BEGIN;
-ALTER TABLE public.assignments ADD COLUMN revision integer NOT NULL DEFAULT 1 CHECK(revision>0),
- ADD COLUMN reminder_version integer NOT NULL DEFAULT 1 CHECK(reminder_version>0);
+-- Managed-host compatibility: legacy CrysTrack may already have revision DEFAULT 0
+-- and existing zero-revision assignments. Preserve the original IDs/owner data.
+ALTER TABLE public.assignments ADD COLUMN IF NOT EXISTS revision integer NOT NULL DEFAULT 1;
+ALTER TABLE public.assignments ALTER COLUMN revision SET DEFAULT 1;
+-- Existing zero versions have no positive Sep28 revision. Advance once before
+-- installing revision-based writer contracts. Old writers MUST be isolated.
+UPDATE public.assignments SET revision=1 WHERE revision=0;
+ALTER TABLE public.assignments ADD CONSTRAINT sep28_assignment_positive_revision CHECK(revision>0);
+ALTER TABLE public.assignments ADD COLUMN reminder_version integer NOT NULL DEFAULT 1 CHECK(reminder_version>0);
 CREATE INDEX assignment_owner_deadline_id_idx ON public.assignments(user_id,deadline,id);
 CREATE SCHEMA crystrack_assignments;
 REVOKE ALL ON SCHEMA crystrack_assignments FROM PUBLIC,anon,authenticated,service_role;
