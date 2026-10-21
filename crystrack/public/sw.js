@@ -44,14 +44,18 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   // Never intercept API, unsafe methods, other origins or the fallback itself.
   if (url.origin !== self.location.origin || url.pathname === OFFLINE_PAGE ||
-      url.pathname === '/api' || url.pathname.startsWith('/api/')) return;
+      url.pathname === '/api' || url.pathname.startsWith('/api/') ||
+      url.pathname === '/_next' || url.pathname.startsWith('/_next/') ||
+      url.pathname === '/sw.js') return;
   event.respondWith(
-    fetch(request).catch(async () =>
-      (await caches.match(OFFLINE_PAGE)) ||
-      new Response('Offline. Reconnect to load CrysTrack.', {
-        status: 503,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
-      })),
+    fetch(request).catch(async () => {
+      const shell = await caches.open(SHELL_CACHE);
+      return (await shell.match(OFFLINE_PAGE)) ||
+        new Response('Offline. Reconnect to load CrysTrack.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+        });
+    }),
   );
 });
 
