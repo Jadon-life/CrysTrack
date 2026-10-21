@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/components/layout/theme-provider';
 import type { Rocker3D, RockerPalette } from '@/lib/three-rocker';
 
 /** Physical Light/Dark rocker. Adaptive stays in Settings > Appearance. */
 export function PhysicalThemeSwitch() {
+  const descriptionId = useId();
   const { theme, preference, environment, reducedMotion, setPreference } = useTheme();
   const isLight = preference === 'light' || (
     preference === 'adaptive' && (environment.phase === 'morning' || environment.phase === 'day')
@@ -54,14 +55,13 @@ export function PhysicalThemeSwitch() {
   }, []);
 
   return (
+    <>
     <button
       type="button"
       role="switch"
       aria-checked={isLight}
       aria-label={isLight ? 'Light appearance active' : 'Dark appearance active'}
-      aria-description={preference === 'adaptive'
-        ? 'Automatic time-of-day appearance is active. Press to choose a manual mode. Adaptive remains in Settings, Appearance.'
-        : 'Press to toggle Light and Dark. Adaptive remains in Settings, Appearance.'}
+      aria-describedby={descriptionId}
       title={preference === 'adaptive'
         ? 'Adaptive active · Switch to ' + (isLight ? 'Dark' : 'Light')
         : 'Switch to ' + (isLight ? 'Dark' : 'Light') + ' appearance'}
@@ -79,5 +79,11 @@ export function PhysicalThemeSwitch() {
       </span>
       <span className="crys-3d-switch__auto" aria-hidden="true" />
     </button>
+    <span id={descriptionId} className="sr-only">
+      {preference === 'adaptive'
+        ? 'Automatic time-of-day appearance is active. Press to choose a manual mode. Adaptive remains in Settings, Appearance.'
+        : 'Press to toggle Light and Dark. Adaptive remains in Settings, Appearance.'}
+    </span>
+    </>
   );
 }

@@ -57,3 +57,12 @@ test('switch stays accessible, low-power, and leaves Adaptive in Settings', () =
   assert.match(scene, /renderer\.dispose\(\)/);
   assert.match(settings, /id: 'adaptive', label: 'Adaptive'/);
 });
+
+test('Three.js rocker announces its dynamic guidance with supported ARIA descriptions', () => {
+ const component = read('src/components/navigation/physical-theme-switch.tsx');
+ assert.match(component, /aria-describedby=\{descriptionId\}/);
+ assert.match(component, /const descriptionId = useId\(\)/);
+ assert.match(component, /<span id=\{descriptionId\} className="sr-only">/);
+ assert.match(component, /Adaptive remains in Settings, Appearance/);
+ assert.doesNotMatch(component, /aria-description=/);
+});
