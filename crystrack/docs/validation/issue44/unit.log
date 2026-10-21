@@ -1,0 +1,34 @@
+Account export not confirmed { code: 'AUTH' }
+Account export not confirmed { code: 'AUTH' }
+Account export not confirmed { code: 'INPUT' }
+Account export not confirmed { code: 'INPUT' }
+✔ real handler authenticates before source reads and does not trust a user returned with an auth error (595.406305ms)
+✔ Preview is denied before real clients/source access; confirmation and owner injection rejected (290.742371ms)
+Account export not confirmed { code: 'UNAVAILABLE' }
+Account export not confirmed { code: 'SIZE' }
+Account export not confirmed { code: 'UNAVAILABLE' }
+✔ success has safe static attachment, non-cacheable bytes and complete manifest; review contains no records (137.852115ms)
+Account export not confirmed { code: 'AUTH' }
+Account export not confirmed { code: 'AI_OFF' }
+✔ source failures, ownership drift, auth switch and oversize never return an archive or raw database output (186.988105ms)
+Account export not confirmed { code: 'CHANGED' }
+✔ AI OFF fails before snapshot, and consent revision change before release denies the complete archive (101.007835ms)
+✔ strict owner-free input requires category choice and explicit download confirmation (3.144693ms)
+✔ roundtrip schema retains exact decimal strings, microseconds, timezone and sensitive selected user notes (58.097525ms)
+✔ every catalog dataset required; no successful omitted old page, extra field or wrong owner (5.644552ms)
+✔ checksum/count/byte/manifest/owner tampering and extra categories fail closed (28.272603ms)
+✔ review mode never accepts confidential rows and distinguishes zero from missing counts (1.510163ms)
+✔ AI is never silently added and consent revision is required for selected AI (1.159503ms)
+✔ truncated, oversized, invalid and cancelled streams cannot produce a valid archive (87.86238ms)
+✔ generated migration and explicit source registry remain synchronized; no source DML or private columns (100.728797ms)
+✔ immutable schedule structure supports original timestamp bounds and rejects opaque secret-bearing extras (20.040531ms)
+✔ orphan AI rows and falsely verified daily completeness fail before an archive is offered (24.421098ms)
+✔ declared types preserve bill calendar end dates separately from routine timestamp bounds (21.079021ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1803.744426
