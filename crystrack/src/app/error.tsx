@@ -7,7 +7,7 @@ export default function ErrorPage({ reset }: { error: Error & { digest?: string 
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-primary)]">CrysTrack</p>
         <h1 className="mt-3 text-2xl font-semibold text-white">Something didn&apos;t load</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--theme-text-muted)]">
-          Your information hasn&apos;t been changed here. You can try opening this page again.
+          This page ran into a problem. You can try opening it again.
         </p>
         <button
           type="button"
