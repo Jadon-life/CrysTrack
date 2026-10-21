@@ -6,15 +6,15 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const compile = (path, dependencies = {}) => {
-  const module = { exports: {} };
+  const fixtureModule = { exports: {} };
   const compiled = ts.transpileModule(fs.readFileSync(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   new Function('require', 'module', 'exports', compiled)(
     (name) => Object.hasOwn(dependencies, name) ? dependencies[name] : require(name),
-    module, module.exports,
+    fixtureModule, fixtureModule.exports,
   );
-  return module.exports;
+  return fixtureModule.exports;
 };
 const today = compile('src/lib/today-progress.ts');
 const { calendarDeadlineDay } = compile('src/lib/calendar-date.ts', { './today-progress': today });
