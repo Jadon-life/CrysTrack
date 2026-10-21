@@ -6,6 +6,8 @@ import { ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/shared/glass-card';
 import { fetcher } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { dayInTimezone } from '@/lib/today-progress';
+import { calendarDeadlineDay } from '@/lib/calendar-date';
 
 const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -19,6 +21,7 @@ function dateKey(date: Date) {
 export default function CalendarPage() {
   const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [selected, setSelected] = useState(() => dateKey(new Date()));
+  const [timezone, setTimezone] = useState('UTC');
   const [hovered, setHovered] = useState<string | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
@@ -26,13 +29,32 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetcher(`/api/tasks?date=${dateKey(new Date())}&weekday=${new Date().getDay()}`).catch(() => []),
-      fetcher('/api/goals').catch(() => []),
-      fetcher('/api/assignments').catch(() => []),
-    ]).then(([taskData, goalData, assignmentData]) => {
-      setTasks(taskData); setGoals(goalData); setAssignments(assignmentData); setLoading(false);
-    });
+    let active = true;
+    const load = async () => {
+      const profile = await fetcher('/api/profile').catch(() => null);
+      let zone = String(profile?.scheduling_timezone || profile?.timezone || 'UTC');
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(new Date());
+      } catch {
+        zone = 'UTC';
+      }
+      const current = dayInTimezone(zone);
+      const [taskData, goalData, assignmentData] = await Promise.all([
+        fetcher(`/api/tasks?date=${current.dateKey}&weekday=${current.weekday}`).catch(() => []),
+        fetcher('/api/goals').catch(() => []),
+        fetcher('/api/assignments').catch(() => []),
+      ]);
+      if (!active) return;
+      setTimezone(zone);
+      setSelected(current.dateKey);
+      setCursor(new Date(Number(current.dateKey.slice(0, 4)), Number(current.dateKey.slice(5, 7)) - 1, 1));
+      setTasks(Array.isArray(taskData) ? taskData : []);
+      setGoals(Array.isArray(goalData) ? goalData : []);
+      setAssignments(Array.isArray(assignmentData) ? assignmentData : []);
+      setLoading(false);
+    };
+    void load();
+    return () => { active = false; };
   }, []);
 
   const cells = useMemo(() => {
@@ -82,12 +104,16 @@ export default function CalendarPage() {
     );
   }, [cursor]);
 
+  const eventDay = (value: unknown) => calendarDeadlineDay(value, timezone);
+  const todayKey = dayInTimezone(timezone).dateKey;
   const eventsFor = (date: Date) => {
     const key = dateKey(date);
-    const weekday = date.getDay();
+    // The cells are pure civil dates. Get their weekday without consulting the
+    // browser's current clock or interpreting a deadline in browser local time.
+    const weekday = new Date(`${key}T12:00:00Z`).getUTCDay();
     const taskEvents = tasks.filter((task: any) => task.task_schedules?.some((schedule: any) => schedule.weekday === weekday)).map((task: any) => ({ type: 'task', title: task.title, tone: 'bg-emerald-400' }));
-    const assignmentEvents = assignments.filter((item: any) => dateKey(new Date(item.deadline)) === key).map((item: any) => ({ type: 'assignment', title: item.title, tone: 'bg-amber-400' }));
-    const goalEvents = goals.filter((goal: any) => goal.deadline && dateKey(new Date(goal.deadline)) === key).map((goal: any) => ({ type: 'goal', title: goal.title, tone: 'bg-violet-400' }));
+    const assignmentEvents = assignments.filter((item: any) => eventDay(item.deadline) === key).map((item: any) => ({ type: 'assignment', title: item.title, tone: 'bg-amber-400' }));
+    const goalEvents = goals.filter((goal: any) => eventDay(goal.deadline) === key).map((goal: any) => ({ type: 'goal', title: goal.title, tone: 'bg-violet-400' }));
     return [...assignmentEvents, ...goalEvents, ...taskEvents];
   };
 
@@ -130,7 +156,7 @@ export default function CalendarPage() {
               const key = dateKey(date);
               const events = eventsFor(date);
               const active = key === selected;
-              const today = key === dateKey(new Date());
+              const today = key === todayKey;
               const groups = [
                 { type: 'task', tone: 'bg-emerald-400' },
                 { type: 'assignment', tone: 'bg-amber-400' },
