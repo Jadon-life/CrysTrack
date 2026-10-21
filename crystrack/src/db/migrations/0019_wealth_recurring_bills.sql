@@ -20,8 +20,11 @@ CREATE TABLE public.wealth_bill_occurrences(
  CHECK((status='paid')=(paid_at IS NOT NULL)),CHECK((status='paid')=(entry_id IS NOT NULL)),CHECK((status='paid')=(actual_amount IS NOT NULL)),CHECK(actual_amount>0)
 );
 CREATE INDEX bill_occurrence_owner_day_idx ON public.wealth_bill_occurrences(user_id,due_day,id);
--- Keep legacy money_entries.bill_id (FK to public.wealth_bills) intact.
--- Sep28 bill payments use their own provenance FK.
+-- Preserve the hosted legacy money_entries.bill_id FK to public.wealth_bills.
+-- The old disposable local fixtures had no bill_id at all; add only a
+-- nullable compatibility stub there, never alter the hosted legacy FK.
+ALTER TABLE public.money_entries ADD COLUMN IF NOT EXISTS bill_id uuid;
+-- Sep28 bill payments have their own distinct provenance FK.
 ALTER TABLE public.money_entries ADD COLUMN sep28_bill_id uuid REFERENCES public.wealth_recurring_bills(id),ADD COLUMN bill_occurrence_id uuid REFERENCES public.wealth_bill_occurrences(id),
  ADD CONSTRAINT bill_origin_pair CHECK((sep28_bill_id IS NULL)=(bill_occurrence_id IS NULL));
 CREATE UNIQUE INDEX money_bill_occurrence_unique ON public.money_entries(bill_occurrence_id) WHERE bill_occurrence_id IS NOT NULL;
