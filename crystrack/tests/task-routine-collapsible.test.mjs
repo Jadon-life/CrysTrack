@@ -36,3 +36,21 @@ test('Tasks uses the compact Today checklist and keeps scheduling separate', () 
   assert.match(source, /task\.streak/);
   assert.match(source, /aria-label=\{task\.today_status/);
 });
+
+test('newly created routines appear immediately without rewriting today\'s frozen plan', () => {
+  const source = fs.readFileSync('src/app/tasks/page.tsx', 'utf8');
+  assert.match(source, /function createdOnDay\(iso: string, timezone: string, dayKey: string\)/);
+  assert.match(source, /Intl\.DateTimeFormat\('en-US',/);
+  assert.match(source, /timeZone: timezone/);
+  assert.match(source, /const newlyCreated = useMemo/);
+  assert.match(source, /!task\.scheduled_today && task\.created_at/);
+  assert.match(source, /createdOnDay\(task\.created_at, task\.scheduling_timezone \|\| 'UTC', schedulingDay\)/);
+  assert.match(source, /setTaskView\('today'\);\s*await loadTasks\(\);/);
+  assert.match(source, /newlyCreated\.map\(\(task: any\)/);
+  assert.match(source, /Routines added today/);
+  assert.match(source, /They start on their next matching scheduled day/);
+  assert.ok(source.indexOf('Routines added today') < source.indexOf('<section className="routine-readable-section">'),
+    'Saved routines are presented before the collapsed management disclosure');
+  assert.match(source, /const todayTasks = useMemo\(\s*\(\) => tasks\.filter\(\(task: any\) => task\.scheduled_today\)/);
+  assert.match(source, /summarizeToday\(tasks\)/);
+});
