@@ -18,6 +18,23 @@ import { Plus, Flame, Calendar, Clock, Filter, Loader2, CheckCircle2, Bell, Skip
 
 const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// Check a routine's actual creation day in the saved scheduling timezone.
+// Newly created routines remain visible today without changing frozen daily outcomes.
+function createdOnDay(iso: string, timezone: string, dayKey: string): boolean {
+  if (!dayKey) return false;
+  const instant = new Date(iso);
+  if (!Number.isFinite(instant.getTime())) return false;
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(instant);
+    const value = (type: string) => parts.find((part) => part.type === type)?.value;
+    return `${value('year')}-${value('month')}-${value('day')}` === dayKey;
+  } catch {
+    return false;
+  }
+}
+
 export default function TasksPage() {
   const offline=useOfflineToday();
   const searchParams = useSearchParams();
@@ -84,6 +101,7 @@ export default function TasksPage() {
         followUpMinutes: newTask.followUp ? [120] : [], endOfDayReminder: newTask.endOfDayReminder,
       },
     });
+    setTaskView('today');
     await loadTasks();
     window.dispatchEvent(new Event('crystrack-activity-updated'));
     setNewTask((current) => ({ title: '', description: '', preferredTime: '', category: '', schedules: [], remindersEnabled: true, reminderChannel: current.reminderChannel, beforeMinutes: 15, atPreferredTime: true, followUp: true, endOfDayReminder: true }));
@@ -170,6 +188,13 @@ export default function TasksPage() {
     [tasks],
   );
   const todayGroups = useMemo(() => groupTodayTasks(todayTasks), [todayTasks]);
+  const newlyCreated = useMemo(
+    () => tasks
+      .filter((task: any) => !task.scheduled_today && task.created_at
+        && createdOnDay(task.created_at, task.scheduling_timezone || 'UTC', schedulingDay))
+      .sort((a: any, b: any) => Date.parse(b.created_at) - Date.parse(a.created_at)),
+    [tasks, schedulingDay],
+  );
   const progress = summarizeToday(tasks);
   const completedToday = progress.completed;
   const completionPercent = progress.percent;
@@ -284,6 +309,33 @@ export default function TasksPage() {
           </GlassCard>
         )}
       </section>
+
+      {!loading && newlyCreated.length > 0 && (
+        <section className="space-y-3" aria-labelledby="newly-created-routines-heading">
+          <div className="scenic-readable-strip">
+            <h2 id="newly-created-routines-heading" className="text-base font-semibold text-white">Routines added today</h2>
+            <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+              Saved and visible immediately. They start on their next matching scheduled day, so today&apos;s completion totals stay accurate.
+            </p>
+          </div>
+          <GlassCard padding="md">
+            <ul className="space-y-3">
+              {newlyCreated.map((task: any) => (
+                <li key={task.id} className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.035] px-3 py-3">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-semibold text-white">{task.title}</p>
+                    {task.description && <p className="mt-1 break-words text-xs text-[var(--theme-text-muted)]">{task.description}</p>}
+                    <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+                      {(task.task_schedules || []).map((schedule: any) => weekdays[schedule.weekday]).join(', ') || 'Schedule pending'}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-md border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-200">Saved</span>
+                </li>
+              ))}
+            </ul>
+          </GlassCard>
+        </section>
+      )}
 
       <section className="routine-readable-section">
         <details className="group overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-black/15">
