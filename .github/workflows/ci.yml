@@ -28,8 +28,8 @@ jobs:
       SUPABASE_SECRET_KEY: ci-placeholder
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
       OPENROUTER_API_KEY: ci-placeholder
-      OPENROUTER_CHAT_MODEL: openai/gpt-oss-20b
-      OPENROUTER_ANALYSIS_MODEL: openai/gpt-oss-20b
+      OPENAI_CHAT_MODEL: gpt-5.4-mini
+      OPENAI_ANALYSIS_MODEL: gpt-5.4-mini
       EXCHANGE_RATE_API_KEY: ci-placeholder
       CRON_SECRET: ci-placeholder
       TELEGRAM_BOT_TOKEN: ci-placeholder
