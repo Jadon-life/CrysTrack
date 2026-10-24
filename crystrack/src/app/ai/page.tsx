@@ -155,7 +155,7 @@ export default function AiPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-primary)]">CrysTrack Intelligence</p>
         <h1 className="text-2xl font-bold text-white mt-1">AI</h1>
         <p className="text-sm text-[var(--theme-text-muted)] mt-1">Discuss permitted activity patterns. Automatic Wealth context requires its separate permission. AI chat cannot change your CrysTrack activity.</p>
-        <p className="text-xs text-[var(--theme-text-muted)] mt-2">Messages you choose to send go to OpenRouter and its selected providers. Automatic context excludes private text and identity. Do not type secrets or identifying details. AI output can be incorrect.</p>
+        <p className="text-xs text-[var(--theme-text-muted)] mt-2">Messages you choose to send go directly to OpenAI via its API. Automatic context excludes private text and identity. Do not type secrets or identifying details. AI output can be incorrect.</p>
       </div>
 
       <AiPrivacyNotice/>
