@@ -1,6 +1,6 @@
 import type { AiLease } from '@/lib/ai/privacy-server';
 import { scopedGoal } from '@/lib/ai/scopes';
-import { analyzeWithOpenRouter, type GoalAnalysis } from '@/lib/ai/goal-openrouter';
+import { analyzeWithOpenAI, type GoalAnalysis } from '@/lib/ai/goal-openrouter';
 
 function daysBetween(from: Date, to: Date) {
   return Math.ceil((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
@@ -46,5 +46,5 @@ export function deterministicGoalContext(goal: any, checkins: any[]) {
 
 export async function analyzeGoal(goal: any, checkins: any[], lease: AiLease): Promise<GoalAnalysis | null> {
   const recent = [...checkins].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,12);
-  return analyzeWithOpenRouter(scopedGoal(goal,recent,deterministicGoalContext(goal,recent)), lease);
+  return analyzeWithOpenAI(scopedGoal(goal,recent,deterministicGoalContext(goal,recent)), lease);
 }
