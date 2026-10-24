@@ -51,23 +51,18 @@ test('AI chat is read only and conversations are user scoped', () => {
   assert.ok(existsSync(join(root, 'src/app/ai/page.tsx')));
 });
 
-test('AI provider requests restricted OpenRouter routing without asserting retention guarantees', () => {
+test('AI provider uses direct OpenAI routing, omits storage and keeps server-only credentials', () => {
   const ai = read('src/lib/ai/intelligence.ts');
   const transport = read('src/lib/ai/provider.ts');
-  assert.match(transport, /openrouter\.ai\/api\/v1\/chat\/completions/);
-  assert.match(ai, /openai\/gpt-oss-20b/);
-  assert.match(transport, /zdr:\s*true/);
-  assert.match(transport, /data_collection:\s*'deny'/);
-  assert.match(transport, /require_parameters:\s*true/);
-  assert.match(transport, /allow_fallbacks:\s*true/);
-  assert.match(ai, /reasoning:\s*\{/);
-  assert.match(ai, /effort:\s*'low'/);
-  assert.match(ai, /exclude:\s*true/);
-  assert.match(ai, /model:\s*intelligenceChatModel\(\)/);
-  assert.match(ai, /model:\s*intelligenceAnalysisModel\(\)/);
-  assert.doesNotMatch(ai, /\bmodels:/);
+  assert.match(transport, /https:\/\/api\.openai\.com\/v1\/chat\/completions/);
+  assert.match(transport, /process\.env\.OPENAI_API_KEY/);
+  assert.match(ai, /gpt-5\.4-mini/);
+  assert.match(transport, /store: false/);
+  assert.match(ai, /reasoning_effort: 'none'/);
+  assert.match(ai, /model: intelligenceChatModel\(\)/);
+  assert.match(ai, /model: intelligenceAnalysisModel\(\)/);
+  assert.doesNotMatch(transport, /OPENROUTER_API_KEY|openrouter\.ai|provider:\s*\{/);
   assert.doesNotMatch(ai, /openrouter\/free|:free/);
-  assert.doesNotMatch(ai, /api\.openai\.com|anthropic|gemini/i);
 });
 
 test('Wealth AI context excludes identity and sensitive private fields', () => {
@@ -196,29 +191,10 @@ test('routine guidance is optional and never presented as a best move', () => {
   );
 });
 
-test('CI uses supported Node and verified OpenRouter models', () => {
+test('CI uses supported Node, with no API key leaked into workflows', () => {
   const ci = read('../.github/workflows/ci.yml');
   const pkg = JSON.parse(read('package.json'));
-
   assert.match(ci, /node-version:\s*22/);
-
-  assert.match(
-    ci,
-    /OPENROUTER_CHAT_MODEL:\s*openai\/gpt-oss-20b/,
-  );
-
-  assert.match(
-    ci,
-    /OPENROUTER_ANALYSIS_MODEL:\s*openai\/gpt-oss-20b/,
-  );
-
-  assert.doesNotMatch(
-    ci,
-    /OPENROUTER_(?:CHAT|ANALYSIS)_MODEL:[^\n]*:free/,
-  );
-
-  assert.equal(
-    pkg.engines?.node,
-    '>=22.0.0',
-  );
+  assert.doesNotMatch(ci, /OPENAI_API_KEY:/);
+  assert.equal(pkg.engines?.node, '>=22.0.0');
 });
