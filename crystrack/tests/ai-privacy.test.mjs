@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 const native = createRequire(import.meta.url),
-  POLICY = '2026-10-20-minimal-v1';
+  POLICY = '2026-10-24-openai-direct-v2';
 function loader(mocks = {}) {
   const cache = new Map();
   function load(file) {
@@ -311,16 +311,16 @@ const wealthInsight = {
 };
 async function boundary(f, fn) {
   const oldFetch = globalThis.fetch,
-    oldKey = process.env.OPENROUTER_API_KEY,
+    oldKey = process.env.OPENAI_API_KEY,
     oldLog = console.error,
     oldService = process.env.SUPABASE_SERVICE_ROLE_KEY,
     oldSecret = process.env.SUPABASE_SECRET_KEY;
-  process.env.OPENROUTER_API_KEY = 'synthetic-boundary-not-a-provider-key';
+  process.env.OPENAI_API_KEY = 'synthetic-openai-only-boundary-key';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'synthetic-test-only-backend-key';
   delete process.env.SUPABASE_SECRET_KEY;
   console.error = (...x) => f.logs.push(x);
   globalThis.fetch = async (url, options) => {
-    assert.equal(url, 'https://openrouter.ai/api/v1/chat/completions');
+    assert.equal(url, 'https://api.openai.com/v1/chat/completions');
     assert.equal(options.redirect, 'error');
     assert.equal(options.cache, 'no-store');
     assert.equal(options.headers['HTTP-Referer'], undefined);
@@ -349,8 +349,8 @@ async function boundary(f, fn) {
   } finally {
     globalThis.fetch = oldFetch;
     console.error = oldLog;
-    if (oldKey === undefined) delete process.env.OPENROUTER_API_KEY;
-    else process.env.OPENROUTER_API_KEY = oldKey;
+    if (oldKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = oldKey;
     if (oldService === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = oldService;
     if (oldSecret === undefined) delete process.env.SUPABASE_SECRET_KEY; else process.env.SUPABASE_SECRET_KEY = oldSecret;
   }
@@ -469,8 +469,8 @@ test('explicit domain/goal/legacy adapters all use guarded fixed transport when 
       assert.equal(f.calls.length, 1, p);
       assert.equal(f.writes, 1, p);
       assert.doesNotMatch(JSON.stringify(f.calls[0]), /PRIVATE_/);
-      assert.equal(f.calls[0].provider.zdr, true);
-      assert.equal(f.calls[0].provider.data_collection, 'deny');
+      assert.equal(f.calls[0].store, false);
+      assert.equal(f.calls[0].reasoning_effort, 'none');
     });
   }
 });
@@ -540,7 +540,7 @@ test('in-flight revocation attempts cancellation, but never claims already trans
 test('unconfigured provider is truthful before context reads or AI writes', async () => {
   const f = fixture(true);
   await boundary(f, async () => {
-    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     const r = await invoke(f, '/api/ai/chat');
     assert.equal(r.status, 503);
     assert.equal((await r.json()).code, 'UNCONFIGURED');
