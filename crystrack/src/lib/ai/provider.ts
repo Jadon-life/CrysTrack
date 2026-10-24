@@ -1,15 +1,15 @@
 import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { AiPrivacyError, checkAiLease, type AiLease } from './privacy-server';
 
-export const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
-/** The sole external model transport. No caller-controlled URL or HTTP Referer. */
+export const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+/** The sole external model transport. A fixed OpenAI endpoint; no caller-controlled URL. */
 export async function requestAiProvider(
   lease: AiLease,
   body: Record<string, unknown>,
   timeoutMs = 24000,
 ): Promise<any> {
   assertRealServicesAllowed();
-  const key = process.env.OPENROUTER_API_KEY;
+  const key = process.env.OPENAI_API_KEY;
   if (!key) throw new AiPrivacyError('UNCONFIGURED');
   if (new TextEncoder().encode(JSON.stringify(body)).byteLength > 64000) throw new AiPrivacyError('INPUT', 413);
   const controller = new AbortController();
@@ -33,22 +33,13 @@ export async function requestAiProvider(
   try {
     // Authorization linearizes here, immediately before transmission, never from UI/cache.
     await checkAiLease(lease);
-    const response = await fetch(OPENROUTER_ENDPOINT, {
+    const response = await fetch(OPENAI_ENDPOINT, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
-        'X-Title': 'CrysTrack',
       },
-      body: JSON.stringify({
-        ...body,
-        provider: {
-          zdr: true,
-          data_collection: 'deny',
-          require_parameters: true,
-          allow_fallbacks: true,
-        },
-      }),
+      body: JSON.stringify({ ...body, store: false }),
       signal: controller.signal,
       cache: 'no-store',
       redirect: 'error',
