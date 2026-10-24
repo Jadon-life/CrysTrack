@@ -2,7 +2,7 @@ import { aiProviderConfigured } from '@/lib/ai/privacy-server';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
-  analyzeDomainWithOpenRouter,
+  analyzeDomainWithOpenAI,
   DomainInsightSchema,
   DOMAIN_INSIGHT_POLICY_VERSION,
   intelligenceAnalysisModel,
@@ -130,7 +130,7 @@ export async function POST(request: Request, props: { params: Promise<{ domain: 
         { headers: aiHeaders },
       );
     }
-    const insight = await analyzeDomainWithOpenRouter(domain, context, lease);
+    const insight = await analyzeDomainWithOpenAI(domain, context, lease);
     if (!insight) throw new AiPrivacyError('UNCONFIGURED');
     const result = await finishAi(lease, {
       fingerprint,
