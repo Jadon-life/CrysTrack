@@ -47,7 +47,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       await finishAi(lease, {
         goalId: id,
         analysis,
-        model: process.env.OPENROUTER_ANALYSIS_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free',
+        model: process.env.OPENAI_ANALYSIS_MODEL || 'gpt-5.4-mini',
       }),
       { headers: aiHeaders },
     );
