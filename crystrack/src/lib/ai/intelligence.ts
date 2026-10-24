@@ -49,15 +49,15 @@ const domainResponseSchema = {
 };
 
 const DEFAULT_CHAT_MODEL =
-  'openai/gpt-oss-20b';
+  'gpt-5.4-mini';
 
 const DEFAULT_ANALYSIS_MODEL =
-  'openai/gpt-oss-20b';
+  'gpt-5.4-mini';
 
 export const DOMAIN_INSIGHT_POLICY_VERSION =
   '2026-09-28-human-semantics-v2';
 
-type OpenRouterResponse = {
+type OpenAiChatResponse = {
   model?: string;
   choices?: Array<{
     message?: {
@@ -68,25 +68,25 @@ type OpenRouterResponse = {
 
 export function intelligenceChatModel() {
   return (
-    process.env.OPENROUTER_CHAT_MODEL ||
+    process.env.OPENAI_CHAT_MODEL ||
     DEFAULT_CHAT_MODEL
   );
 }
 
 export function intelligenceAnalysisModel() {
   return (
-    process.env.OPENROUTER_ANALYSIS_MODEL ||
+    process.env.OPENAI_ANALYSIS_MODEL ||
     DEFAULT_ANALYSIS_MODEL
   );
 }
 
 
-async function openRouterRequest(body: Record<string, unknown>, lease: AiLease, timeoutMs = 18000): Promise<OpenRouterResponse | null> {
-  return requestAiProvider(lease, { ...body, reasoning: { effort: 'low', exclude: true } }, timeoutMs);
+async function openAiRequest(body: Record<string, unknown>, lease: AiLease, timeoutMs = 18000): Promise<OpenAiChatResponse> {
+  return requestAiProvider(lease, { ...body, reasoning_effort: 'none' }, timeoutMs);
 }
 
 function assistantContent(
-  data: OpenRouterResponse | null,
+  data: OpenAiChatResponse | null,
 ) {
   return String(
     data?.choices?.[0]?.message?.content || '',
@@ -125,12 +125,12 @@ function parseDomainInsight(
   }
 }
 
-export async function analyzeDomainWithOpenRouter(
+export async function analyzeDomainWithOpenAI(
   domain: string,
   context: unknown,
   lease: AiLease,
 ): Promise<DomainInsight | null> {
-  if (!process.env.OPENROUTER_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     return null;
   }
 
@@ -160,11 +160,10 @@ Rules:
 - Return exactly one JSON object matching the required response schema.
 - Do not wrap the JSON in Markdown or code fences.`;
 
-  const data = await openRouterRequest(
+  const data = await openAiRequest(
     {
       model: intelligenceAnalysisModel(),
-      temperature: 0.2,
-      max_tokens: 750,
+      max_completion_tokens: 1100,
       messages: [
         {
           role: 'system',
@@ -196,14 +195,14 @@ Rules:
 
   if (!content) {
     throw new Error(
-      'OpenRouter returned no domain insight',
+      'OpenAI returned no domain insight',
     );
   }
 
   return parseDomainInsight(content);
 }
 
-export async function chatWithOpenRouter(input: {
+export async function chatWithOpenAI(input: {
   context: unknown;
   history: Array<{
     role: 'user' | 'assistant';
@@ -211,7 +210,7 @@ export async function chatWithOpenRouter(input: {
   }>;
   message: string;
 }, lease: AiLease) {
-  if (!process.env.OPENROUTER_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     return null;
   }
 
@@ -260,11 +259,10 @@ Formatting rules:
       input.context,
     )}`;
 
-  const data = await openRouterRequest(
+  const data = await openAiRequest(
     {
       model: intelligenceChatModel(),
-      temperature: 0.4,
-      max_tokens: 1100,
+      max_completion_tokens: 1400,
       messages: [
         {
           role: 'system',
@@ -293,7 +291,7 @@ Formatting rules:
 
   if (!content) {
     throw new Error(
-      'OpenRouter returned no chat response',
+      'OpenAI returned no chat response',
     );
   }
 
