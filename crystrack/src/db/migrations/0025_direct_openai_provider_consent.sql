@@ -5,6 +5,21 @@
 -- explicitly opt in to OpenAI. User financial/task data is not modified.
 BEGIN;
 
+-- Reset old-provider consent before changing its database check constraint.
+UPDATE public.ai_privacy_preferences
+   SET enabled=false,
+       wealth_enabled=false,
+       revision=revision+1,
+       updated_at=now()
+ WHERE enabled OR wealth_enabled;
+
+ALTER TABLE public.ai_privacy_preferences
+  DROP CONSTRAINT ai_privacy_preferences_check1;
+
+ALTER TABLE public.ai_privacy_preferences
+  ADD CONSTRAINT ai_privacy_preferences_check1
+  CHECK (NOT enabled OR (accepted_policy='2026-10-24-openai-direct-v2' AND accepted_at IS NOT NULL));
+
 DO $openai_consent_cutover$
 DECLARE
   target RECORD;
@@ -38,13 +53,5 @@ BEGIN
 END
 $openai_consent_cutover$;
 
--- The old opt-in was for OpenRouter. Never carry that consent to a new
--- external provider. Revision increment invalidates all in-flight leases.
-UPDATE public.ai_privacy_preferences
-   SET enabled=false,
-       wealth_enabled=false,
-       revision=revision+1,
-       updated_at=now()
- WHERE enabled OR wealth_enabled;
-
+-- Existing revocation revision is now authoritative for every AI API path.
 COMMIT;
