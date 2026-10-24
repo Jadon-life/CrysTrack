@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const AI_PRIVACY_POLICY = '2026-10-20-minimal-v1';
+export const AI_PRIVACY_POLICY = '2026-10-24-openai-direct-v2';
 export const aiDomainSchema = z.enum(['tasks', 'goals', 'assignments', 'wealth', 'overview']);
 export const aiRequestDomainSchema = z.enum([
   'chat',
