@@ -115,7 +115,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       if (readError) throw new Error('AI_CONTEXT_UNAVAILABLE');
       const proposed = await analyzeGoal(refreshedGoal || goal, checkins || [], lease);
       if (proposed) {
-        const result = await finishAi(lease, {goalId:goal.id,checkinId:checkin.id,analysis:proposed,model:process.env.OPENROUTER_ANALYSIS_MODEL||'nvidia/nemotron-3-super-120b-a12b:free'});
+        const result = await finishAi(lease, {goalId:goal.id,checkinId:checkin.id,analysis:proposed,model:process.env.OPENAI_ANALYSIS_MODEL||'gpt-5.4-mini'});
         analysis = result.analysis;
         aiStatus = 'generated';
       }
