@@ -93,7 +93,7 @@ export type AiLease = z.infer<typeof aiLeaseSchema> & {
   signal?: AbortSignal;
 };
 export function aiProviderConfigured() {
-  return !!process.env.OPENROUTER_API_KEY && hasTrustedAiCredential();
+  return !!process.env.OPENAI_API_KEY && hasTrustedAiCredential();
 }
 export async function beginAi(
   client: any,
@@ -101,7 +101,7 @@ export async function beginAi(
   signal?: AbortSignal,
 ): Promise<AiLease> {
   const p = await requireAiPrivacy(client, domain === 'wealth' || domain === 'wealth_legacy');
-  if (!hasTrustedAiCredential() || (domain !== 'conversation' && !process.env.OPENROUTER_API_KEY))
+  if (!hasTrustedAiCredential() || (domain !== 'conversation' && !process.env.OPENAI_API_KEY))
     throw new AiPrivacyError('UNCONFIGURED');
   // The owner is verified here, never copied from JSON, query parameters or model output.
   const { data: { user }, error } = await client.auth.getUser();
