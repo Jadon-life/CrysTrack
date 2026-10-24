@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { buildScopedContext } from '@/lib/ai/scoped-context';
-import { chatWithOpenRouter, intelligenceChatModel } from '@/lib/ai/intelligence';
+import { chatWithOpenAI, intelligenceChatModel } from '@/lib/ai/intelligence';
 import { chatRequestSchema, safeChatText } from '@/lib/ai/privacy';
 import {
   beginAi,
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       });
     }
     const context = await buildScopedContext(supabase, user.id, 'overview', lease.wealthEnabled);
-    const answer = await chatWithOpenRouter({ context, history, message: body.message }, lease);
+    const answer = await chatWithOpenAI({ context, history, message: body.message }, lease);
     if (!answer) throw new AiPrivacyError('UNCONFIGURED');
     const result = await finishAi(lease, {
       conversationId: body.conversationId || null,
