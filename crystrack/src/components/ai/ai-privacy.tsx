@@ -82,7 +82,7 @@ export function AiPrivacyNotice({ wealth = false }: { wealth?: boolean }) {
               ? 'Wealth sharing is off. Local calculations still work.'
               : !state.configured
                 ? 'AI is enabled, but no provider is configured on this server.'
-                : 'AI is enabled for permitted context. Requests use OpenRouter and its selected model providers.')}
+                : 'AI is enabled for permitted context. Requests go directly to OpenAI through its API.')}
       <Link
         className="mt-1 inline-flex min-h-10 items-center rounded-md px-1 text-cyan-200 underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
         href="/settings#ai-privacy"
@@ -95,9 +95,9 @@ export function AiPrivacyNotice({ wealth = false }: { wealth?: boolean }) {
 const explanation = (
   <>
     <p>
-      AI requests are processed by OpenRouter and potentially its selected model providers. Routing
-      requests ask for restricted retention, but CrysTrack cannot guarantee provider-wide
-      non-retention.
+      AI requests go directly to OpenAI through its API. OpenAI processes permitted content
+      under its API data policies. CrysTrack cannot guarantee that external providers retain
+      no data.
     </p>
     <p>
       Automatic activity context contains saved-zone dates, counts, completion states and numeric
@@ -229,7 +229,7 @@ export function AiPrivacyControls() {
     >
       <h3 className="text-lg font-semibold text-white">AI & Privacy</h3>
       <p className="text-sm leading-relaxed">
-        AI is optional and off by default. If enabled, OpenRouter and its selected model providers
+        AI is optional and off by default. If enabled, OpenAI via its API
         receive your chat text and limited task, goal and assignment counts, states and numeric
         progress. Wealth requires a separate choice. Do not type private information or credentials.
       </p>
@@ -319,7 +319,7 @@ export function AiPrivacyControls() {
         <p className="text-sm leading-relaxed">
           CrysTrack stores conversations and generated insights in your account. Clearing them
           removes those local records and embedded AI analysis, not your tasks, goals, check-ins,
-          money or rewards. It cannot erase copies already processed or retained by OpenRouter or a
+          money or rewards. It cannot erase copies already processed or retained by OpenAI or a
           model provider.
         </p>
         <Button
@@ -368,7 +368,7 @@ export function AiPrivacyControls() {
                 ? 'This deletes your local AI conversations, messages and saved insights. Your source activity and finances stay intact. It does not delete data held by external providers.'
                 : dialog === 'wealth'
                   ? 'Future approved requests may include exact aggregate NGN balances, income, spending, savings, due debt and category patterns. Individual transaction details, notes and bank statements stay excluded.'
-                  : 'You choose to send your chat text and limited task, goal and assignment counts, states and numeric progress to OpenRouter and its selected model providers. Private source notes and reflections are excluded; do not type secrets or identity details. Wealth requires a separate choice. Provider retention cannot be guaranteed, and already transmitted data cannot be recalled.'}
+                  : 'You choose to send your chat text and limited task, goal and assignment counts, states and numeric progress to OpenAI via its API. Private source notes and reflections are excluded; do not type secrets or identity details. Wealth requires a separate choice. Provider retention cannot be guaranteed, and already transmitted data cannot be recalled.'}
             </Dialog.Description>
             <form
               className="mt-4 space-y-4"
