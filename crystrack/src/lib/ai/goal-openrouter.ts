@@ -31,11 +31,11 @@ const responseSchema = {
   additionalProperties: false,
 };
 
-export async function analyzeWithOpenRouter(input: unknown, lease: AiLease): Promise<GoalAnalysis | null> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+export async function analyzeWithOpenAI(input: unknown, lease: AiLease): Promise<GoalAnalysis | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.OPENROUTER_ANALYSIS_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
+  const model = process.env.OPENAI_ANALYSIS_MODEL || 'gpt-5.4-mini';
   const system = `You are CrysTrack's goal-progress analyst. Discuss only the approved numeric progress percentages, relative timing, check-in counts and recorded durations supplied by CrysTrack. The exact goal, target values, units and private written evidence are not supplied; you cannot evaluate them.
 
 Rules:
@@ -51,7 +51,8 @@ Rules:
 
   const data = await requestAiProvider(lease, {
       model,
-      reasoning_effort: 'medium',
+      reasoning_effort: 'none',
+      max_completion_tokens: 1300,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: JSON.stringify(input) },
