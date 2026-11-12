@@ -7,6 +7,7 @@ import {
 import Link from 'next/link';
 import { AiPrivacyControls } from '@/components/ai/ai-privacy';
 import {AccountExport} from '@/components/settings/account-export';
+import {OfflineWorkspaceControls} from '@/components/settings/offline-workspace';
 import { CrystalSettings } from '@/components/crystals/crystal-card';
 import { GlassCard } from '@/components/shared/glass-card';
 import { ImmersiveIntroToggle } from '@/components/settings/immersive-intro-toggle';
@@ -473,7 +474,7 @@ export default function SettingsPage() {
   : ''} </p></div><Button variant="default" onClick={() => void requestLocation({ prompt: true })}>{environmentLoading ? 'Updating…' : 'Use current location'}</Button></div></div><p className="text-xs text-slate-500 mt-4">When you travel, CrysTrack can update after you open the site and location access succeeds. A website cannot continue tracking your physical location after it is closed.</p></GlassCard>}
 
           {active === 'rewards' && <CrystalSettings />}
-          {active === 'privacy' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-4">Privacy & data</h2><div className="space-y-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex gap-2"><Shield className="w-4 h-4 text-emerald-300" /><div><p className="text-sm font-medium text-white">Private-first location</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack does not persist precise GPS coordinates in your database. Location requests are sent directly from your browser to the configured weather/geocoding services.</p></div></div></div><AiPrivacyControls/><AccountExport/></div></GlassCard>}
+          {active === 'privacy' && <GlassCard padding="lg"><h2 className="text-lg font-semibold text-white mb-4">Privacy & data</h2><div className="space-y-3"><div className="rounded-xl border border-white/10 bg-black/10 p-4"><div className="flex gap-2"><Shield className="w-4 h-4 text-emerald-300" /><div><p className="text-sm font-medium text-white">Private-first location</p><p className="text-xs text-[var(--theme-text-muted)] mt-1">CrysTrack does not persist precise GPS coordinates in your database. Location requests are sent directly from your browser to the configured weather/geocoding services.</p></div></div></div><AiPrivacyControls/><OfflineWorkspaceControls/><AccountExport/></div></GlassCard>}
         </div>
       </div>
     </div>

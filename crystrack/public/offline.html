@@ -1,31 +1,44 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#081523">
-  <meta name="robots" content="noindex, nofollow">
-  <title>You're offline · CrysTrack</title>
-  <style>
-    :root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    * { box-sizing: border-box; }
-    body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px;
-      color: #f2f7fc; background: radial-gradient(circle at 50% 10%, #163e58, #081523 60%, #050914); }
-    main { width: min(100%, 440px); padding: 36px 28px; border: 1px solid rgba(255,255,255,.17);
-      border-radius: 26px; background: rgba(255,255,255,.055); box-shadow: 0 24px 70px rgba(0,0,0,.26); }
-    h1 { margin: 0 0 12px; font-size: clamp(24px, 5vw, 30px); line-height: 1.2; }
-    p { margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #dae6f1; }
-    a { display: inline-flex; min-height: 44px; align-items: center; padding: 10px 18px;
-      border: 1px solid #81c5e5; border-radius: 12px; color: #eaf8ff; text-decoration: none;
-      background: rgba(42,124,168,.30); font-size: 15px; font-weight: 650; }
-    a:focus-visible { outline: 3px solid #b5e7ff; outline-offset: 4px; }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#081523"><meta name="robots" content="noindex,nofollow">
+<title>CrysTrack · Secure Offline Workspace</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;color:#f2f7fd;background:radial-gradient(ellipse at top,#10364e 0%,#060e19 56%,#030811 100%);min-height:100vh}
+main{max-width:850px;padding:28px 18px 65px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{font-size:25px;font-weight:800;letter-spacing:-.04em;color:#b8eeff}.badge{padding:7px 12px;border:1px solid #62a9cd55;border-radius:99px;color:#c4eaf7;font-size:12px;background:#0b355340}
+h1{font-size:clamp(26px,5vw,36px);margin:32px 0 8px;letter-spacing:-.045em}h2{font-size:20px}
+p{line-height:1.55;color:#c8d9e7} .card{border-radius:22px;padding:22px;margin:20px 0;background:#ffffff0c;border:1px solid #ffffff25;box-shadow:0 12px 35px #0005;backdrop-filter:blur(12px)}
+label{display:block;margin-bottom:8px;font-weight:650}input,textarea{display:block;width:100%;border-radius:13px;border:1px solid #8ab6d255;background:#04111f;color:white;padding:13px;font:inherit;min-height:45px}
+textarea{resize:vertical;min-height:105px}.offline-button{cursor:pointer;min-height:44px;padding:10px 15px;border-radius:12px;border:1px solid #86d7ed6b;background:#0d3858;color:#effaff;font:600 13px system-ui}.offline-button:hover:not(:disabled){background:#15516f}.offline-button:disabled{opacity:.46;cursor:default}
+.offline-row{border:1px solid #ffffff23;border-radius:14px;padding:14px;margin:10px 0;display:flex;flex-direction:column;gap:6px;background:#ffffff08}
+.offline-row strong{font-size:15px}.offline-row small{white-space:pre-wrap;overflow-wrap:anywhere;color:#c8d9e7;font-size:13px}.offline-row-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}
+.offline-tabs{display:flex;flex-wrap:wrap;gap:8px}.offline-tabs button[aria-pressed=true]{background:#16587a;border-color:#bbf5ff}
+.offline-note-form{display:flex;flex-direction:column;gap:10px}.actions{display:flex;gap:9px;flex-wrap:wrap}
+.note{font-size:13px;color:#b7cddc}a{color:#a7ecff}
+:focus-visible{outline:3px solid #f2ce77;outline-offset:3px}[hidden]{display:none!important}
+</style>
 </head>
-<body>
-  <main role="main">
-    <h1>You're offline</h1>
-    <p>CrysTrack couldn't reach the network. Your private tasks and finances are not stored in this offline page. Reconnect to load your workspace.</p>
-    <a href="/">Try again when connected</a>
-  </main>
-</body>
-</html>
+<body data-crystrack-offline-workspace>
+<main>
+ <div class="top"><div class="brand">◇ CrysTrack</div><span class="badge">🔒 Encrypted Offline Workspace</span></div>
+ <h1>Your progress doesn't stop offline.</h1>
+ <p>Open saved Tasks, Goals, Assignments and Wealth information. Routine check-offs can be queued for later verification. AI, new data and live services need internet.</p>
+ <section class="card" aria-label="Offline unlock and account">
+  <form id="unlock-form"><label for="offline-passphrase">Offline passphrase</label><input type="password" id="offline-passphrase" required minlength="12" autocomplete="off" placeholder="The passphrase you chose in Settings">
+   <div style="margin-top:12px"><button class="offline-button" type="submit">Unlock saved workspace</button></div></form>
+  <div id="offline-actions" class="actions" hidden>
+   <button type="button" id="offline-sync" class="offline-button">Sync pending routine edits</button>
+   <button type="button" id="offline-lock" class="offline-button">Lock now</button>
+   <a class="offline-button" id="offline-open-online" href="/">Open online CrysTrack</a>
+  </div>
+  <p id="offline-state" role="status" aria-live="polite">Checking secure storage…</p>
+  <p id="offline-info" class="note"></p>
+ </section>
+ <div id="offline-content"></div>
+ <p class="note">Your data is encrypted on this device, not added to the service worker's page cache. Offline ticks are not confirmed until the server verifies them. Do not forget your passphrase; it cannot be recovered.</p>
+</main>
+<script src="/offline-workspace.js" defer></script>
+</body></html>
