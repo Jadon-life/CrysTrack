@@ -43,7 +43,7 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const path = new URL(request.url).pathname;
   // Only public generic offline files use CacheStorage. Private API/HTML never do.
-  if (request.method === 'GET' && path === OFFLINE_SCRIPT) {
+  if (request.method === 'GET' && new URL(request.url).origin === self.location.origin && path === OFFLINE_SCRIPT) {
     event.respondWith(caches.open(SHELL_CACHE).then(async cache =>
       (await cache.match(OFFLINE_SCRIPT)) || fetch(request)));
     return;
