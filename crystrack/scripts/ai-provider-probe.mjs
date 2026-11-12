@@ -34,3 +34,8 @@ async function probe(name, extra = {}) {
 }
 await probe('free-chat-with-privacy-and-reasoning',{reasoning:{effort:'low',exclude:true}});
 await probe('free-json-schema-with-privacy',{response_format:{type:'json_schema',json_schema:{name:'crystrack_probe',strict:true,schema:{type:'object',properties:{status:{type:'string'}},required:['status'],additionalProperties:false}}}});
+await probe('free-basic-with-strict-privacy',{provider:{zdr:true,data_collection:'deny',allow_fallbacks:true}});
+await probe('free-basic-with-zdr-only',{provider:{zdr:true,allow_fallbacks:true}});
+await probe('free-basic-with-data-deny-only',{provider:{data_collection:'deny',allow_fallbacks:true}});
+await probe('free-basic-without-provider-filter',{provider:{allow_fallbacks:true}});
+
