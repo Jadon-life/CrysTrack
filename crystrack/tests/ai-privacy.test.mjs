@@ -749,7 +749,7 @@ test('manual goal analysis shares no personal text unless explicitly requested',
     assert.equal(f.calls.length, 1);
     const payload = JSON.stringify(f.calls[0]);
     assert.doesNotMatch(payload, /PRIVATE_/);
-    assert.match(payload, /"progress_mode":"numeric"/);
+    assert.equal(JSON.parse(f.calls[0].messages[1].content).progress_mode, 'numeric');
   });
 });
 
