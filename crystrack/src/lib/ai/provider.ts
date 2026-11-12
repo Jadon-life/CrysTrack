@@ -34,7 +34,7 @@ export async function requestAiProvider(
   try {
     // Authorization linearizes here, immediately before transmission, never from UI/cache.
     await checkAiLease(lease);
-    const send = (payload: Record<string, unknown>) => fetch(OPENROUTER_ENDPOINT, {
+    const send = (payload: Record<string, unknown>, requireSupportedParameters = true) => fetch(OPENROUTER_ENDPOINT, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${key}`,
@@ -48,7 +48,7 @@ export async function requestAiProvider(
         provider: {
           // Block collection for training; ZDR is NOT enforced.
           data_collection: 'deny',
-          require_parameters: Boolean(payload.response_format),
+          require_parameters: requireSupportedParameters,
           allow_fallbacks: true,
         },
       }),
@@ -61,7 +61,7 @@ export async function requestAiProvider(
     if (!response.ok && body.response_format && [400, 404, 422].includes(response.status)) {
       await checkAiLease(lease);
       const { response_format: _unusedFormat, reasoning_effort: _unusedEffort, ...simpler } = body;
-      response = await send(simpler);
+      response = await send(simpler, false);
     }
     if (!response.ok)
       throw new AiPrivacyError(
