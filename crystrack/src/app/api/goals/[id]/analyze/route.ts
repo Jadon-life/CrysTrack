@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { analyzeGoal } from '@/lib/goals/analyze-goal';
+import { OPENROUTER_FREE_MODEL } from '@/lib/ai/provider';
 import {
   beginAi,
   finishAi,
@@ -47,7 +48,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       await finishAi(lease, {
         goalId: id,
         analysis,
-        model: process.env.OPENROUTER_ANALYSIS_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free',
+        model: OPENROUTER_FREE_MODEL,
       }),
       { headers: aiHeaders },
     );

@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 const native = createRequire(import.meta.url),
-  POLICY = '2026-10-20-minimal-v1';
+  POLICY = '2026-11-12-free-no-training-v2';
 function loader(mocks = {}) {
   const cache = new Map();
   function load(file) {
@@ -469,8 +469,9 @@ test('explicit domain/goal/legacy adapters all use guarded fixed transport when 
       assert.equal(f.calls.length, 1, p);
       assert.equal(f.writes, 1, p);
       assert.doesNotMatch(JSON.stringify(f.calls[0]), /PRIVATE_/);
-      assert.equal(f.calls[0].provider.zdr, true);
+      assert.equal(Object.hasOwn(f.calls[0].provider, 'zdr'), false);
       assert.equal(f.calls[0].provider.data_collection, 'deny');
+      assert.equal(f.calls[0].model, 'openrouter/free');
     });
   }
 });

@@ -1,6 +1,7 @@
 import { assertRealServicesAllowed } from '@/lib/preview/mode';
 import { AiPrivacyError, checkAiLease, type AiLease } from './privacy-server';
 
+export const OPENROUTER_FREE_MODEL = 'openrouter/free' as const;
 export const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 /** The sole external model transport. No caller-controlled URL or HTTP Referer. */
 export async function requestAiProvider(
@@ -42,8 +43,10 @@ export async function requestAiProvider(
       },
       body: JSON.stringify({
         ...body,
+        // Free-only: caller and environment cannot select a paid model.
+        model: OPENROUTER_FREE_MODEL,
         provider: {
-          zdr: true,
+          // Block collection for training; ZDR is NOT enforced.
           data_collection: 'deny',
           require_parameters: true,
           allow_fallbacks: true,

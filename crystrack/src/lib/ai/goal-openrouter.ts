@@ -1,4 +1,4 @@
-import { requestAiProvider } from './provider';
+import { requestAiProvider, OPENROUTER_FREE_MODEL } from './provider';
 import type { AiLease } from './privacy-server';
 import { z } from 'zod';
 
@@ -35,7 +35,7 @@ export async function analyzeWithOpenRouter(input: unknown, lease: AiLease): Pro
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.OPENROUTER_ANALYSIS_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
+  const model = OPENROUTER_FREE_MODEL;
   const system = `You are CrysTrack's goal-progress analyst. Discuss only the approved numeric progress percentages, relative timing, check-in counts and recorded durations supplied by CrysTrack. The exact goal, target values, units and private written evidence are not supplied; you cannot evaluate them.
 
 Rules:

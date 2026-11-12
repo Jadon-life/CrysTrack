@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { analyzeGoal } from '@/lib/goals/analyze-goal';
+import { OPENROUTER_FREE_MODEL } from '@/lib/ai/provider';
 import { readAiPrivacy, beginAi, finishAi, assertAiOrigin, aiJson, aiFailure } from '@/lib/ai/privacy-server';
 import { goalCheckinWindow } from '@/lib/goals/checkin-occurrence';
 
@@ -115,7 +116,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       if (readError) throw new Error('AI_CONTEXT_UNAVAILABLE');
       const proposed = await analyzeGoal(refreshedGoal || goal, checkins || [], lease);
       if (proposed) {
-        const result = await finishAi(lease, {goalId:goal.id,checkinId:checkin.id,analysis:proposed,model:process.env.OPENROUTER_ANALYSIS_MODEL||'nvidia/nemotron-3-super-120b-a12b:free'});
+        const result = await finishAi(lease, {goalId:goal.id,checkinId:checkin.id,analysis:proposed,model:OPENROUTER_FREE_MODEL});
         analysis = result.analysis;
         aiStatus = 'generated';
       }
