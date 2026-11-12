@@ -87,8 +87,8 @@ export function OfflineWorkspaceControls() {
         throw new Error('Unexpected server data. Your old offline copy was not changed.');
       if (tasks.length>200 || goals.length>200 || assignments.length>=200)
         throw new Error('This account needs paged offline export. No partial snapshot was saved.');
-      if (source && source.owner!==owner) throw new Error('Session mismatch: no data was saved.');
-      if (owner!==user.id) throw new Error('Account changed. Try again.');
+      if (profile?.user_id!==owner || (source && source.owner!==owner))
+        throw new Error('Signed-in account changed. No offline data was saved.');
       const snapshot = {
         version:1, owner, savedAt:new Date().toISOString(), day:context.day,
         timezone:context.timezone,
