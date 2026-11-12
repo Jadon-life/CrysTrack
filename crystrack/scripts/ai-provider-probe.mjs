@@ -27,7 +27,7 @@ async function probe(name, extra = {}) {
       : msg.includes('invalid')&&msg.includes('key') ? 'INVALID_KEY'
       : reply?.error ? 'UPSTREAM_ERROR' : 'NONE';
     const output=reply?.choices?.[0]?.message?.content;
-    console.log('[AI_PROBE]',JSON.stringify({test:name,status:response.status,upstreamCode:typeof reply?.error?.code==='number'?reply.error.code:null,diagnostic,hasOutput:typeof output==='string'&&output.trim().length>0}));
+    console.log('[AI_PROBE]',JSON.stringify({test:name,status:response.status,upstreamCode:typeof reply?.error?.code==='number'?reply.error.code:null,diagnostic,hasOutput:typeof output==='string'&&output.trim().length>0,finishReason:typeof reply?.choices?.[0]?.finish_reason==='string'?reply.choices[0].finish_reason:null}));
   } catch(e) {
     console.log('[AI_PROBE]',JSON.stringify({test:name,status:0,diagnostic:e?.name==='TimeoutError'?'TIMEOUT':'NETWORK_OR_PARSE_ERROR'}));
   }
@@ -56,3 +56,8 @@ await probe('free-json-schema-without-require-or-zdr',{
   response_format:{type:'json_schema',json_schema:{name:'crystrack_probe',strict:true,schema:{type:'object',properties:{status:{type:'string'}},required:['status'],additionalProperties:false}}},
   provider:{data_collection:'deny',allow_fallbacks:true}
 });
+
+const schema = {type:'json_schema',json_schema:{name:'crystrack_probe',strict:true,schema:{type:'object',properties:{status:{type:'string'}},required:['status'],additionalProperties:false}}};
+const messages=[{role:'system',content:'Return exactly a JSON object matching the required schema with status equal to ok; no other text.'},{role:'user',content:'Test only, no private data: return status ok.'}];
+await probe('analysis-json-schema-500-tokens', {messages, max_tokens:500,response_format:schema,provider:{data_collection:'deny',require_parameters:true,allow_fallbacks:true}});
+await probe('analysis-json-schema-500-reasoning-medium', {messages,reasoning_effort:'medium',max_tokens:500,response_format:schema,provider:{data_collection:'deny',require_parameters:true,allow_fallbacks:true}});
