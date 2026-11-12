@@ -55,8 +55,9 @@ test('AI provider requests restricted OpenRouter routing without asserting reten
   const ai = read('src/lib/ai/intelligence.ts');
   const transport = read('src/lib/ai/provider.ts');
   assert.match(transport, /openrouter\.ai\/api\/v1\/chat\/completions/);
-  assert.match(ai, /openai\/gpt-oss-20b/);
-  assert.match(transport, /zdr:\s*true/);
+  assert.match(ai, /OPENROUTER_FREE_MODEL/);
+  assert.match(transport, /OPENROUTER_FREE_MODEL = 'openrouter\/free'/);
+  assert.doesNotMatch(transport, /\bzdr:\s*true/);
   assert.match(transport, /data_collection:\s*'deny'/);
   assert.match(transport, /require_parameters:\s*true/);
   assert.match(transport, /allow_fallbacks:\s*true/);
@@ -66,7 +67,7 @@ test('AI provider requests restricted OpenRouter routing without asserting reten
   assert.match(ai, /model:\s*intelligenceChatModel\(\)/);
   assert.match(ai, /model:\s*intelligenceAnalysisModel\(\)/);
   assert.doesNotMatch(ai, /\bmodels:/);
-  assert.doesNotMatch(ai, /openrouter\/free|:free/);
+  assert.doesNotMatch(ai, /openai\/gpt-oss-20b/);
   assert.doesNotMatch(ai, /api\.openai\.com|anthropic|gemini/i);
 });
 
@@ -204,12 +205,12 @@ test('CI uses supported Node and verified OpenRouter models', () => {
 
   assert.match(
     ci,
-    /OPENROUTER_CHAT_MODEL:\s*openai\/gpt-oss-20b/,
+    /OPENROUTER_CHAT_MODEL:\s*openrouter\/free/,
   );
 
   assert.match(
     ci,
-    /OPENROUTER_ANALYSIS_MODEL:\s*openai\/gpt-oss-20b/,
+    /OPENROUTER_ANALYSIS_MODEL:\s*openrouter\/free/,
   );
 
   assert.doesNotMatch(

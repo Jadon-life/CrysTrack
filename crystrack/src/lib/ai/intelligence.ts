@@ -1,4 +1,4 @@
-import { requestAiProvider } from './provider';
+import { requestAiProvider, OPENROUTER_FREE_MODEL } from './provider';
 import type { AiLease } from './privacy-server';
 import { z } from 'zod';
 
@@ -48,12 +48,6 @@ const domainResponseSchema = {
   additionalProperties: false,
 };
 
-const DEFAULT_CHAT_MODEL =
-  'openai/gpt-oss-20b';
-
-const DEFAULT_ANALYSIS_MODEL =
-  'openai/gpt-oss-20b';
-
 export const DOMAIN_INSIGHT_POLICY_VERSION =
   '2026-09-28-human-semantics-v2';
 
@@ -67,17 +61,11 @@ type OpenRouterResponse = {
 };
 
 export function intelligenceChatModel() {
-  return (
-    process.env.OPENROUTER_CHAT_MODEL ||
-    DEFAULT_CHAT_MODEL
-  );
+  return OPENROUTER_FREE_MODEL;
 }
 
 export function intelligenceAnalysisModel() {
-  return (
-    process.env.OPENROUTER_ANALYSIS_MODEL ||
-    DEFAULT_ANALYSIS_MODEL
-  );
+  return OPENROUTER_FREE_MODEL;
 }
 
 

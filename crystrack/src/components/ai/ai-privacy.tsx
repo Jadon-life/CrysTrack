@@ -19,13 +19,28 @@ export function announceAiPrivacy() {
 }
 export function useAiPrivacy() {
   const { user } = useAuth(),
-    owner = user?.id;
+    demo = isRestrictedPreview(),
+    owner = demo ? 'synthetic-read-only-preview' : user?.id;
   const [bundle, setBundle] = useState<{ owner: string; state: State } | null>(null),
     [error, setError] = useState('');
   const sequence = useRef(0);
   const refresh = useCallback(async () => {
     const generation = ++sequence.current;
     setBundle(null);
+    if (demo) {
+      // Read-only synthetic preview has no real account or AI grant.
+      // Supply a local OFF state so users can inspect synthetic context.
+      setBundle({
+        owner: 'synthetic-read-only-preview',
+        state: {
+          enabled: false, wealthEnabled: false, revision: 0,
+          policy: AI_PRIVACY_POLICY, acceptedPolicy: null, acceptedAt: null,
+          configured: false,
+        },
+      });
+      setError('');
+      return;
+    }
     if (!owner) return;
     try {
       const response = await fetch('/api/ai/privacy', { cache: 'no-store' });
@@ -45,7 +60,7 @@ export function useAiPrivacy() {
         setError('AI permissions are unavailable. AI stays off until verified.');
       }
     }
-  }, [owner]);
+  }, [owner, demo]);
   useEffect(() => {
     const counter = sequence;
     queueMicrotask(() => void refresh());
@@ -95,9 +110,10 @@ export function AiPrivacyNotice({ wealth = false }: { wealth?: boolean }) {
 const explanation = (
   <>
     <p>
-      AI requests are processed by OpenRouter and potentially its selected model providers. Routing
-      requests ask for restricted retention, but CrysTrack cannot guarantee provider-wide
-      non-retention.
+      AI requests use OpenRouter free models and its selected providers with a no-training
+      data-collection filter. Zero Data Retention (ZDR) is NOT required. A selected provider
+      may retain submitted data under its own policies. CrysTrack cannot guarantee
+      immediate deletion or provider-wide non-retention.
     </p>
     <p>
       Automatic activity context contains saved-zone dates, counts, completion states and numeric
@@ -229,9 +245,10 @@ export function AiPrivacyControls() {
     >
       <h3 className="text-lg font-semibold text-white">AI & Privacy</h3>
       <p className="text-sm leading-relaxed">
-        AI is optional and off by default. If enabled, OpenRouter and its selected model providers
-        receive your chat text and limited task, goal and assignment counts, states and numeric
-        progress. Wealth requires a separate choice. Do not type private information or credentials.
+        AI is optional and off by default. Free OpenRouter models may receive your chat text
+        and limited task, goal and assignment counts, states and numeric progress. Routing blocks
+        data collection for training, but zero retention is NOT guaranteed. Wealth needs separate
+        permission. Do not enter private information or credentials.
       </p>
       {error && (
         <p role="alert" className="text-sm text-amber-100">
@@ -368,7 +385,7 @@ export function AiPrivacyControls() {
                 ? 'This deletes your local AI conversations, messages and saved insights. Your source activity and finances stay intact. It does not delete data held by external providers.'
                 : dialog === 'wealth'
                   ? 'Future approved requests may include exact aggregate NGN balances, income, spending, savings, due debt and category patterns. Individual transaction details, notes and bank statements stay excluded.'
-                  : 'You choose to send your chat text and limited task, goal and assignment counts, states and numeric progress to OpenRouter and its selected model providers. Private source notes and reflections are excluded; do not type secrets or identity details. Wealth requires a separate choice. Provider retention cannot be guaranteed, and already transmitted data cannot be recalled.'}
+                  : 'You choose to send your chat text and limited task, goal and assignment counts, states and numeric progress to OpenRouter and its selected model providers. Private source notes and reflections are excluded; do not type secrets or identity details. Wealth requires a separate choice. Free-model routing excludes providers that collect data for training, but zero retention is NOT required: providers may retain some data. Already transmitted data cannot be recalled.'}
             </Dialog.Description>
             <form
               className="mt-4 space-y-4"
@@ -394,7 +411,7 @@ export function AiPrivacyControls() {
                   ? 'Remove my local AI conversations and saved insights'
                   : dialog === 'wealth'
                     ? 'I allow this optional Wealth scope'
-                    : 'I understand and choose to enable external AI'}
+                    : 'I understand that free AI providers may retain data, and I choose to enable AI'}
               </label>
               <div className="flex flex-wrap justify-end gap-3">
                 <Dialog.Close asChild>
