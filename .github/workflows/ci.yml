@@ -64,7 +64,8 @@ jobs:
 
   preview-safety:
     name: Synthetic boundary tests (local Chromium)
-    runs-on: ubuntu-latest
+    # Playwright 1.57 Chromium installation is not supported on ubuntu-26.04.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: crystrack
