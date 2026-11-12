@@ -16,7 +16,7 @@ function harness(fetcher = async () => { throw Error('offline'); }) {
   const stored = new Map();
   const cache = {
     addAll: async paths => { for(const path of paths){ added.push(path); stored.set(path,new Response(path==='/offline.html'?'GENERIC OFFLINE DOCUMENT':'PUBLIC OFFLINE SCRIPT',{headers:{'Content-Type':path.endsWith('.js')?'text/javascript':'text/html'}})); } },
-    match: async path => stored.get(path),
+    match: async path => stored.get(path)?.clone(),
   };
   const sandbox = {
     URL, Response, Date, Promise,
