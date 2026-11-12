@@ -46,12 +46,12 @@ function goalIsOverdue(goal: any) {
 function latestAnalysis(goal: any) {
   const saved = (goal.goal_insights || [])[0];
   const checkin = (goal.goal_checkins || []).find((item: any) => item.ai_analysis);
-  if (saved && (!checkin || new Date(saved.created_at).getTime() >= new Date(checkin.created_at).getTime())) {
+  if (saved && (!checkin || new Date(saved.generated_at).getTime() >= new Date(checkin.created_at).getTime())) {
     return {
       summary: saved.summary,
       status: saved.risk_level === 'insufficient' ? 'insufficient_evidence' : (saved.risk_level || 'insufficient_evidence'),
       next_action: saved.recommendations,
-      created_at: saved.created_at,
+      created_at: saved.generated_at,
     };
   }
   return checkin ? { ...checkin.ai_analysis, created_at: checkin.created_at } : null;
