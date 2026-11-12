@@ -39,3 +39,20 @@ await probe('free-basic-with-zdr-only',{provider:{zdr:true,allow_fallbacks:true}
 await probe('free-basic-with-data-deny-only',{provider:{data_collection:'deny',allow_fallbacks:true}});
 await probe('free-basic-without-provider-filter',{provider:{allow_fallbacks:true}});
 
+
+await probe('free-chat-exact-production-without-zdr',{
+  reasoning:{effort:'low',exclude:true},
+  provider:{data_collection:'deny',require_parameters:true,allow_fallbacks:true}
+});
+await probe('free-chat-reasoning-without-require',{
+  reasoning:{effort:'low',exclude:true},
+  provider:{data_collection:'deny',allow_fallbacks:true}
+});
+await probe('free-json-schema-require-without-zdr',{
+  response_format:{type:'json_schema',json_schema:{name:'crystrack_probe',strict:true,schema:{type:'object',properties:{status:{type:'string'}},required:['status'],additionalProperties:false}}},
+  provider:{data_collection:'deny',require_parameters:true,allow_fallbacks:true}
+});
+await probe('free-json-schema-without-require-or-zdr',{
+  response_format:{type:'json_schema',json_schema:{name:'crystrack_probe',strict:true,schema:{type:'object',properties:{status:{type:'string'}},required:['status'],additionalProperties:false}}},
+  provider:{data_collection:'deny',allow_fallbacks:true}
+});
