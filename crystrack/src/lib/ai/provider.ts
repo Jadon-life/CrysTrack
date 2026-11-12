@@ -48,8 +48,9 @@ export async function requestAiProvider(
         provider: {
           // Block collection for training; ZDR is NOT enforced.
           data_collection: 'deny',
-          require_parameters: requireSupportedParameters,
+          require_parameters: true,
           allow_fallbacks: true,
+          ...(requireSupportedParameters ? {} : { require_parameters: false }),
         },
       }),
       signal: controller.signal,
