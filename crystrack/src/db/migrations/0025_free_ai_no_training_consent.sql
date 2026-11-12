@@ -24,7 +24,7 @@ BEGIN
  SELECT * INTO p FROM public.ai_privacy_preferences WHERE user_id=u;
  RETURN jsonb_build_object('enabled',coalesce(p.enabled,false),'wealthEnabled',coalesce(p.wealth_enabled,false),
   'revision',coalesce(p.revision,0),'policy','2026-11-12-free-no-training-v2','acceptedPolicy',p.accepted_policy,'acceptedAt',p.accepted_at);
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION public.ai_privacy_mutate(p_action text, p_expected_revision integer, p_request_id uuid, p_enabled boolean DEFAULT false, p_wealth boolean DEFAULT false, p_policy text DEFAULT NULL::text, p_confirm boolean DEFAULT false, p_conversation uuid DEFAULT NULL::uuid)
  RETURNS jsonb
@@ -71,7 +71,7 @@ BEGIN
  END IF;
  INSERT INTO crystrack_ai.mutations(user_id,request_id,payload) VALUES(u,p_request_id,payload);
  RETURN public.ai_privacy_state();
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION public.ai_request_begin(p_owner uuid, p_revision integer, p_domain text)
  RETURNS jsonb
@@ -90,7 +90,7 @@ BEGIN
  IF (SELECT count(*) FROM crystrack_ai.requests WHERE user_id=u AND created_at>now()-interval '10 minutes')>=20 THEN RAISE EXCEPTION 'AI rate limit' USING ERRCODE='PT429'; END IF;
  INSERT INTO crystrack_ai.requests(user_id,revision,domain,wealth_enabled) VALUES(u,p.revision,p_domain,p.wealth_enabled) RETURNING * INTO r;
  RETURN jsonb_build_object('id',r.id,'revision',r.revision,'wealthEnabled',r.wealth_enabled,'domain',r.domain);
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION public.ai_request_check(p_owner uuid, p_request uuid, p_revision integer, p_domain text)
  RETURNS jsonb
@@ -106,7 +106,7 @@ BEGIN
  OR p.revision<>r.revision OR p.wealth_enabled<>r.wealth_enabled OR r.created_at<now()-interval '2 minutes'
  THEN RAISE EXCEPTION 'AI permission changed or expired' USING ERRCODE='PT409'; END IF;
  RETURN jsonb_build_object('id',r.id,'revision',r.revision,'wealthEnabled',r.wealth_enabled,'domain',r.domain);
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION public.ai_request_finish(p_owner uuid, p_request uuid, p_revision integer, p_domain text, p_data jsonb)
  RETURNS jsonb
@@ -163,7 +163,7 @@ BEGIN
  END IF;
  UPDATE crystrack_ai.requests SET stored=true WHERE id=r.id;
  RETURN result;
-END $function$
+END $function$;
 
 CREATE OR REPLACE FUNCTION public.account_export_ai_v1(p_revision integer)
  RETURNS jsonb
@@ -198,6 +198,6 @@ BEGIN
  SELECT c.id,c.user_id,c.title,c.created_at,c.updated_at FROM public.ai_conversations c WHERE c.user_id=u AND EXISTS(
  SELECT 1 FROM crystrack_ai.requests r WHERE r.user_id=u AND r.revision=p.revision AND r.stored AND r.domain IN('chat','conversation') AND r.refs->>'conversationId'=c.id::text))e;
  RETURN jsonb_build_object('ai_conversations',conversations,'ai_messages',messages);
-END $function$
+END $function$;
 
 COMMIT;
