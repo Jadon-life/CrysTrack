@@ -13,6 +13,11 @@ import {
   aiHeaders,
   AiPrivacyError,
 } from '@/lib/ai/privacy-server';
+// One-off shared text is rejected, not silently cleaned or sent, when it contains secrets.
+function shareText(value: unknown, limit: number) {
+  try { return safeChatText(String(value || '').slice(0, limit)); }
+  catch { throw new AiPrivacyError('INPUT', 400); }
+}
 export const runtime = 'nodejs';
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   try {
@@ -48,13 +53,13 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       .limit(20);
     if (readError) throw new AiPrivacyError('UNAVAILABLE');
     const shared: SharedGoalEvidence | null = options.sharePrivateEvidence ? {
-      title: safeChatText(String(goal.title || '').slice(0, 180)),
-      description: safeChatText(String(goal.description || '').slice(0, 1200)),
+      title: shareText(goal.title, 180),
+      description: shareText(goal.description, 1200),
       recent_checkins: (checkins || []).slice(0, 6).map((checkin: any) => ({
         date: String(checkin.created_at || '').slice(0, 10),
-        did: safeChatText(String(checkin.response_text || '').slice(0, 900)),
-        learned: safeChatText(String(checkin.learned_text || '').slice(0, 900)),
-        blockers: safeChatText(String(checkin.blockers || '').slice(0, 500)),
+        did: shareText(checkin.response_text, 900),
+        learned: shareText(checkin.learned_text, 900),
+        blockers: shareText(checkin.blockers, 500),
       })),
     } : null;
     const analysis = await analyzeGoal(goal, checkins || [], lease, shared);
