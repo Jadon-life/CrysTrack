@@ -42,7 +42,7 @@ export async function GET() {
       ...goal,
       goal_checkins: checkins,
       goal_insights: [...(goal.goal_insights || [])].sort((a: any, b: any) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+        new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime()),
       checkin_state: goalCheckinState(goal.checkin_config, checkins, now, timezone),
     };
   }));
