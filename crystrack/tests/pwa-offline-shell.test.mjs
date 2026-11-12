@@ -72,13 +72,17 @@ test('only genuine same-origin navigation failures use public offline document; 
   assert.equal(nav.responded, true);
   assert.equal(await nav.result.text(), 'GENERIC OFFLINE DOCUMENT');
   assert.equal(offline.metrics().fetches, 1);
+  const direct = await offline.run('fetch', { request: { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/offline.html' } });
+  assert.equal(direct.responded, true);
+  assert.equal(await direct.result.text(), 'GENERIC OFFLINE DOCUMENT');
+  assert.equal(offline.metrics().fetches, 1);
   assert.deepEqual([...offline.stored.keys()], ['/offline.html', '/offline-workspace.js']);
   for (const req of [
     { method: 'POST', mode: 'navigate', url: 'https://crystrack.invalid/finance' },
     { method: 'GET', mode: 'cors', url: 'https://crystrack.invalid/api/finance' },
     { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/api/finance' },
     { method: 'GET', mode: 'navigate', url: 'https://external.invalid/' },
-    { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/offline.html' },
+
     { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/_next/app.js' },
   ]) assert.equal((await offline.run('fetch', { request: req })).responded, false);
   assert.equal(offline.metrics().fetches, 1);
