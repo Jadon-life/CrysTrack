@@ -725,3 +725,90 @@ test('server completion re-verifies session owner and never rebinds a trusted pe
     assert.ok(f.trustedCalls.every(c=>c.owner===f.id));
   });
 });
+
+
+test('qualitative check-ins stay private until a fresh per-request share choice', async () => {
+  const f = fixture(true);
+  const { data: goal } = await f.client.from('goals').select('*').maybeSingle();
+  goal.progress_mode = 'ai';
+  goal.measurable = false;
+  await boundary(f, async () => {
+    const r = await invoke(f, 'checkin', { progressValue: null, learnedText: 'Practised on a simulator' });
+    assert.equal(r.status, 201);
+    assert.equal(f.calls.length, 0);
+    assert.equal(f.writes, 0);
+    assert.ok(f.sourceWrites > 0, 'the private check-in itself is stored');
+  });
+});
+
+test('manual goal analysis shares no personal text unless explicitly requested', async () => {
+  const f = fixture(true);
+  await boundary(f, async () => {
+    const r = await invoke(f, 'goal');
+    assert.equal(r.status, 200);
+    assert.equal(f.calls.length, 1);
+    const payload = JSON.stringify(f.calls[0]);
+    assert.doesNotMatch(payload, /PRIVATE_/);
+    assert.match(payload, /"progress_mode":"numeric"/);
+  });
+});
+
+test('one-off sharing sends bounded, owner-scoped goal notes; no paid model or training', async () => {
+  const f = fixture(true);
+  const { data: goal } = await f.client.from('goals').select('*').maybeSingle();
+  goal.title = 'Learning forex trading';
+  goal.description = 'Practising virtual trades and position sizing';
+  goal.goal_checkins[0].response_text = 'Studied support and resistance in demo mode';
+  goal.goal_checkins[0].learned_text = 'Position sizing from a fixed risk budget';
+  await boundary(f, async () => {
+    const r = await f.load('src/app/api/goals/[id]/analyze/route.ts').POST(
+      req('/api/goals/' + f.goalId + '/analyze', { sharePrivateEvidence: true }),
+      { params: Promise.resolve({ id: f.goalId }) },
+    );
+    assert.equal(r.status, 200);
+    assert.equal(f.calls.length, 1);
+    const payload = JSON.stringify(f.calls[0]);
+    assert.match(payload, /Learning forex trading/);
+    assert.match(payload, /support and resistance in demo mode/);
+    assert.match(payload, /demo\/paper trading/);
+    assert.equal(f.calls[0].model, 'openrouter/free');
+    assert.equal(f.calls[0].provider.data_collection, 'deny');
+    assert.equal(f.writes, 1);
+  });
+});
+
+test('sensitive text blocks explicit sharing before upstream model transmission', async () => {
+  const f = fixture(true);
+  await boundary(f, async () => {
+    const r = await f.load('src/app/api/goals/[id]/analyze/route.ts').POST(
+      req('/api/goals/' + f.goalId + '/analyze', { sharePrivateEvidence: true }),
+      { params: Promise.resolve({ id: f.goalId }) },
+    );
+    assert.equal(r.status, 400);
+    assert.equal(f.calls.length, 0);
+    assert.equal(f.writes, 0);
+  });
+});
+
+test('free-only schema rejection retries once without schema, never changing privacy scope', async () => {
+  const f = fixture(true);
+  let attempts = 0;
+  f.provider = async () => {
+    attempts++;
+    if (attempts === 1) return new Response('unsupported schema', { status: 400 });
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(goalAnalysis) } }] }));
+  };
+  await boundary(f, async () => {
+    const r = await invoke(f, 'goal');
+    assert.equal(r.status, 200);
+    assert.equal(f.calls.length, 2);
+    assert.equal(f.calls[0].provider.require_parameters, true);
+    assert.equal(f.calls[1].provider.require_parameters, false);
+    assert.equal(f.calls[1].response_format, undefined);
+    for (const call of f.calls) {
+      assert.equal(call.model, 'openrouter/free');
+      assert.equal(call.provider.data_collection, 'deny');
+    }
+    assert.equal(f.writes, 1);
+  });
+});
