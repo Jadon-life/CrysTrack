@@ -80,3 +80,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # Local loopback build/browser only: no Vercel action, environment or secrets.
       - run: npm run test:preview
+      - name: Verify real offline reopen and encrypted workspace in Chromium
+        run: node scripts/test-offline-browser.mjs

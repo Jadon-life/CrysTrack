@@ -15,14 +15,14 @@ function harness(fetcher = async () => { throw Error('offline'); }) {
   let fetches = 0;
   const stored = new Map();
   const cache = {
-    add: async path => { added.push(path); stored.set(path, new Response('GENERIC OFFLINE DOCUMENT', { headers: { 'Content-Type': 'text/html' } })); },
-    match: async path => stored.get(path),
+    addAll: async paths => { for(const path of paths){ added.push(path); stored.set(path,new Response(path==='/offline.html'?'GENERIC OFFLINE DOCUMENT':'PUBLIC OFFLINE SCRIPT',{headers:{'Content-Type':path.endsWith('.js')?'text/javascript':'text/html'}})); } },
+    match: async path => stored.get(path)?.clone(),
   };
   const sandbox = {
     URL, Response, Date, Promise,
     caches: {
-      open: async key => { assert.equal(key, 'crystrack-public-offline-v1'); return cache; },
-      keys: async () => ['crystrack-public-offline-v0', 'crystrack-public-offline-v1', 'third-party-cache'],
+      open: async key => { assert.equal(key, 'crystrack-public-offline-v2'); return cache; },
+      keys: async () => ['crystrack-public-offline-v1', 'crystrack-public-offline-v2', 'third-party-cache'],
       delete: async key => { deleted.push(key); return true; },
     },
     fetch: request => { fetches += 1; return fetcher(request); },
@@ -55,13 +55,13 @@ function harness(fetcher = async () => { throw Error('offline'); }) {
     metrics: () => ({ claims, skipped, fetches }) };
 }
 
-test('public-only install caches one generic page and activates without deleting unrelated caches', async () => {
+test('public-only install caches generic page and public unlock script and activates without deleting unrelated caches', async () => {
   const h = harness();
   await h.run('install', {});
-  assert.deepEqual(h.added, ['/offline.html']);
+  assert.deepEqual(h.added, ['/offline.html', '/offline-workspace.js']);
   assert.equal(h.metrics().skipped, 1);
   await h.run('activate', {});
-  assert.deepEqual(h.deleted, ['crystrack-public-offline-v0']);
+  assert.deepEqual(h.deleted, ['crystrack-public-offline-v1']);
   assert.equal(h.metrics().claims, 1);
 });
 
@@ -72,13 +72,17 @@ test('only genuine same-origin navigation failures use public offline document; 
   assert.equal(nav.responded, true);
   assert.equal(await nav.result.text(), 'GENERIC OFFLINE DOCUMENT');
   assert.equal(offline.metrics().fetches, 1);
-  assert.deepEqual([...offline.stored.keys()], ['/offline.html']);
+  const direct = await offline.run('fetch', { request: { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/offline.html' } });
+  assert.equal(direct.responded, true);
+  assert.equal(await direct.result.text(), 'GENERIC OFFLINE DOCUMENT');
+  assert.equal(offline.metrics().fetches, 1);
+  assert.deepEqual([...offline.stored.keys()], ['/offline.html', '/offline-workspace.js']);
   for (const req of [
     { method: 'POST', mode: 'navigate', url: 'https://crystrack.invalid/finance' },
     { method: 'GET', mode: 'cors', url: 'https://crystrack.invalid/api/finance' },
     { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/api/finance' },
     { method: 'GET', mode: 'navigate', url: 'https://external.invalid/' },
-    { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/offline.html' },
+
     { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/_next/app.js' },
   ]) assert.equal((await offline.run('fetch', { request: req })).responded, false);
   assert.equal(offline.metrics().fetches, 1);
@@ -90,7 +94,7 @@ test('successful private navigations are returned from network without being per
   const result = await online.run('fetch', { request: { method: 'GET', mode: 'navigate', url: 'https://crystrack.invalid/tasks' } });
   assert.equal(result.responded, true);
   assert.equal(await result.result.text(), 'PRIVATE OWNER DATA');
-  assert.deepEqual([...online.stored.keys()], ['/offline.html']);
+  assert.deepEqual([...online.stored.keys()], ['/offline.html', '/offline-workspace.js']);
 });
 
 test('push and click refuse absolute, scheme-relative, API and backslash destinations', async () => {
@@ -115,13 +119,16 @@ test('push and click refuse absolute, scheme-relative, API and backslash destina
 
 test('public offline HTML contains no owner data, scripts or requests; Preview SW block stays ahead', () => {
   const html = fs.readFileSync('public/offline.html', 'utf8');
-  assert.match(html, /You're offline/);
-  assert.match(html, /Reconnect to load your workspace/);
-  assert.doesNotMatch(html, /<script|<iframe|<form|fetch\(|navigator|localStorage|accounts?\/|token=/i);
+  assert.match(html, /Secure Offline Workspace/);
+  assert.match(html, /offline-workspace\.js/);
+  assert.match(html, /passphrase/i);
+  assert.doesNotMatch(html, /<iframe|fetch\(|localStorage|accounts?\/|token=|api\/finance/i);
   const middleware = fs.readFileSync('src/lib/supabase/middleware.ts', 'utf8');
   assert.match(middleware, /'\/offline.html'/);
+  assert.match(middleware, /'\/offline-workspace.js'/);
   const proxy = fs.readFileSync('src/proxy.ts', 'utf8');
   assert.match(proxy, /path === '\/offline.html'/);
+  assert.match(proxy, /path === '\/offline-workspace.js'/);
   assert.ok(proxy.indexOf('previewRequest(request)') < proxy.indexOf("path === '/offline.html'"), 'Preview must still block worker and protect public fallback');
   const preview = fs.readFileSync('src/lib/preview/request.ts', 'utf8');
   assert.match(preview, /pathname === '\/sw.js'/);

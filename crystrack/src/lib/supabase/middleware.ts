@@ -5,6 +5,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 const PUBLIC_FILES = new Set([
   '/manifest.webmanifest',
   '/offline.html',
+  '/offline-workspace.js',
   '/sw.js',
   '/robots.txt',
   '/sitemap.xml',

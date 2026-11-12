@@ -1,7 +1,8 @@
 /* CrysTrack service worker: public offline fallback plus signed-in push.
    NEVER cache authenticated API, finance, task, owner or Next.js HTML data. */
 const CACHE_PREFIX = 'crystrack-public-offline-';
-const SHELL_CACHE = CACHE_PREFIX + 'v1';
+const SHELL_CACHE = CACHE_PREFIX + 'v2';
+const OFFLINE_SCRIPT = '/offline-workspace.js';
 const OFFLINE_PAGE = '/offline.html';
 
 function safeAppPath(value) {
@@ -24,7 +25,7 @@ self.addEventListener('install', event => {
   // Failing to fetch this generic public page leaves the previous SW intact.
   event.waitUntil(
     caches.open(SHELL_CACHE)
-      .then(cache => cache.add(OFFLINE_PAGE))
+      .then(cache => cache.addAll([OFFLINE_PAGE, OFFLINE_SCRIPT]))
       .then(() => self.skipWaiting()),
   );
 });
@@ -40,10 +41,19 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const request = event.request;
+  const path = new URL(request.url).pathname;
+  // Only public generic offline files use CacheStorage. Private API/HTML never do.
+  if (request.method === 'GET' && new URL(request.url).origin === self.location.origin &&
+      (path === OFFLINE_SCRIPT || (path === OFFLINE_PAGE && request.mode === 'navigate'))) {
+    const publicAsset = path;
+    event.respondWith(caches.open(SHELL_CACHE).then(async cache =>
+      (await cache.match(publicAsset)) || fetch(request)));
+    return;
+  }
   if (request.method !== 'GET' || request.mode !== 'navigate') return;
   const url = new URL(request.url);
   // Never intercept API, unsafe methods, other origins or the fallback itself.
-  if (url.origin !== self.location.origin || url.pathname === OFFLINE_PAGE ||
+  if (url.origin !== self.location.origin ||
       url.pathname === '/api' || url.pathname.startsWith('/api/') ||
       url.pathname === '/_next' || url.pathname.startsWith('/_next/') ||
       url.pathname === '/sw.js') return;
