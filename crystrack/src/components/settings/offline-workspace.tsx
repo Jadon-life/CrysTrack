@@ -75,7 +75,8 @@ export function OfflineWorkspaceControls() {
       const api = await loadVaultScript();
       // Each API verifies the signed-in account. Never cache its HTTP response.
       const context = await getJSON('/api/daily-records/context');
-      const [tasks,goals,assignments,wealth,source] = await Promise.all([
+      const [profile,tasks,goals,assignments,wealth,source] = await Promise.all([
+        getJSON('/api/profile'),
         getJSON('/api/tasks?date='+encodeURIComponent(context.day)),
         getJSON('/api/goals'),
         getJSON('/api/assignments'),
