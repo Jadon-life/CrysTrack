@@ -19,13 +19,28 @@ export function announceAiPrivacy() {
 }
 export function useAiPrivacy() {
   const { user } = useAuth(),
-    owner = user?.id;
+    demo = isRestrictedPreview(),
+    owner = demo ? 'synthetic-read-only-preview' : user?.id;
   const [bundle, setBundle] = useState<{ owner: string; state: State } | null>(null),
     [error, setError] = useState('');
   const sequence = useRef(0);
   const refresh = useCallback(async () => {
     const generation = ++sequence.current;
     setBundle(null);
+    if (demo) {
+      // Read-only synthetic preview has no real account or AI grant.
+      // Supply a local OFF state so users can inspect synthetic context.
+      setBundle({
+        owner: 'synthetic-read-only-preview',
+        state: {
+          enabled: false, wealthEnabled: false, revision: 0,
+          policy: AI_PRIVACY_POLICY, acceptedPolicy: null, acceptedAt: null,
+          configured: false,
+        },
+      });
+      setError('');
+      return;
+    }
     if (!owner) return;
     try {
       const response = await fetch('/api/ai/privacy', { cache: 'no-store' });
@@ -45,7 +60,7 @@ export function useAiPrivacy() {
         setError('AI permissions are unavailable. AI stays off until verified.');
       }
     }
-  }, [owner]);
+  }, [owner, demo]);
   useEffect(() => {
     const counter = sequence;
     queueMicrotask(() => void refresh());
