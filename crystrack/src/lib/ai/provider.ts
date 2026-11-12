@@ -62,7 +62,18 @@ export async function requestAiProvider(
     if (!response.ok && body.response_format && [400, 404, 422].includes(response.status)) {
       await checkAiLease(lease);
       const { response_format: _unusedFormat, reasoning_effort: _unusedEffort, ...simpler } = body;
-      response = await send(simpler, false);
+      const schema = (body.response_format as { json_schema?: { schema?: unknown } })?.json_schema?.schema;
+      const formatHint = 'Return one valid JSON object and no Markdown. Match these field names and types exactly: '
+        + JSON.stringify(schema || {});
+      const messages = Array.isArray(simpler.messages)
+        ? simpler.messages.map((message: any, index: number) =>
+            index === 0 && message?.role === 'system' && typeof message.content === 'string'
+              ? { ...message, content: message.content + '\\n' + formatHint }
+              : message)
+        : simpler.messages;
+      const fallback = { ...simpler, messages };
+      if (new TextEncoder().encode(JSON.stringify(fallback)).byteLength > 64000) throw new AiPrivacyError('INPUT', 413);
+      response = await send(fallback, false);
     }
     if (!response.ok)
       throw new AiPrivacyError(
