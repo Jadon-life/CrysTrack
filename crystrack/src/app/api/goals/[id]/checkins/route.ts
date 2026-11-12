@@ -109,7 +109,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
   try {
     assertAiOrigin(request);
     const permission = await readAiPrivacy(supabase);
-    if (permission.enabled && goal.ai_coaching && aiConfigured) {
+    if (permission.enabled && goal.ai_coaching && aiConfigured && goal.progress_mode !== 'ai') {
       const lease = await beginAi(supabase, 'goal', request.signal);
       const { data: refreshedGoal } = await supabase.from('goals').select('*').eq('id', goal.id).eq('user_id', user.id).single();
       const { data: checkins, error: readError } = await supabase.from('goal_checkins').select('created_at,duration_minutes,progress_value,progress_percent').eq('goal_id',goal.id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(20);

@@ -432,8 +432,8 @@ try {
       await page.goto(origin + '/goals');
       await page.getByTestId('ai-domain-goals').waitFor();
       await page.getByRole('button', { name: 'Check in', exact: true }).first().click();
-      await page.getByText('If you have enabled AI in Privacy settings, CrysTrack can discuss limited numeric progress, timing and check-in patterns. Goal titles, target values and private reflections are not sent. AI cannot evaluate your full goal or written evidence.', { exact: true }).waitFor();
-      await page.getByText(/If you have enabled AI in Privacy settings, CrysTrack can discuss limited numeric/).scrollIntoViewIfNeeded();
+      await page.getByText('For automatic check-ins, AI only receives limited numeric progress, timing and check-in patterns when enabled in Privacy settings. Goal titles, target values and private reflections are not sent automatically. AI cannot evaluate your full goal or written evidence unless you separately confirm sharing with “Analyze my reflections”.', { exact: true }).waitFor();
+      await page.getByText(/For automatic check-ins, AI only receives limited numeric progress/).scrollIntoViewIfNeeded();
       await shot(`goal-numeric-scope-${label}-${width}`, false);
       await page.getByRole('button', { name: 'Cancel', exact: true }).click();
       await page.goto(origin + '/finance');

@@ -44,7 +44,19 @@ export function deterministicGoalContext(goal: any, checkins: any[]) {
   };
 }
 
-export async function analyzeGoal(goal: any, checkins: any[], lease: AiLease): Promise<GoalAnalysis | null> {
+export type SharedGoalEvidence = {
+  title: string;
+  description: string;
+  recent_checkins: Array<{ date: string; did: string; learned: string; blockers: string }>;
+};
+
+export async function analyzeGoal(
+  goal: any, checkins: any[], lease: AiLease, sharedEvidence: SharedGoalEvidence | null = null,
+): Promise<GoalAnalysis | null> {
   const recent = [...checkins].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()).slice(0,12);
-  return analyzeWithOpenRouter(scopedGoal(goal,recent,deterministicGoalContext(goal,recent)), lease);
+  const numericContext = scopedGoal(goal, recent, deterministicGoalContext(goal, recent));
+  return analyzeWithOpenRouter(
+    sharedEvidence ? { ...numericContext, explicitly_shared_goal_evidence: sharedEvidence } : numericContext,
+    lease, Boolean(sharedEvidence),
+  );
 }

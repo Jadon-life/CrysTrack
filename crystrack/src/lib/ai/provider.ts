@@ -34,7 +34,7 @@ export async function requestAiProvider(
   try {
     // Authorization linearizes here, immediately before transmission, never from UI/cache.
     await checkAiLease(lease);
-    const response = await fetch(OPENROUTER_ENDPOINT, {
+    const send = (payload: Record<string, unknown>, requireSupportedParameters = true) => fetch(OPENROUTER_ENDPOINT, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${key}`,
@@ -42,7 +42,7 @@ export async function requestAiProvider(
         'X-Title': 'CrysTrack',
       },
       body: JSON.stringify({
-        ...body,
+        ...payload,
         // Free-only: caller and environment cannot select a paid model.
         model: OPENROUTER_FREE_MODEL,
         provider: {
@@ -50,12 +50,41 @@ export async function requestAiProvider(
           data_collection: 'deny',
           require_parameters: true,
           allow_fallbacks: true,
+          ...(requireSupportedParameters ? {} : { require_parameters: false }),
         },
       }),
       signal: controller.signal,
       cache: 'no-store',
       redirect: 'error',
     });
+    let lastPayload = body;
+    let requireSupportedParameters = true;
+    let response = await send(body);
+    // A free model may lack strict JSON-schema support; retry once without it.
+    if (!response.ok && body.response_format && [400, 404, 422].includes(response.status)) {
+      await checkAiLease(lease);
+      const { response_format: _unusedFormat, reasoning_effort: _unusedEffort, ...simpler } = body;
+      const schema = (body.response_format as { json_schema?: { schema?: unknown } })?.json_schema?.schema;
+      const formatHint = 'Return one valid JSON object and no Markdown. Match these field names and types exactly: '
+        + JSON.stringify(schema || {});
+      const messages = Array.isArray(simpler.messages)
+        ? simpler.messages.map((message: any, index: number) =>
+            index === 0 && message?.role === 'system' && typeof message.content === 'string'
+              ? { ...message, content: message.content + '\\n' + formatHint }
+              : message)
+        : simpler.messages;
+      const fallback = { ...simpler, messages };
+      if (new TextEncoder().encode(JSON.stringify(fallback)).byteLength > 64000) throw new AiPrivacyError('INPUT', 413);
+      lastPayload = fallback;
+      requireSupportedParameters = false;
+      response = await send(fallback, false);
+    }
+    // One bounded retry for a transient free-provider outage (never retry 429).
+    if (!response.ok && [500, 502, 503, 504].includes(response.status)) {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await checkAiLease(lease);
+      response = await send(lastPayload, requireSupportedParameters);
+    }
     if (!response.ok)
       throw new AiPrivacyError(
         response.status === 429 ? 'RATE' : 'UNAVAILABLE',

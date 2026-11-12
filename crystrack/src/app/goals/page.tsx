@@ -44,7 +44,17 @@ function goalIsOverdue(goal: any) {
 }
 
 function latestAnalysis(goal: any) {
-  return (goal.goal_checkins || []).find((item: any) => item.ai_analysis)?.ai_analysis || null;
+  const saved = (goal.goal_insights || [])[0];
+  const checkin = (goal.goal_checkins || []).find((item: any) => item.ai_analysis);
+  if (saved && (!checkin || new Date(saved.generated_at).getTime() >= new Date(checkin.created_at).getTime())) {
+    return {
+      summary: saved.summary,
+      status: saved.risk_level === 'insufficient' ? 'insufficient_evidence' : (saved.risk_level || 'insufficient_evidence'),
+      next_action: saved.recommendations,
+      created_at: saved.generated_at,
+    };
+  }
+  return checkin ? { ...checkin.ai_analysis, created_at: checkin.created_at } : null;
 }
 
 function analysisTone(status: string) {
@@ -62,6 +72,7 @@ export default function GoalsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [checkInGoal, setCheckInGoal] = useState<any | null>(null);
   const [checkIn, setCheckIn] = useState(emptyCheckIn);
+  const [refreshingGoal, setRefreshingGoal] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState(newGoalState());
 
   const loadGoals = useCallback(async () => {
@@ -153,7 +164,9 @@ export default function GoalsPage() {
     const result = await post(`/api/goals/${checkInGoal.id}/checkins`, checkIn);
     await loadGoals();
     window.dispatchEvent(new Event('crystrack-activity-updated'));
-    if (result?.aiStatus === 'off') {
+    if (checkInGoal.progress_mode === 'ai') {
+      setError('Check-in saved privately. Choose “Analyze my reflections” if you want optional, personalized AI feedback.');
+    } else if (result?.aiStatus === 'off') {
       setError('Check-in saved. AI is off; your private reflection stays local. Review AI & Privacy in Settings if you want external analysis of permitted numeric patterns.');
     } else if ((checkInGoal.progress_mode === 'ai' || checkInGoal.ai_coaching) && result?.aiConfigured === false) {
       setError('Check-in saved. AI is not configured on this server; no provider analysis was generated.');
@@ -164,6 +177,24 @@ export default function GoalsPage() {
     }
     setCheckInGoal(null);
     setCheckIn(emptyCheckIn);
+  };
+
+  const handleRefreshAnalysis = async (goal: any) => {
+    const sharePrivateEvidence = goal.progress_mode === 'ai';
+    if (sharePrivateEvidence && !window.confirm(
+      'Share this goal title, description and your six latest written check-ins with external AI for this one analysis? The provider may retain this text. Cancel keeps everything private.',
+    )) return;
+    setRefreshingGoal(goal.id);
+    setError('');
+    try {
+      const result = await post(`/api/goals/${goal.id}/analyze`, { sharePrivateEvidence });
+      if (!result?.analysis) throw new Error('No new AI analysis was confirmed.');
+      await loadGoals();
+    } catch (e: any) {
+      setError(e?.message || 'AI analysis failed. Older saved results have not been changed.');
+    } finally {
+      setRefreshingGoal(null);
+    }
   };
 
   const handleDeleteGoal = async (goal: any) => {
@@ -231,8 +262,16 @@ export default function GoalsPage() {
 
               {percent != null ? <div className="mt-4"><div className="flex justify-between text-xs mb-1.5"><span className="text-[var(--theme-text-muted)]">Progress</span><span className="font-semibold text-[var(--theme-primary)]">{percent}%</span></div><Progress value={percent} className="h-2 bg-white/10" /><p className="text-xs text-[var(--theme-text-muted)] mt-1">{current}{unit ? ` ${unit}` : ''} of {goal.target_value}{unit ? ` ${unit}` : ''}</p></div> : <div className="mt-4 flex items-center gap-2 text-sm text-[var(--theme-text-muted)]"><BrainCircuit className="w-4 h-4 text-violet-300" /><span>Qualitative progress · private reflections stay local</span></div>}
 
-              {analysis && <div className={cn('mt-4 rounded-xl border p-3', analysisTone(analysis.status))}><div className="flex items-center gap-2"><BrainCircuit className="w-4 h-4" /><span className="text-xs font-bold uppercase tracking-wide">{String(analysis.status).replaceAll('_', ' ')}</span></div><p className="mt-2 text-xs">Saved AI-generated commentary · {new Date((goal.goal_checkins||[]).find((x:any)=>x.ai_analysis)?.created_at).toLocaleDateString()}. Not fresh analysis or proof of current consent.</p><p className="text-xs leading-relaxed mt-2 text-white/90">{analysis.summary}</p>{analysis.next_action && <p className="text-xs mt-2 text-white/70"><strong>Next:</strong> {analysis.next_action}</p>}</div>}
+              {analysis && <div className={cn('mt-4 rounded-xl border p-3', analysisTone(analysis.status))}><div className="flex items-center gap-2"><BrainCircuit className="w-4 h-4" /><span className="text-xs font-bold uppercase tracking-wide">{String(analysis.status).replaceAll('_', ' ')}</span></div><p className="mt-2 text-xs">Saved AI feedback · {new Date(analysis.created_at).toLocaleDateString()}. Historical result, not live analysis.</p><p className="text-xs leading-relaxed mt-2 text-white/90">{analysis.summary}</p>{analysis.next_action && <p className="text-xs mt-2 text-white/70"><strong>Next:</strong> {analysis.next_action}</p>}</div>}
 
+              <Button size="sm" className="mt-3 w-full" disabled={refreshingGoal !== null}
+                onClick={() => void handleRefreshAnalysis(goal)}>
+                {refreshingGoal === goal.id ? 'Analyzing…' : goal.progress_mode === 'ai'
+                  ? 'Analyze my reflections' : 'Refresh AI feedback'}
+              </Button>
+              {goal.progress_mode === 'ai' && <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+                Your notes stay private unless you confirm sharing for this one analysis. Requires AI enabled in Settings.
+              </p>}
               <div className="flex items-center justify-between gap-3 text-xs text-[var(--theme-text-muted)] mt-4 mb-4"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{goal.deadline ? getRelativeTime(goal.deadline) : 'No deadline'}</span></div>{overdue ? <span className="text-slate-400">Deadline passed</span> : due && <span className="text-amber-200">Check-in due</span>}</div>
               <div className="flex items-stretch gap-2">
                 {overdue ? (
@@ -276,7 +315,7 @@ export default function GoalsPage() {
           <div><label className="block text-sm font-medium text-slate-300 mb-1.5">What did you learn?</label><textarea value={checkIn.learnedText} onChange={(e) => setCheckIn({ ...checkIn, learnedText: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white resize-none h-16" /></div>
           <div><label className="block text-sm font-medium text-slate-300 mb-1.5">Blockers</label><textarea value={checkIn.blockers} onChange={(e) => setCheckIn({ ...checkIn, blockers: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white resize-none h-16" /></div>
           <div><label className="block text-sm font-medium text-slate-300 mb-1.5">Minutes spent</label><input type="number" min="0" value={checkIn.durationMinutes} onChange={(e) => setCheckIn({ ...checkIn, durationMinutes: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white" /></div>
-          {(checkInGoal?.progress_mode === 'ai' || checkInGoal?.ai_coaching) && <div className="rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs text-violet-100"><div className="flex gap-2"><BrainCircuit className="w-4 h-4 shrink-0" /><p>If you have enabled AI in Privacy settings, CrysTrack can discuss limited numeric progress, timing and check-in patterns. Goal titles, target values and private reflections are not sent. AI cannot evaluate your full goal or written evidence.</p></div></div>}
+          {(checkInGoal?.progress_mode === 'ai' || checkInGoal?.ai_coaching) && <div className="rounded-xl border border-violet-500/20 bg-violet-500/10 p-3 text-xs text-violet-100"><div className="flex gap-2"><BrainCircuit className="w-4 h-4 shrink-0" /><p>For automatic check-ins, AI only receives limited numeric progress, timing and check-in patterns when enabled in Privacy settings. Goal titles, target values and private reflections are not sent automatically. AI cannot evaluate your full goal or written evidence unless you separately confirm sharing with “Analyze my reflections”.</p></div></div>}
         </div>
       </CreateModal>
     </div>
