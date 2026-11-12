@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { analyzeGoal } from '@/lib/goals/analyze-goal';
+import { analyzeGoal, type SharedGoalEvidence } from '@/lib/goals/analyze-goal';
+import { safeChatText } from '@/lib/ai/privacy';
 import { OPENROUTER_FREE_MODEL } from '@/lib/ai/provider';
 import {
   beginAi,
   finishAi,
   assertAiOrigin,
   aiFailure,
+  aiJson,
   aiHeaders,
   AiPrivacyError,
 } from '@/lib/ai/privacy-server';
@@ -20,6 +22,7 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
       } = await client.auth.getUser();
     if (!user) throw new AiPrivacyError('AUTH', 401);
     assertAiOrigin(request);
+    const options = z.object({ sharePrivateEvidence: z.boolean().optional() }).strict().parse(await aiJson(request));
     const lease = await beginAi(client, 'goal', request.signal),
       id = z
         .string()
@@ -36,13 +39,25 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     if (!goal) throw new AiPrivacyError('INPUT', 404);
     const { data: checkins, error: readError } = await client
       .from('goal_checkins')
-      .select('created_at,duration_minutes,progress_percent,progress_value')
+      .select(options.sharePrivateEvidence
+        ? 'created_at,duration_minutes,progress_percent,progress_value,response_text,learned_text,blockers'
+        : 'created_at,duration_minutes,progress_percent,progress_value')
       .eq('goal_id', id)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20);
     if (readError) throw new AiPrivacyError('UNAVAILABLE');
-    const analysis = await analyzeGoal(goal, checkins || [], lease);
+    const shared: SharedGoalEvidence | null = options.sharePrivateEvidence ? {
+      title: safeChatText(String(goal.title || '').slice(0, 180)),
+      description: safeChatText(String(goal.description || '').slice(0, 1200)),
+      recent_checkins: (checkins || []).slice(0, 6).map((checkin: any) => ({
+        date: String(checkin.created_at || '').slice(0, 10),
+        did: safeChatText(String(checkin.response_text || '').slice(0, 900)),
+        learned: safeChatText(String(checkin.learned_text || '').slice(0, 900)),
+        blockers: safeChatText(String(checkin.blockers || '').slice(0, 500)),
+      })),
+    } : null;
+    const analysis = await analyzeGoal(goal, checkins || [], lease, shared);
     if (!analysis) throw new AiPrivacyError('UNCONFIGURED');
     return NextResponse.json(
       await finishAi(lease, {

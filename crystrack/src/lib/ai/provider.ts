@@ -34,7 +34,7 @@ export async function requestAiProvider(
   try {
     // Authorization linearizes here, immediately before transmission, never from UI/cache.
     await checkAiLease(lease);
-    const response = await fetch(OPENROUTER_ENDPOINT, {
+    const send = (payload: Record<string, unknown>) => fetch(OPENROUTER_ENDPOINT, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${key}`,
@@ -42,13 +42,13 @@ export async function requestAiProvider(
         'X-Title': 'CrysTrack',
       },
       body: JSON.stringify({
-        ...body,
+        ...payload,
         // Free-only: caller and environment cannot select a paid model.
         model: OPENROUTER_FREE_MODEL,
         provider: {
           // Block collection for training; ZDR is NOT enforced.
           data_collection: 'deny',
-          require_parameters: true,
+          require_parameters: Boolean(payload.response_format),
           allow_fallbacks: true,
         },
       }),
@@ -56,6 +56,13 @@ export async function requestAiProvider(
       cache: 'no-store',
       redirect: 'error',
     });
+    let response = await send(body);
+    // A free model may lack strict JSON-schema support; retry once without it.
+    if (!response.ok && body.response_format && [400, 404, 422].includes(response.status)) {
+      await checkAiLease(lease);
+      const { response_format: _unusedFormat, reasoning_effort: _unusedEffort, ...simpler } = body;
+      response = await send(simpler);
+    }
     if (!response.ok)
       throw new AiPrivacyError(
         response.status === 429 ? 'RATE' : 'UNAVAILABLE',

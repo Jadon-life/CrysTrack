@@ -21,7 +21,7 @@ export async function GET() {
   const [{ data: goals, error }, { data: profile }] = await Promise.all([
     supabase
       .from('goals')
-      .select('*, goal_checkins(*)')
+      .select('*, goal_checkins(*), goal_insights(*)')
       .eq('user_id', user.id)
       .eq('status', 'active')
       .order('created_at', { ascending: false }),
@@ -41,6 +41,8 @@ export async function GET() {
     return {
       ...goal,
       goal_checkins: checkins,
+      goal_insights: [...(goal.goal_insights || [])].sort((a: any, b: any) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
       checkin_state: goalCheckinState(goal.checkin_config, checkins, now, timezone),
     };
   }));
